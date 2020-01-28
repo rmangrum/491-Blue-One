@@ -73,9 +73,9 @@ Background.prototype.update = function () {
 //      a good example of this can be seen with the "jump" that Marriott has in his code,
 //      I've put it in BlackMage as a placeholder/reference for now.
 function BlackMage(game) {
-    this.standRight = new Animation(AM.getAsset("./img/blackMageStandRight.png"), 0, 0, 64,  64, .2, 1, true, false);
-    this.walkRightAnimation = new Animation(AM.getAsset("./img/blackMageWalkRight.png"), 0, 0, 64, 64, .2, 2, true, false);
-    this.jumpAnimation = new Animation(AM.getAsset("./img/blackMageJump.png"), 200, 325, 64, 64, .2, 18, false, true);
+    this.idle_right_animation = new Animation(AM.getAsset("./img/sprites/black_mage/idle_right.png"), 0, 0, 64,  64, .2, 1, true, false);
+    this.walk_right_animation = new Animation(AM.getAsset("./img/sprites/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 2, true, false);
+    this.jump_animation = new Animation(AM.getAsset("./img/sprites/black_mage/jump.png"), 200, 325, 64, 64, .2, 18, false, true);
     this.walkRight = false;
     this.walkLeft = false;
     this.jumping = false;
@@ -94,11 +94,11 @@ BlackMage.prototype.update = function () {
     if (this.game.dKey) this.walkRight = true;
 
     if (this.jumping) {
-        if (this.jumpAnimation.isDone()) {
-            this.jumpAnimation.elapsedTime = 0;
+        if (this.jump_animation.isDone()) {
+            this.jump_animation.elapsedTime = 0;
             this.jumping = false;
         }
-        var jumpDistance = this.jumpAnimation.elapsedTime / this.jumpAnimation.totalTime;
+        var jumpDistance = this.jump_animation.elapsedTime / this.jump_animation.totalTime;
         var totalHeight = 200;
 
         if (jumpDistance > 0.5) jumpDistance = 1 - jumpDistance;
@@ -109,6 +109,19 @@ BlackMage.prototype.update = function () {
     }
     // Planning to put checks on if walkLeft/walkRight === true
     Entity.prototype.update.call(this);
+}
+
+// The draw function that checks what the entity is doing and drawing the appropriate animation
+// I've commented out the checks for now so that the entity can atleast be idle on the canvas
+BlackMage.prototype.draw = function (ctx) {
+    // if (this.jumping) {
+    //     this.jumpAnimation.drawFrame(this.game.clockTick, ctx, this.x + 17, this.y - 34);
+    // }
+    // else {
+    //     this.walkRightAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y);
+    // }
+    this.idle_right_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
+    Entity.prototype.draw.call(this);
 }
 
 // The draw function that checks what the entity is doing and drawing the appropriate animation
@@ -195,9 +208,9 @@ var AM = new AssetManager();
 AM.queueDownload("./img/background.jpg");
 
 // BlackMage images
-AM.queueDownload("./img/blackMageStandRight.png");
-AM.queueDownload("./img/blackMageWalkRight.png");
-AM.queueDownload("./img/blackMageJump.png");
+AM.queueDownload("./img/sprites/black_mage/idle_right.png");
+AM.queueDownload("./img/sprites/black_mage/walk_right.png");
+AM.queueDownload("./img/sprites/black_mage/jump.png");
 //AM.queueDownload("./img/blackMageWalkLeft.png");
 
 
