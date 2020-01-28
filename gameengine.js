@@ -72,14 +72,17 @@ GameEngine.prototype.startInput = function () {
 
             case 87: // W
                 // Climb Up
+                that.wKey = true;
             break;
 
             case 65: // A
                 // Walk left
+                that.aKey = true;
             break;
 
             case 83: // S
                 // Climb Down
+                that.sKey = true;
             break;
 
             case 68: // D
