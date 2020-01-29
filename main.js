@@ -92,8 +92,8 @@ BlackMage.prototype.constructor = BlackMage;
 BlackMage.prototype.update = function () {
     // What keys are being pressed
     if (this.game.space) this.jumping = true;
-    if (this.game.aKey) this.walkLeft = true;  
-    if (this.game.dKey) this.walkRight = true;
+    if (this.game.leftKey) this.walkLeft = true;  
+    if (this.game.rightKey) this.walkRight = true;
 
     if (this.jumping) {
         if (this.jump_animation.isDone()) {

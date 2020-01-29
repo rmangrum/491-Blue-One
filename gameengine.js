@@ -81,20 +81,35 @@ GameEngine.prototype.startInput = function () {
 
     // inner function that loops keypresses
     function keyLoop () {
-        if (keys[32]) {
+        if (keys[32]) { // spacebar
+            // jump
             that.space = true;
         }
-        if (keys[87]) {
-            that.wKey = true;
+        if (keys[38]) { // up arrow
+            that.upKey = true;
         }
-        if (keys[65]) {
-            that.aKey = true;
+        if (keys[37]) { // left arrow
+            // walk left
+            that.leftKey = true;
         }
-        if (keys[83]) {
-            that.sKey = true;
+        if (keys[40]) { // down arrow
+            that.downKey = true;
         }
-        if (keys[68]) {
-            that.dKey = true;
+        if (keys[39]) { // right arrow
+            // walk right
+            that.rightKey = true;
+        }
+        if (keys[90]) { // z key
+            // character swap
+            that.zKey = true;
+        }
+        if (keys[88]) { // x key
+            // attack
+            that.xKey = true;
+        }
+        if (keys[67]) { // c key
+            // interact/action
+            that.cKey = true;
         }
     }   
     console.log('Input started');
@@ -138,10 +153,13 @@ GameEngine.prototype.loop = function () {
     this.draw();
     // keys
     this.space = null;
-    this.wKey = null;
-    this.aKey = null;
-    this.sKey = null;
-    this.dKey = null;   
+    this.upKey = null;
+    this.leftKey = null;
+    this.downKey = null;
+    this.rightKey = null;
+    this.zKey = null;
+    this.xKey = null;
+    this.cKey = null;   
 }
 
 function Entity(game, x, y) {
