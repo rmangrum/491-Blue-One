@@ -61,38 +61,57 @@ GameEngine.prototype.start = function () {
 GameEngine.prototype.startInput = function () {
     console.log('Starting input');
     var that = this;
+    // an array to hold keys when they are pressed
+    var keys = [];
 
-    // Switch case for which key is being pressed, not all methods are yet implemented
+    // detects keydown and adds the keycode to the keysArray
     this.ctx.canvas.addEventListener("keydown", function (e) {
-        switch (e.keyCode) {
-            case 32: // Space
-                // Jump
-                that.space = true;
-            break;
-
-            case 87: // W
-                // Climb Up
-                that.wKey = true;
-            break;
-
-            case 65: // A
-                // Walk left
-                that.aKey = true;
-            break;
-
-            case 83: // S
-                // Climb Down
-                that.sKey = true;
-            break;
-
-            case 68: // D
-                // Walk right
-                that.dKey = true;
-            break;
-        }
+        keys[e.keyCode] = true;
         e.preventDefault();
     }, false);
 
+    // detects keyup and removes the keycode from the keysArray
+    this.ctx.canvas.addEventListener("keyup", function (e) {
+        delete keys[e.keyCode];
+        e.preventDefault();
+    }, false);
+
+    // loop every 1ms so there is no delay of movement
+    setInterval(keyLoop, 1);
+
+    // inner function that loops keypresses
+    function keyLoop () {
+        if (keys[32]) { // spacebar
+            // jump
+            that.space = true;
+        }
+        if (keys[38]) { // up arrow
+            that.upKey = true;
+        }
+        if (keys[37]) { // left arrow
+            // walk left
+            that.leftKey = true;
+        }
+        if (keys[40]) { // down arrow
+            that.downKey = true;
+        }
+        if (keys[39]) { // right arrow
+            // walk right
+            that.rightKey = true;
+        }
+        if (keys[90]) { // z key
+            // character swap
+            that.zKey = true;
+        }
+        if (keys[88]) { // x key
+            // attack
+            that.xKey = true;
+        }
+        if (keys[67]) { // c key
+            // interact/action
+            that.cKey = true;
+        }
+    }   
     console.log('Input started');
 }
 
@@ -134,10 +153,13 @@ GameEngine.prototype.loop = function () {
     this.draw();
     // keys
     this.space = null;
-    this.wKey = null;
-    this.aKey = null;
-    this.sKey = null;
-    this.dKey = null;   
+    this.upKey = null;
+    this.leftKey = null;
+    this.downKey = null;
+    this.rightKey = null;
+    this.zKey = null;
+    this.xKey = null;
+    this.cKey = null;   
 }
 
 function Entity(game, x, y) {

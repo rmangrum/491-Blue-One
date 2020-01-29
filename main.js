@@ -75,6 +75,8 @@ Background.prototype.update = function () {
 function BlackMage(game) {
     this.idle_right_animation = new Animation(AM.getAsset("./img/sprites/black_mage/idle_right.png"), 0, 0, 64,  64, .2, 1, true, false);
     this.walk_right_animation = new Animation(AM.getAsset("./img/sprites/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 2, true, false);
+    this.idle_left_animation = new Animation(AM.getAsset("./img/sprites/black_mage/idle_left.png"), 0, 0, 64, 64, .2, 1, true, false);
+    this.walk_left_animation = new Animation(AM.getAsset("./img/sprites/black_mage/walk_left.png"), 0, 0, 64, 64, .2, 2, true, false);
     this.jump_animation = new Animation(AM.getAsset("./img/sprites/black_mage/jump.png"), 200, 325, 64, 64, .2, 18, false, true);
     this.walkRight = false;
     this.walkLeft = false;
@@ -90,8 +92,8 @@ BlackMage.prototype.constructor = BlackMage;
 BlackMage.prototype.update = function () {
     // What keys are being pressed
     if (this.game.space) this.jumping = true;
-    if (this.game.aKey) this.walkLeft = true;
-    if (this.game.dKey) this.walkRight = true;
+    if (this.game.leftKey) this.walkLeft = true;  
+    if (this.game.rightKey) this.walkRight = true;
 
     if (this.jumping) {
         if (this.jump_animation.isDone()) {
@@ -99,108 +101,39 @@ BlackMage.prototype.update = function () {
             this.jumping = false;
         }
         var jumpDistance = this.jump_animation.elapsedTime / this.jump_animation.totalTime;
-        var totalHeight = 200;
+        var totalHeight = 25;
 
         if (jumpDistance > 0.5) jumpDistance = 1 - jumpDistance;
 
-        //var height = jumpDistance * 2 * totalHeight;
-        var height = totalHeight*(-4 * (jumpDistance * jumpDistance - jumpDistance));
+        var height = totalHeight*(-20 * (jumpDistance * jumpDistance - jumpDistance));
         this.y = this.ground - height;
     }
-    // Planning to put checks on if walkLeft/walkRight === true
+    if (this.walkLeft) {
+        this.walkLeft = false;
+        this.x -= 3.5;
+    }
+    if (this.walkRight) {
+        this.walkRight = false;
+        this.x += 3.5;
+    }
     Entity.prototype.update.call(this);
 }
 
 // The draw function that checks what the entity is doing and drawing the appropriate animation
-// I've commented out the checks for now so that the entity can atleast be idle on the canvas
 BlackMage.prototype.draw = function (ctx) {
-    // if (this.jumping) {
-    //     this.jumpAnimation.drawFrame(this.game.clockTick, ctx, this.x + 17, this.y - 34);
-    // }
-    // else {
-    //     this.walkRightAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y);
-    // }
+    if (this.jumping) {
+        this.jump_animation.drawFrame(this.game.clockTick, ctx, this.x + 17, this.y - 34, 2);
+    }
+    if (this.walkLeft) {
+        this.walk_left_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
+    }
+    if (this.walkRight) {
+        this.walk_right_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);;
+    }
     this.idle_right_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
     Entity.prototype.draw.call(this);
 }
 
-// The draw function that checks what the entity is doing and drawing the appropriate animation
-// I've commented out the checks for now so that the entity can atleast be idle on the canvas
-BlackMage.prototype.draw = function (ctx) {
-    // if (this.jumping) {
-    //     this.jumpAnimation.drawFrame(this.game.clockTick, ctx, this.x + 17, this.y - 34);
-    // }
-    // else {
-    //     this.walkRightAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y);
-    // }
-    this.standRight.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
-    Entity.prototype.draw.call(this);
-}
-
-// All of this commented out code is old stuff I used to check each of the sprite animations
-
-// BlackMage Walk Right
-// function blackMageWalkRight(game, spritesheet) {
-//     this.animation = new Animation(spritesheet, 64, 64, 1, .2, 2, true, 2);
-//     this.speed = 100;
-//     this.ctx = game.ctx;
-//     Entity.call(this, game, 200, 325);
-// }
-// blackMageWalkRight.prototype = new Entity();
-// blackMageWalkRight.prototype.constructor = blackMageWalkRight;
-
-// blackMageWalkRight.prototype.update = function () {
-//     this.x += this.game.clockTick * this.speed;
-//     if (this.x > 900) this.x = -100;
-//     Entity.prototype.update.call(this);
-// }
-
-// blackMageWalkRight.prototype.draw = function () {
-//     this.animation.drawFrame(this.game.clockTick, this.ctx, this.x, this.y);
-//     Entity.prototype.draw.call(this);
-// }
-
-// BlackMage Walk Left
-// function blackMageWalkLeft(game, spritesheet) {
-//     this.animation = new Animation(spritesheet, 64, 64, 1, .2, 2, true, 2);
-//     this.speed = 100;
-//     this.ctx = game.ctx;
-//     Entity.call(this, game, 500, 325);
-// }
-// blackMageWalkLeft.prototype = new Entity();
-// blackMageWalkLeft.prototype.constructor = blackMageWalkLeft;
-
-// blackMageWalkLeft.prototype.update = function () {
-//     this.x -= this.game.clockTick * this.speed;
-//     if (this.x < -100) this.x = 900;
-//     Entity.prototype.update.call(this);
-// }
-
-// blackMageWalkLeft.prototype.draw = function () {
-//     this.animation.drawFrame(this.game.clockTick, this.ctx, this.x, this.y);
-//     Entity.prototype.draw.call(this);
-// }
-
-// BlackMage Jump
-// function blackMageJump(game, spritesheet) {
-//     this.animation = new Animation(spritesheet, 64, 64, 4, .2, 18, true, 2);
-//     this.speed = 100;
-//     this.ctx = game.ctx;
-//     Entity.call(this, game, 200, 325);
-// }
-// blackMageJump.prototype = new Entity();
-// blackMageJump.prototype.constructor = blackMageJump;
-
-// blackMageJump.prototype.update = function() {
-//     this.y -= this.game.clockTick * this.speed;
-//     if (this.y < 156) this.y = 325;
-//     Entity.prototype.update.call(this);
-// }
- 
-// blackMageJump.prototype.draw = function() {
-//     this.animation.drawFrame(this.game.clockTick, this.ctx, this.x, this.y);
-//     Entity.prototype.draw.call(this);
-// }
 
 var AM = new AssetManager();
 
@@ -210,8 +143,9 @@ AM.queueDownload("./img/background.jpg");
 // BlackMage images
 AM.queueDownload("./img/sprites/black_mage/idle_right.png");
 AM.queueDownload("./img/sprites/black_mage/walk_right.png");
+AM.queueDownload("./img/sprites/black_mage/idle_left.png");
+AM.queueDownload("./img/sprites/black_mage/walk_left.png");
 AM.queueDownload("./img/sprites/black_mage/jump.png");
-//AM.queueDownload("./img/blackMageWalkLeft.png");
 
 
 AM.downloadAll(function () {
