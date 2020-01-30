@@ -61,57 +61,78 @@ GameEngine.prototype.start = function () {
 GameEngine.prototype.startInput = function () {
     console.log('Starting input');
     var that = this;
-    // an array to hold keys when they are pressed
-    var keys = [];
 
-    // detects keydown and adds the keycode to the keysArray
     this.ctx.canvas.addEventListener("keydown", function (e) {
-        keys[e.keyCode] = true;
-        e.preventDefault();
-    }, false);
-
-    // detects keyup and removes the keycode from the keysArray
-    this.ctx.canvas.addEventListener("keyup", function (e) {
-        delete keys[e.keyCode];
-        e.preventDefault();
-    }, false);
-
-    // loop every 1ms so there is no delay of movement
-    setInterval(keyLoop, 1);
-
-    // inner function that loops keypresses
-    function keyLoop () {
-        if (keys[32]) { // spacebar
+        if (e.keyCode === 32) { // spacebar
             // jump
             that.space = true;
         }
-        if (keys[38]) { // up arrow
+        if (e.keyCode === 38) { // up arrow
             that.upKey = true;
         }
-        if (keys[37]) { // left arrow
+        if (e.keyCode === 37) { // left arrow
             // walk left
             that.leftKey = true;
         }
-        if (keys[40]) { // down arrow
+        if (e.keyCode === 40) { // down arrow
             that.downKey = true;
         }
-        if (keys[39]) { // right arrow
+        if (e.keyCode === 39) { // right arrow
             // walk right
             that.rightKey = true;
         }
-        if (keys[90]) { // z key
+        if (e.keyCode === 90) { // z key
             // character swap
             that.zKey = true;
         }
-        if (keys[88]) { // x key
+        if (e.keyCode === 88) { // x key
             // attack
             that.xKey = true;
         }
-        if (keys[67]) { // c key
+        if (e.keyCode === 67) { // c key
             // interact/action
             that.cKey = true;
         }
-    }   
+        e.preventDefault();
+    }, false);
+
+    this.ctx.canvas.addEventListener("keyup", function (e) {
+        if (e.keyCode === 32) { // spacebar
+            // jump
+            that.space = false;
+        }
+        if (e.keyCode === 38) { // up arrow
+            that.upKey = false;
+        }
+        if (e.keyCode === 37) { // left arrow
+            // walk left
+            that.leftKey = false;
+        }
+        if (e.keyCode === 40) { // down arrow
+            that.downKey = false;
+        }
+        if (e.keyCode === 39) { // right arrow
+            // walk right
+            that.rightKey = false;
+        }
+        if (e.keyCode === 90) { // z key
+            // character swap
+            that.zKey = false;
+        }
+        if (e.keyCode === 88) { // x key
+            // attack
+            that.xKey = false;
+        }
+        if (e.keyCode === 67) { // c key
+            // interact/action
+            that.cKey = false;
+        }
+        if (e.keyCode === 68) { // d key
+            // interact2/action2
+            that.dKey = false;
+        }
+        e.preventDefault();
+    }, false);  
     console.log('Input started');
 }
 
@@ -153,13 +174,16 @@ GameEngine.prototype.loop = function () {
     this.draw();
     // keys
     this.space = null;
+    /*
     this.upKey = null;
     this.leftKey = null;
     this.downKey = null;
     this.rightKey = null;
     this.zKey = null;
     this.xKey = null;
-    this.cKey = null;   
+    this.cKey = null; 
+    this.dKey = null; 
+    */
 }
 
 function Entity(game, x, y) {
