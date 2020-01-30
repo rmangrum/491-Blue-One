@@ -58,19 +58,21 @@ function Background(game, spritesheet) {
     this.spritesheet = spritesheet;
     this.game = game;
     this.ctx = game.ctx;
+    // this.ground = 412; not used, placed into gameEngine temporarily
 };
 
 Background.prototype.draw = function () {
     this.ctx.drawImage(this.spritesheet, this.x, this.y);
-};
+}
 
 Background.prototype.update = function () {
-};
+}
 
 // Platform Prototype
-function Platform(game, theX, theY, theWidth, theHeight) {
+function Platform(game, spritesheet, theX, theY, theWidth, theHeight) {
     this.x = theX;
     this.y = theY;
+    this.spritesheet = spritesheet;
     this.width = theWidth;
     this.height = theHeight;
     this.game = game;
@@ -79,10 +81,15 @@ function Platform(game, theX, theY, theWidth, theHeight) {
 
 Platform.prototype.draw = function () {
     this.ctx.save();
-    this.ctx.fillStyle = 'Black';
-    this.ctx.strokeStyle = 'Red';
-    this.ctx.fillRect(this.x, this.y, this.width, this.height);
+
+    // this.ctx.fillStyle = 'Black';
+    // this.ctx.fillRect(this.x, this.y, this.width, this.height);
+    
+    this.ctx.strokeStyle = 'Red';   
     this.ctx.strokeRect(this.x, this.y, this.width, this.height);
+
+    this.ctx.drawImage(this.spritesheet, this.x - 2, this.y - 2, this.width + 4, this.height + 4);
+
     this.ctx.restore();
 }
 
@@ -97,8 +104,10 @@ function NaughtyBox(game, theX, theY, isMobile) {
     this.height = 40;
     this.game = game;
     this.ctx = game.ctx;
-    this.direction = 'Right';
-    this.mobile = isMobile;    
+    this.faceRight = true;
+    this.mobile = isMobile;
+    this.velocityX = 0;
+    this.velocityY = 0;
 }
 
 NaughtyBox.prototype.draw = function () {
@@ -112,17 +121,35 @@ NaughtyBox.prototype.draw = function () {
 
 NaughtyBox.prototype.update = function () {
     if(this.mobile) {
-        if (this.direction === 'Right' && this.x < 626) {
-            this.x += 0.75;
+        if (this.faceRight && this.x < 626) {
+            this.velocityX = 0.75;
         } else {
-            this.direction = 'Left';
+            this.faceRight = false;
         }
-        if (this.direction === 'Left' && this.x > 450) {
-            this.x -= 0.75;
+        if (!this.faceRight && this.x > 450) {
+            this.velocityX = -0.75;
         } else {
-            this.direction = 'Right';
+            this.faceRight = true;
         }
     }
+
+    // Falling checks
+
+    if (this.y + this.height >= this.game.ground) {
+        this.velocityY = 0;
+    } else if (this.y + this.height + this.velocityY + this.game.gravity >= this.game.ground) {
+        this.y = this.game.ground - this.height;
+        this.velocityY = 0;
+    } else {
+        if (this.velocityY + this.game.gravity >= this.game.terminalVelocity) {
+            this.velocityY = this.game.terminalVelocity;
+        } else {
+            this.velocityY += this.game.gravity;
+        }
+    }
+
+    this.x += this.velocityX;
+    this.y += this.velocityY;
 };
 
 // The initial prototype character:
@@ -134,10 +161,13 @@ function BlackMage(game) {
     this.walk_right_animation = new Animation(AM.getAsset("./img/sprites/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 2, true, false);
     this.idle_left_animation = new Animation(AM.getAsset("./img/sprites/black_mage/idle_left.png"), 0, 0, 64, 64, .2, 1, true, false);
     this.walk_left_animation = new Animation(AM.getAsset("./img/sprites/black_mage/walk_left.png"), 0, 0, 64, 64, .2, 2, true, false);
-    this.jump_animation = new Animation(AM.getAsset("./img/sprites/black_mage/jump.png"), 200, 325, 64, 64, .2, 18, false, true);
-    this.walkRight = false;
-    this.walkLeft = false;
+    this.jump_animation = new Animation(AM.getAsset("./img/sprites/black_mage/jump.png"), 200, 325, 64, 64, .2, 6, false, true);
+    this.faceRight = true;
+    this.walking = false;
     this.jumping = false;
+
+    this.velocityX = 0;
+    this.velocityY = 0;
     
     // Bounding Box parameters
     this.width = 24;
@@ -152,10 +182,37 @@ BlackMage.prototype = new Entity();
 BlackMage.prototype.constructor = BlackMage;
 
 BlackMage.prototype.update = function () {
-    // What keys are being pressed
+    // if blackmage is facing right when the left key is pressed
+    if (this.game.leftKey && !this.game.rightKey && this.faceRight) {
+        this.faceRight = false;
+    }
+    // if blackmage is facing left when the right key is pressed
+    if (this.game.rightKey && !this.game.leftKey && !this.faceRight) {
+        this.faceRight = true;
+    }
+    // if left/right is pressed blackmage is walking
+    if (this.game.leftKey || this.game.rightKey) {
+        this.walking = true;
+    }
+
+    // test for idle
+    if (!this.game.leftKey && !this.game.rightKey) {
+        this.walking = false;
+        this.velocityX = 0;
+    }
+
+    // if spacebar blackmage is jumping
     if (this.game.space) this.jumping = true;
-    if (this.game.leftKey) this.walkLeft = true;  
-    if (this.game.rightKey) this.walkRight = true;
+
+    if (this.walking) {
+        // walking and facing right 
+        if (this.faceRight) {
+            this.velocityX = 3;
+        // walking and facing left
+        } else {
+            this.velocityX = -3;
+        }
+    }
 
     if (this.jumping) {
         if (this.jump_animation.isDone()) {
@@ -163,21 +220,17 @@ BlackMage.prototype.update = function () {
             this.jumping = false;
         }
         var jumpDistance = this.jump_animation.elapsedTime / this.jump_animation.totalTime;
-        var totalHeight = 25;
+        var totalHeight = 120;
 
         if (jumpDistance > 0.5) jumpDistance = 1 - jumpDistance;
 
-        var height = totalHeight*(-20 * (jumpDistance * jumpDistance - jumpDistance));
+        var height = totalHeight*(-4 * (jumpDistance * jumpDistance - jumpDistance));
         this.y = this.ground - height;
     }
-    if (this.walkLeft) {
-        this.walkLeft = false;
-        this.x -= 3.5;
-    }
-    if (this.walkRight) {
-        this.walkRight = false;
-        this.x += 3.5;
-    }
+
+    this.x += this.velocityX;
+    this.y += this.velocityY;
+
     Entity.prototype.update.call(this);
 }
 
@@ -186,13 +239,19 @@ BlackMage.prototype.draw = function (ctx) {
     if (this.jumping) {
         this.jump_animation.drawFrame(this.game.clockTick, ctx, this.x + 17, this.y - 34, 2);
     }
-    if (this.walkLeft) {
-        this.walk_left_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
+    if (this.walking) {
+        if (this.faceRight) {
+            this.walk_right_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
+        } else {
+            this.walk_left_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
+        }
+    } else {
+        if (this.faceRight) {
+            this.idle_right_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
+        } else {
+            this.idle_left_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
+        }
     }
-    if (this.walkRight) {
-        this.walk_right_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);;
-    }
-    this.idle_right_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
     Entity.prototype.draw.call(this);
 
     // Bounding Box draw
@@ -202,11 +261,74 @@ BlackMage.prototype.draw = function (ctx) {
     ctx.restore();
 }
 
+// example entity to show the damage animation
+function BMDamage(game) {
+    this.damage_animation = new Animation(AM.getAsset("./img/sprites/black_mage/damage.png"), 0, 0, 64, 64, .3, 5, true, false);
+    this.takingDmg = true;
+    Entity.call(this, game, 0, 0);
+}
 
+BMDamage.prototype = new Entity();
+BMDamage.prototype.constructor = BMDamage;
+
+BMDamage.prototype.update = function () {
+}
+
+BMDamage.prototype.draw = function (ctx) {
+    if (this.takingDmg) {
+        this.damage_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
+    }
+    Entity.prototype.draw.call(this);
+}
+
+// example entity to show the death animation
+function BMDeath(game) {
+    this.death_animation = new Animation(AM.getAsset("./img/sprites/black_mage/death.png"), 0, 0, 64, 64, .3, 6, true, false);
+    this.dead = true;
+    Entity.call(this, game, 100, 0);
+}
+
+BMDeath.prototype = new Entity();
+BMDeath.prototype.constructor = BMDeath;
+
+BMDeath.prototype.update = function () {
+}
+
+BMDeath.prototype.draw = function (ctx) {
+    if (this.dead) {
+        this.death_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
+    }
+    Entity.prototype.draw.call(this);
+}
+
+// example entity for the jump animation if we cant get it working on BlackMage
+function BMJump(game) {
+    this.jump_animation = new Animation(AM.getAsset("./img/sprites/black_mage/jump.png"), 0, 0, 64, 64, .3, 7, true, false);
+    this.jumping = true;
+    Entity.call(this, game, 200, 0);
+}
+
+BMJump.prototype = new Entity();
+BMJump.prototype.constructor = BMJump;
+
+BMJump.prototype.update = function () {
+}
+
+BMJump.prototype.draw = function (ctx) {
+    if (this.jumping) {
+        this.jump_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
+    }
+    Entity.prototype.draw.call(this);
+}
+
+// Start of actual game
 var AM = new AssetManager();
 
 // background image
 AM.queueDownload("./img/background.jpg");
+
+// Platform image
+AM.queueDownload("./img/grass_platform.png");
 
 // BlackMage images
 AM.queueDownload("./img/sprites/black_mage/idle_right.png");
@@ -214,6 +336,10 @@ AM.queueDownload("./img/sprites/black_mage/walk_right.png");
 AM.queueDownload("./img/sprites/black_mage/idle_left.png");
 AM.queueDownload("./img/sprites/black_mage/walk_left.png");
 AM.queueDownload("./img/sprites/black_mage/jump.png");
+
+// example animations for prototype
+AM.queueDownload("./img/sprites/black_mage/damage.png");
+AM.queueDownload("./img/sprites/black_mage/death.png");
 
 
 AM.downloadAll(function () {
@@ -227,7 +353,12 @@ AM.downloadAll(function () {
 
     gameEngine.addEntity(new Background(gameEngine, AM.getAsset("./img/background.jpg")));
     gameEngine.addEntity(new BlackMage(gameEngine));
-    gameEngine.addEntity(new Platform(gameEngine, 450, 310, 200, 25));
+    // example animation entities
+    gameEngine.addEntity(new BMDamage(gameEngine));
+    gameEngine.addEntity(new BMDeath(gameEngine));
+    gameEngine.addEntity(new BMJump(gameEngine));
+    // collision temporaries
+    gameEngine.addEntity(new Platform(gameEngine, AM.getAsset("./img/grass_platform.png"), 450, 310, 200, 25));
     gameEngine.addEntity(new NaughtyBox(gameEngine, 450, 270, true));
-    gameEngine.addEntity(new NaughtyBox(gameEngine, 500, 372, false));
+    gameEngine.addEntity(new NaughtyBox(gameEngine, 800, 200, false));
 });
