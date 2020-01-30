@@ -52,6 +52,27 @@ Animation.prototype.isDone = function () {
     return (this.elapsedTime >= this.totalTime);
 }
 
+function getGround(leftX, rightX, bottomY, game) {
+    var highGround = game.ground;
+    var leftBound = 0;
+    var rightBound = 900;
+
+    game.entities.forEach(function(entity) {
+        if (entity.type === 'Platform' && entity.y >= bottomY) {
+            if ((leftX >= entity.x && rightX <= entity.x + entity.width) || 
+                    (leftX <= entity.x && rightX >= entity.x) ||
+                    (rightX >= entity.x + entity.width && leftX <= entity.x + entity.width)) {
+                if (entity.y <= highGround) {
+                    highGround = entity.y;
+                    leftBound = entity.x;
+                    rightBound = entity.x + entity.width;
+                } 
+            }
+        }
+    })
+    return [highGround, leftBound, rightBound];
+}
+
 function Background(game, spritesheet) {
     this.x = 0;
     this.y = 0;
@@ -102,7 +123,7 @@ function RedSlime(game, theX, theY, isMobile) {
     this.height = 20;
     this.game = game;
     this.ctx = game.ctx;
-    this.faceRight = false;
+    this.faceRight = true;
     this.mobile = isMobile;
     this.velocityX = 0;
     this.velocityY = 0;
@@ -120,29 +141,13 @@ RedSlime.prototype.draw = function (ctx) {
 RedSlime.prototype.update = function () {
 
     // Check which platform entity will hit first
-    var highGround = this.game.ground;
-    var leftBound = 0;
-    var rightBound = 900;
-    var that = this;
-    this.game.entities.forEach(function(entity) {
-        if (entity.type === 'Platform' && entity.y >= that.yBound + that.height) {
-            if ((that.xBound > entity.x && that.xBound + that.width < entity.x + entity.width) || 
-                    (that.xBound < entity.x && that.xBound + that.width > entity.x) ||
-                    (that.xBound + that.width > entity.x + entity.width && that.xBound < entity.x + entity.width)) {
-                if (entity.y <= highGround) {
-                    highGround = entity.y;
-                    leftBound = entity.x;
-                    rightBound = entity.x + entity.width;
-                } 
-            }
-        }
-    })
+    var currentPlatform = getGround(this.xBound, this.xBound + this.width, this.yBound + this.height, this.game);
 
     // Falling checks
-    if (this.yBound + this.height >= highGround) {
+    if (this.yBound + this.height >= currentPlatform[0]) {
         this.velocityY = 0;
-    } else if (this.yBound + this.height + this.velocityY + this.game.gravity >= highGround) {
-        this.yBound = highGround - this.height;
+    } else if (this.yBound + this.height + this.velocityY + this.game.gravity >= currentPlatform[0]) {
+        this.yBound = currentPlatform[0] - this.height;
         this.yDraw = this.yBound - 45;
         this.velocityY = 0;
     } else {
@@ -154,12 +159,12 @@ RedSlime.prototype.update = function () {
     }
 
     if(this.mobile) {
-        if (this.faceRight && this.xBound + this.width < rightBound) {
+        if (this.faceRight && this.xBound + this.width < currentPlatform[2]) {
             this.velocityX = 0.75;
         } else {
             this.faceRight = false;
         }
-        if (!this.faceRight && this.xBound > leftBound) {
+        if (!this.faceRight && this.xBound > currentPlatform[1]) {
             this.velocityX = -0.75;
         } else {
             this.faceRight = true;
@@ -185,17 +190,21 @@ function BlackMage(game) {
     this.faceRight = true;
     this.walking = false;
     this.jumping = false;
-
+    this.falling = false;
+    this.game = game;
+    
     this.velocityX = 0;
     this.velocityY = 0;
     
+    // this.ground = 325;
+    Entity.call(this, game, 0, 320);
+
     // Bounding Box parameters
+    this.xBound = this.x + 52;
+    this.yBound = this.y + 47;
     this.width = 24;
     this.height = 40;
     // End BB
-
-    this.ground = 325;
-    Entity.call(this, game, 0, 325);
 }
 
 BlackMage.prototype = new Entity();
@@ -224,6 +233,7 @@ BlackMage.prototype.update = function () {
     // if spacebar blackmage is jumping
     if (this.game.space) this.jumping = true;
 
+    // Walking
     if (this.walking) {
         // walking and facing right 
         if (this.faceRight) {
@@ -234,6 +244,16 @@ BlackMage.prototype.update = function () {
         }
     }
 
+    // Activate jump
+    if (this.jumping && !this.falling) {
+        this.y--;
+        this.yBound--;
+        this.velocityY = -11;
+        this.jumping = false;
+        this.falling = true;
+    }
+    
+    /* Deprecated jump
     if (this.jumping) {
         if (this.jump_animation.isDone()) {
             this.jump_animation.elapsedTime = 0;
@@ -247,11 +267,36 @@ BlackMage.prototype.update = function () {
         var height = totalHeight*(-4 * (jumpDistance * jumpDistance - jumpDistance));
         this.y = this.ground - height;
     }
+    */
 
-    this.x += this.velocityX;
-    this.y += this.velocityY;
+    // Check which platform entity will hit first
+    var currentPlatform = getGround(this.xBound, this.xBound + this.width, this.yBound + this.height, this.game);
+
+    // Falling checks
+    if (this.yBound + this.height >= currentPlatform[0]) {
+        this.velocityY = 0;
+        this.falling = false;
+    } else if (this.yBound + this.height + this.velocityY + this.game.gravity >= currentPlatform[0]) {
+        this.yBound = currentPlatform[0] - this.height;
+        this.y = this.yBound - 47;
+        this.velocityY = 0;
+        this.falling = false;
+    } else {
+        if (this.velocityY + this.game.gravity >= this.game.terminalVelocity) {
+            this.velocityY = this.game.terminalVelocity;
+            this.falling = true;
+        } else {
+            this.velocityY += this.game.gravity;
+            this.falling = true;
+        }
+    }
 
     Entity.prototype.update.call(this);
+    // Update position
+    this.x += this.velocityX;
+    this.xBound += this.velocityX;
+    this.y += this.velocityY;
+    this.yBound += this.velocityY;
 }
 
 // The draw function that checks what the entity is doing and drawing the appropriate animation
@@ -277,7 +322,7 @@ BlackMage.prototype.draw = function (ctx) {
     // Bounding Box draw
     ctx.save();
     ctx.strokeStyle = 'Red';
-    ctx.strokeRect(this.x + 52, this.y + 47, this.width, this.height);
+    ctx.strokeRect(this.xBound, this.yBound, this.width, this.height);
     ctx.restore();
 }
 
