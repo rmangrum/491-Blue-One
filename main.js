@@ -58,19 +58,21 @@ function Background(game, spritesheet) {
     this.spritesheet = spritesheet;
     this.game = game;
     this.ctx = game.ctx;
+    // this.ground = 412; not used, placed into gameEngine temporarily
 };
 
 Background.prototype.draw = function () {
     this.ctx.drawImage(this.spritesheet, this.x, this.y);
-};
+}
 
 Background.prototype.update = function () {
-};
+}
 
 // Platform Prototype
-function Platform(game, theX, theY, theWidth, theHeight) {
+function Platform(game, spritesheet, theX, theY, theWidth, theHeight) {
     this.x = theX;
     this.y = theY;
+    this.spritesheet = spritesheet;
     this.width = theWidth;
     this.height = theHeight;
     this.game = game;
@@ -79,10 +81,15 @@ function Platform(game, theX, theY, theWidth, theHeight) {
 
 Platform.prototype.draw = function () {
     this.ctx.save();
-    this.ctx.fillStyle = 'Black';
-    this.ctx.strokeStyle = 'Red';
-    this.ctx.fillRect(this.x, this.y, this.width, this.height);
+
+    // this.ctx.fillStyle = 'Black';
+    // this.ctx.fillRect(this.x, this.y, this.width, this.height);
+    
+    this.ctx.strokeStyle = 'Red';   
     this.ctx.strokeRect(this.x, this.y, this.width, this.height);
+
+    this.ctx.drawImage(this.spritesheet, this.x - 2, this.y - 2, this.width + 4, this.height + 4);
+
     this.ctx.restore();
 }
 
@@ -97,8 +104,10 @@ function NaughtyBox(game, theX, theY, isMobile) {
     this.height = 40;
     this.game = game;
     this.ctx = game.ctx;
-    this.direction = 'Right';
-    this.mobile = isMobile;    
+    this.faceRight = true;
+    this.mobile = isMobile;
+    this.velocityX = 0;
+    this.velocityY = 0;
 }
 
 NaughtyBox.prototype.draw = function () {
@@ -112,17 +121,35 @@ NaughtyBox.prototype.draw = function () {
 
 NaughtyBox.prototype.update = function () {
     if(this.mobile) {
-        if (this.direction === 'Right' && this.x < 626) {
-            this.x += 0.75;
+        if (this.faceRight && this.x < 626) {
+            this.velocityX = 0.75;
         } else {
-            this.direction = 'Left';
+            this.faceRight = false;
         }
-        if (this.direction === 'Left' && this.x > 450) {
-            this.x -= 0.75;
+        if (!this.faceRight && this.x > 450) {
+            this.velocityX = -0.75;
         } else {
-            this.direction = 'Right';
+            this.faceRight = true;
         }
     }
+
+    // Falling checks
+
+    if (this.y + this.height >= this.game.ground) {
+        this.velocityY = 0;
+    } else if (this.y + this.height + this.velocityY + this.game.gravity >= this.game.ground) {
+        this.y = this.game.ground - this.height;
+        this.velocityY = 0;
+    } else {
+        if (this.velocityY + this.game.gravity >= this.game.terminalVelocity) {
+            this.velocityY = this.game.terminalVelocity;
+        } else {
+            this.velocityY += this.game.gravity;
+        }
+    }
+
+    this.x += this.velocityX;
+    this.y += this.velocityY;
 };
 
 // The initial prototype character:
@@ -130,14 +157,17 @@ NaughtyBox.prototype.update = function () {
 //      a good example of this can be seen with the "jump" that Marriott has in his code,
 //      I've put it in BlackMage as a placeholder/reference for now.
 function BlackMage(game) {
-    this.idle_right_animation = new Animation(AM.getAsset("./img/sprites/black_mage/idle_right.png"), 0, 0, 64,  64, .2, 1, true, false);
-    this.walk_right_animation = new Animation(AM.getAsset("./img/sprites/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 2, true, false);
-    this.idle_left_animation = new Animation(AM.getAsset("./img/sprites/black_mage/idle_left.png"), 0, 0, 64, 64, .2, 1, true, false);
-    this.walk_left_animation = new Animation(AM.getAsset("./img/sprites/black_mage/walk_left.png"), 0, 0, 64, 64, .2, 2, true, false);
-    this.jump_animation = new Animation(AM.getAsset("./img/sprites/black_mage/jump.png"), 200, 325, 64, 64, .2, 6, false, true);
+    this.idle_right_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_right.png"), 0, 0, 64,  64, .2, 1, true, false);
+    this.walk_right_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 2, true, false);
+    this.idle_left_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_left.png"), 0, 0, 64, 64, .2, 1, true, false);
+    this.walk_left_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_left.png"), 0, 0, 64, 64, .2, 2, true, false);
+    this.jump_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/jump.png"), 200, 325, 64, 64, .2, 6, false, true);
     this.faceRight = true;
     this.walking = false;
     this.jumping = false;
+
+    this.velocityX = 0;
+    this.velocityY = 0;
     
     // Bounding Box parameters
     this.width = 24;
@@ -165,8 +195,10 @@ BlackMage.prototype.update = function () {
         this.walking = true;
     }
 
+    // test for idle
     if (!this.game.leftKey && !this.game.rightKey) {
         this.walking = false;
+        this.velocityX = 0;
     }
 
     // if spacebar blackmage is jumping
@@ -175,12 +207,13 @@ BlackMage.prototype.update = function () {
     if (this.walking) {
         // walking and facing right 
         if (this.faceRight) {
-            this.x += 3;
+            this.velocityX = 3;
         // walking and facing left
         } else {
-            this.x -= 3;
+            this.velocityX = -3;
         }
     }
+    
     if (this.jumping) {
         if (this.jump_animation.isDone()) {
             this.jump_animation.elapsedTime = 0;
@@ -194,7 +227,10 @@ BlackMage.prototype.update = function () {
         var height = totalHeight*(-4 * (jumpDistance * jumpDistance - jumpDistance));
         this.y = this.ground - height;
     }
-    
+
+    this.x += this.velocityX;
+    this.y += this.velocityY;
+
     Entity.prototype.update.call(this);
 }
 
@@ -227,7 +263,7 @@ BlackMage.prototype.draw = function (ctx) {
 
 // example entity to show the damage animation
 function BMDamage(game) {
-    this.damage_animation = new Animation(AM.getAsset("./img/sprites/black_mage/damage.png"), 0, 0, 64, 64, .3, 5, true, false);
+    this.damage_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/damage.png"), 0, 0, 64, 64, .3, 5, true, false);
     this.takingDmg = true;
     Entity.call(this, game, 0, 0);
 }
@@ -247,7 +283,7 @@ BMDamage.prototype.draw = function (ctx) {
 
 // example entity to show the death animation
 function BMDeath(game) {
-    this.death_animation = new Animation(AM.getAsset("./img/sprites/black_mage/death.png"), 0, 0, 64, 64, .3, 6, true, false);
+    this.death_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death.png"), 0, 0, 64, 64, .3, 6, true, false);
     this.dead = true;
     Entity.call(this, game, 100, 0);
 }
@@ -267,7 +303,7 @@ BMDeath.prototype.draw = function (ctx) {
 
 // example entity for the jump animation if we cant get it working on BlackMage
 function BMJump(game) {
-    this.jump_animation = new Animation(AM.getAsset("./img/sprites/black_mage/jump.png"), 0, 0, 64, 64, .3, 7, true, false);
+    this.jump_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/jump.png"), 0, 0, 64, 64, .3, 7, true, false);
     this.jumping = true;
     Entity.call(this, game, 200, 0);
 }
@@ -285,20 +321,72 @@ BMJump.prototype.draw = function (ctx) {
     Entity.prototype.draw.call(this);
 }
 
+BMDeath.prototype.draw = function (ctx) {
+    if (this.dead) {
+        this.death_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
+    }
+    Entity.prototype.draw.call(this);
+}
+
+// example entity for the jump animation if we cant get it working on BlackMage
+function BMJump(game) {
+    this.jump_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/jump.png"), 0, 0, 64, 64, .3, 7, true, false);
+    this.jumping = true;
+    Entity.call(this, game, 200, 0);
+}
+
+BMJump.prototype = new Entity();
+BMJump.prototype.constructor = BMJump;
+
+BMJump.prototype.update = function () {
+}
+
+BMJump.prototype.draw = function (ctx) {
+    if (this.jumping) {
+        this.jump_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
+    }
+    Entity.prototype.draw.call(this);
+}
+
+// an entity to display controls in text form
+function ControlsText(game, theX, theY) {
+    this.x = theX;
+    this.y = theY;
+    this.game = game;
+    this.ctx = game.ctx;
+}
+
+ControlsText.prototype.update = function () {
+}
+
+ControlsText.prototype.draw = function (ctx) {
+    this.ctx.save();
+    this.ctx.font = "30px Georgia";
+    this.ctx.fillText("CONTROLS:", 700, 30);
+    this.ctx.font = "20px Georgio";
+    this.ctx.fillText("Left Arrow Key: move left", 650, 60);
+    this.ctx.fillText("Right Arrow Key: move right", 650, 90);
+    this.ctx.fillText("Spacebar: Jump", 650, 120);
+}
+
+// Start of actual game
 var AM = new AssetManager();
 
 // background image
 AM.queueDownload("./img/background.jpg");
 
+// Platform image
+AM.queueDownload("./img/grass_platform.png");
+
 // BlackMage images
-AM.queueDownload("./img/sprites/black_mage/idle_right.png");
-AM.queueDownload("./img/sprites/black_mage/walk_right.png");
-AM.queueDownload("./img/sprites/black_mage/idle_left.png");
-AM.queueDownload("./img/sprites/black_mage/walk_left.png");
-AM.queueDownload("./img/sprites/black_mage/jump.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/idle_right.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/walk_right.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/idle_left.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/walk_left.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/jump.png");
 // example animations for prototype
-AM.queueDownload("./img/sprites/black_mage/damage.png");
-AM.queueDownload("./img/sprites/black_mage/death.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/damage.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/death.png");
 
 
 AM.downloadAll(function () {
@@ -316,8 +404,9 @@ AM.downloadAll(function () {
     gameEngine.addEntity(new BMDamage(gameEngine));
     gameEngine.addEntity(new BMDeath(gameEngine));
     gameEngine.addEntity(new BMJump(gameEngine));
+    gameEngine.addEntity(new ControlsText(gameEngine));
     // collision temporaries
-    gameEngine.addEntity(new Platform(gameEngine, 450, 310, 200, 25));
+    gameEngine.addEntity(new Platform(gameEngine, AM.getAsset("./img/grass_platform.png"), 450, 310, 200, 25));
     gameEngine.addEntity(new NaughtyBox(gameEngine, 450, 270, true));
-    gameEngine.addEntity(new NaughtyBox(gameEngine, 500, 372, false));
+    gameEngine.addEntity(new NaughtyBox(gameEngine, 800, 200, false));
 });
