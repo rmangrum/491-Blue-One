@@ -348,6 +348,66 @@ BMJump.prototype.draw = function (ctx) {
     Entity.prototype.draw.call(this);
 }
 
+// example entity for the enemy damage animation
+function EnemyDamage(game) {
+    this.enemy_damage_animation = new Animation(AM.getAsset("./img/sprites/enemies/red_slime/damage.png"), 0, 0, 32, 32, .3, 8, true, false);
+    this.damage = true;
+    Entity.call(this, game, 300, 0);
+}
+
+EnemyDamage.prototype = new Entity();
+EnemyDamage.prototype.constructor = EnemyDamage;
+
+EnemyDamage.prototype.update = function () {
+}
+
+EnemyDamage.prototype.draw = function (ctx) {
+    if (this.damage) {
+        this.enemy_damage_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2.5);
+    }
+    Entity.prototype.draw.call(this);
+}
+
+// example entity for the enemy idle animation
+function EnemyIdle(game) {
+    this.enemy_idle_animation = new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle.png"), 0, 0, 32, 32, .3, 8, true, false);
+    this.idle = true;
+    Entity.call(this, game, 350, 0);
+}
+
+EnemyIdle.prototype = new Entity();
+EnemyIdle.prototype.constructor = EnemyIdle;
+
+EnemyIdle.prototype.update = function () {
+}
+
+EnemyIdle.prototype.draw = function (ctx) {
+    if (this.idle) {
+        this.enemy_idle_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2.5);
+    }
+    Entity.prototype.draw.call(this);
+}
+
+// example entity for the enemy roll animation
+function EnemyRoll(game) {
+    this.enemy_roll_animation = new Animation(AM.getAsset("./img/sprites/enemies/red_slime/rolling.png"), 0, 0, 32, 32, .3, 8, true, false);
+    this.roll = true;
+    Entity.call(this, game, 400, 0);
+}
+
+EnemyRoll.prototype = new Entity();
+EnemyRoll.prototype.constructor = EnemyRoll;
+
+EnemyRoll.prototype.update = function () {
+}
+
+EnemyRoll.prototype.draw = function (ctx) {
+    if (this.roll) {
+        this.enemy_roll_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2.5);
+    }
+    Entity.prototype.draw.call(this);
+}
+
 // an entity to display controls in text form
 function ControlsText(game, theX, theY) {
     this.x = theX;
@@ -367,6 +427,7 @@ ControlsText.prototype.draw = function (ctx) {
     this.ctx.fillText("Left Arrow Key: move left", 650, 60);
     this.ctx.fillText("Right Arrow Key: move right", 650, 90);
     this.ctx.fillText("Spacebar: Jump", 650, 120);
+    this.ctx.fillText("Example Animations:", 5, 20);
 }
 
 // Start of actual game
@@ -387,7 +448,9 @@ AM.queueDownload("./img/sprites/heroes/black_mage/jump.png");
 // example animations for prototype
 AM.queueDownload("./img/sprites/heroes/black_mage/damage.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/death.png");
-
+AM.queueDownload("./img/sprites/enemies/red_slime/damage.png");
+AM.queueDownload("./img/sprites/enemies/red_slime/idle.png");
+AM.queueDownload("./img/sprites/enemies/red_slime/rolling.png");
 
 AM.downloadAll(function () {
     console.log("starting");
@@ -405,6 +468,10 @@ AM.downloadAll(function () {
     gameEngine.addEntity(new BMDeath(gameEngine));
     gameEngine.addEntity(new BMJump(gameEngine));
     gameEngine.addEntity(new ControlsText(gameEngine));
+    gameEngine.addEntity(new EnemyDamage(gameEngine));
+    gameEngine.addEntity(new EnemyIdle(gameEngine));
+    gameEngine.addEntity(new EnemyRoll(gameEngine));
+
     // collision temporaries
     gameEngine.addEntity(new Platform(gameEngine, AM.getAsset("./img/grass_platform.png"), 450, 310, 200, 25));
     gameEngine.addEntity(new NaughtyBox(gameEngine, 450, 270, true));
