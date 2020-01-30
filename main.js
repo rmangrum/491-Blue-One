@@ -164,6 +164,11 @@ BlackMage.prototype.update = function () {
     if (this.game.leftKey || this.game.rightKey) {
         this.walking = true;
     }
+
+    if (!this.game.leftKey && !this.game.rightKey) {
+        this.walking = false;
+    }
+
     // if spacebar blackmage is jumping
     if (this.game.space) this.jumping = true;
 

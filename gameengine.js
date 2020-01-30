@@ -174,6 +174,7 @@ GameEngine.prototype.loop = function () {
     this.draw();
     // keys
     this.space = null;
+    /*
     this.upKey = null;
     this.leftKey = null;
     this.downKey = null;
@@ -182,6 +183,7 @@ GameEngine.prototype.loop = function () {
     this.xKey = null;
     this.cKey = null; 
     this.dKey = null; 
+    */
 }
 
 function Entity(game, x, y) {
