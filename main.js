@@ -252,22 +252,6 @@ BlackMage.prototype.update = function () {
         this.jumping = false;
         this.falling = true;
     }
-    
-    /* Deprecated jump
-    if (this.jumping) {
-        if (this.jump_animation.isDone()) {
-            this.jump_animation.elapsedTime = 0;
-            this.jumping = false;
-        }
-        var jumpDistance = this.jump_animation.elapsedTime / this.jump_animation.totalTime;
-        var totalHeight = 120;
-
-        if (jumpDistance > 0.5) jumpDistance = 1 - jumpDistance;
-
-        var height = totalHeight*(-4 * (jumpDistance * jumpDistance - jumpDistance));
-        this.y = this.ground - height;
-    }
-    */
 
     // Check which platform entity will hit first
     var currentPlatform = getGround(this.xBound, this.xBound + this.width, this.yBound + this.height, this.game);
