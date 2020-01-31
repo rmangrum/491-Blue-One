@@ -52,6 +52,27 @@ Animation.prototype.isDone = function () {
     return (this.elapsedTime >= this.totalTime);
 }
 
+function getGround(leftX, rightX, bottomY, game) {
+    var highGround = game.ground;
+    var leftBound = 0;
+    var rightBound = 900;
+
+    game.entities.forEach(function(entity) {
+        if (entity.type === 'Platform' && entity.y >= bottomY) {
+            if ((leftX >= entity.x && rightX <= entity.x + entity.width) || 
+                    (leftX <= entity.x && rightX >= entity.x) ||
+                    (rightX >= entity.x + entity.width && leftX <= entity.x + entity.width)) {
+                if (entity.y <= highGround) {
+                    highGround = entity.y;
+                    leftBound = entity.x;
+                    rightBound = entity.x + entity.width;
+                } 
+            }
+        }
+    })
+    return [highGround, leftBound, rightBound];
+}
+
 function Background(game, spritesheet) {
     this.x = 0;
     this.y = 0;
@@ -70,6 +91,7 @@ Background.prototype.update = function () {
 
 // Platform Prototype
 function Platform(game, spritesheet, theX, theY, theWidth, theHeight) {
+    this.type = 'Platform';
     this.x = theX;
     this.y = theY;
     this.spritesheet = spritesheet;
@@ -81,64 +103,52 @@ function Platform(game, spritesheet, theX, theY, theWidth, theHeight) {
 
 Platform.prototype.draw = function () {
     this.ctx.save();
-
-    // this.ctx.fillStyle = 'Black';
-    // this.ctx.fillRect(this.x, this.y, this.width, this.height);
-    
     this.ctx.strokeStyle = 'Red';   
     this.ctx.strokeRect(this.x, this.y, this.width, this.height);
-
-    this.ctx.drawImage(this.spritesheet, this.x - 2, this.y - 2, this.width + 4, this.height + 4);
-
+    this.ctx.drawImage(this.spritesheet, this.x, this.y, this.width, this.height);
     this.ctx.restore();
 }
 
 Platform.prototype.update = function () {
 };
 
-// Generic Entity Bounding Box (For testing collision only)
-function NaughtyBox(game, theX, theY, isMobile) {
-    this.x = theX;
-    this.y = theY;
+// Slime test enemy
+function RedSlime(game, theX, theY, isMobile) {
+    this.type = 'Enemy';
+    this.xDraw = theX;
+    this.yDraw = theY;
+    this.xBound = theX + 20;
+    this.yBound = theY + 45;
     this.width = 24;
-    this.height = 40;
+    this.height = 20;
     this.game = game;
     this.ctx = game.ctx;
     this.faceRight = true;
     this.mobile = isMobile;
     this.velocityX = 0;
     this.velocityY = 0;
+    this.idle_left_animation = new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle.png"), 0, 0, 32, 32, 0.2, 10, true, false);
 }
 
-NaughtyBox.prototype.draw = function () {
+RedSlime.prototype.draw = function (ctx) {
     this.ctx.save();
-    this.ctx.fillStyle = 'Purple';
     this.ctx.strokeStyle = 'Red';
-    this.ctx.fillRect(this.x, this.y, this.width, this.height);
-    this.ctx.strokeRect(this.x, this.y, this.width, this.height);
+    this.ctx.strokeRect(this.xBound, this.yBound, this.width, this.height);
+    this.idle_left_animation.drawFrame(this.game.clockTick, ctx, this.xDraw, this.yDraw, 2);
     this.ctx.restore();
 }
 
-NaughtyBox.prototype.update = function () {
-    if(this.mobile) {
-        if (this.faceRight && this.x < 626) {
-            this.velocityX = 0.75;
-        } else {
-            this.faceRight = false;
-        }
-        if (!this.faceRight && this.x > 450) {
-            this.velocityX = -0.75;
-        } else {
-            this.faceRight = true;
-        }
-    }
+RedSlime.prototype.update = function () {
+
+    // Check which platform entity will hit first
+    var currentPlatform = getGround(this.xBound, this.xBound + this.width, this.yBound + this.height, this.game);
 
     // Falling checks
-
-    if (this.y + this.height >= this.game.ground) {
+    if (this.yBound + this.height >= currentPlatform[0]) {
         this.velocityY = 0;
-    } else if (this.y + this.height + this.velocityY + this.game.gravity >= this.game.ground) {
-        this.y = this.game.ground - this.height;
+    } else if (this.yBound + this.height + this.velocityY + this.game.gravity >= currentPlatform[0]) {
+        this.yBound = currentPlatform[0] - this.height;
+        this.yDraw = this.yBound - 45;
         this.velocityY = 0;
     } else {
         if (this.velocityY + this.game.gravity >= this.game.terminalVelocity) {
@@ -148,8 +158,23 @@ NaughtyBox.prototype.update = function () {
         }
     }
 
-    this.x += this.velocityX;
-    this.y += this.velocityY;
+    if(this.mobile) {
+        if (this.faceRight && this.xBound + this.width < currentPlatform[2]) {
+            this.velocityX = 0.75;
+        } else {
+            this.faceRight = false;
+        }
+        if (!this.faceRight && this.xBound > currentPlatform[1]) {
+            this.velocityX = -0.75;
+        } else {
+            this.faceRight = true;
+        }
+    }
+
+    this.xDraw += this.velocityX;
+    this.xBound += this.velocityX;
+    this.yDraw += this.velocityY;
+    this.yBound += this.velocityY;
 };
 
 // The initial prototype character:
@@ -165,17 +190,21 @@ function BlackMage(game) {
     this.faceRight = true;
     this.walking = false;
     this.jumping = false;
+    this.falling = false;
+    this.game = game;
 
     this.velocityX = 0;
     this.velocityY = 0;
     
+    // this.ground = 325;
+    Entity.call(this, game, 0, 320);
+
     // Bounding Box parameters
+    this.xBound = this.x + 52;
+    this.yBound = this.y + 47;
     this.width = 24;
     this.height = 40;
     // End BB
-
-    this.ground = 325;
-    Entity.call(this, game, 0, 325);
 }
 
 BlackMage.prototype = new Entity();
@@ -202,8 +231,9 @@ BlackMage.prototype.update = function () {
     }
 
     // if spacebar blackmage is jumping
-    if (this.game.space) this.jumping = true;
+    if (this.game.space && !this.falling) this.jumping = true;
 
+    // Walking
     if (this.walking) {
         // walking and facing right 
         if (this.faceRight) {
@@ -213,25 +243,44 @@ BlackMage.prototype.update = function () {
             this.velocityX = -3;
         }
     }
-    
-    if (this.jumping) {
-        if (this.jump_animation.isDone()) {
-            this.jump_animation.elapsedTime = 0;
-            this.jumping = false;
-        }
-        var jumpDistance = this.jump_animation.elapsedTime / this.jump_animation.totalTime;
-        var totalHeight = 120;
 
-        if (jumpDistance > 0.5) jumpDistance = 1 - jumpDistance;
-
-        var height = totalHeight*(-4 * (jumpDistance * jumpDistance - jumpDistance));
-        this.y = this.ground - height;
+    // Activate jump
+    if (this.jumping && !this.falling) {
+        this.y--;
+        this.yBound--;
+        this.velocityY = -11;
+        this.jumping = false;
+        this.falling = true;
     }
 
-    this.x += this.velocityX;
-    this.y += this.velocityY;
+    // Check which platform entity will hit first
+    var currentPlatform = getGround(this.xBound, this.xBound + this.width, this.yBound + this.height, this.game);
+
+    // Falling checks
+    if (this.yBound + this.height >= currentPlatform[0]) {
+        this.velocityY = 0;
+        this.falling = false;
+    } else if (this.yBound + this.height + this.velocityY + this.game.gravity >= currentPlatform[0]) {
+        this.yBound = currentPlatform[0] - this.height;
+        this.y = this.yBound - 47;
+        this.velocityY = 0;
+        this.falling = false;
+    } else {
+        if (this.velocityY + this.game.gravity >= this.game.terminalVelocity) {
+            this.velocityY = this.game.terminalVelocity;
+            this.falling = true;
+        } else {
+            this.velocityY += this.game.gravity;
+            this.falling = true;
+        }
+    }
 
     Entity.prototype.update.call(this);
+    // Update position
+    this.x += this.velocityX;
+    this.xBound += this.velocityX;
+    this.y += this.velocityY;
+    this.yBound += this.velocityY;
 }
 
 // The draw function that checks what the entity is doing and drawing the appropriate animation
@@ -257,7 +306,7 @@ BlackMage.prototype.draw = function (ctx) {
     // Bounding Box draw
     ctx.save();
     ctx.strokeStyle = 'Red';
-    ctx.strokeRect(this.x + 52, this.y + 47, this.width, this.height);
+    ctx.strokeRect(this.xBound, this.yBound, this.width, this.height);
     ctx.restore();
 }
 
@@ -474,6 +523,6 @@ AM.downloadAll(function () {
 
     // collision temporaries
     gameEngine.addEntity(new Platform(gameEngine, AM.getAsset("./img/grass_platform.png"), 450, 310, 200, 25));
-    gameEngine.addEntity(new NaughtyBox(gameEngine, 450, 270, true));
-    gameEngine.addEntity(new NaughtyBox(gameEngine, 800, 200, false));
+    gameEngine.addEntity(new RedSlime(gameEngine, 450, 220, true));
+    gameEngine.addEntity(new RedSlime(gameEngine, 800, 200, false));
 });
