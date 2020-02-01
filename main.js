@@ -52,20 +52,22 @@ Animation.prototype.isDone = function () {
     return (this.elapsedTime >= this.totalTime);
 }
 
-function getGround(leftX, rightX, bottomY, game) {
+function getGround(rect, game) {
     var highGround = game.ground;
+
+    // Grab these from the background later
     var leftBound = 0;
     var rightBound = 900;
 
     game.entities.forEach(function(entity) {
-        if (entity.type === 'Platform' && entity.y >= bottomY) {
-            if ((leftX >= entity.x && rightX <= entity.x + entity.width) || 
-                    (leftX <= entity.x && rightX >= entity.x) ||
-                    (rightX >= entity.x + entity.width && leftX <= entity.x + entity.width)) {
-                if (entity.y <= highGround) {
-                    highGround = entity.y;
-                    leftBound = entity.x;
-                    rightBound = entity.x + entity.width;
+        if (entity.type === 'Platform' && entity.rect.y >= rect.y + rect.height) {
+            if ((rect.x >= entity.rect.x && rect.x + rect.width <= entity.rect.x + entity.rect.width) || 
+                    (rect.x <= entity.rect.x && rect.x + rect.width >= entity.rect.x) ||
+                    (rect.x + rect.width >= entity.rect.x + entity.rect.width && rect.x <= entity.rect.x + entity.rect.width)) {
+                if (entity.rect.y <= highGround) {
+                    highGround = entity.rect.y;
+                    leftBound = entity.rect.x;
+                    rightBound = entity.rect.x + entity.rect.width;
                 } 
             }
         }
@@ -73,17 +75,22 @@ function getGround(leftX, rightX, bottomY, game) {
     return [highGround, leftBound, rightBound];
 }
 
+function collisionDetector(rect1, rect2) {
+    if (rect1.x < rect2.x + rect2.width && rect1.x + rect1.width > rect2.x && rect1.y < rect2.y + rect2.height && rect1.height + rect1.y > rect2.y){
+        return true;
+    }
+    return false;
+}
+
 function Background(game, spritesheet) {
-    this.x = 0;
-    this.y = 0;
+    this.rect = {x: 0, y: 0, width: 900, height: 412};
     this.spritesheet = spritesheet;
     this.game = game;
     this.ctx = game.ctx;
-    // this.ground = 412; not used, placed into gameEngine temporarily
 };
 
 Background.prototype.draw = function () {
-    this.ctx.drawImage(this.spritesheet, this.x, this.y);
+    this.ctx.drawImage(this.spritesheet, this.rect.x, this.rect.y);
 }
 
 Background.prototype.update = function () {
@@ -92,11 +99,8 @@ Background.prototype.update = function () {
 // Platform Prototype
 function Platform(game, spritesheet, theX, theY, theWidth, theHeight) {
     this.type = 'Platform';
-    this.x = theX;
-    this.y = theY;
+    this.rect = {x: theX, y: theY, width: theWidth, height: theHeight};
     this.spritesheet = spritesheet;
-    this.width = theWidth;
-    this.height = theHeight;
     this.game = game;
     this.ctx = game.ctx;
 }
@@ -104,36 +108,77 @@ function Platform(game, spritesheet, theX, theY, theWidth, theHeight) {
 Platform.prototype.draw = function () {
     this.ctx.save();
     this.ctx.strokeStyle = 'Red';   
-    this.ctx.strokeRect(this.x, this.y, this.width, this.height);
-    this.ctx.drawImage(this.spritesheet, this.x, this.y, this.width, this.height);
+    this.ctx.strokeRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
+    this.ctx.drawImage(this.spritesheet, this.rect.x, this.rect.y, this.rect.width, this.rect.height);
     this.ctx.restore();
 }
 
 Platform.prototype.update = function () {
 };
 
+// Fireball Prototype
+function Fireball(game, spritesheet, theX, theY, goingRight) {
+    this.game = game;
+    this.ctx = game.ctx;
+    this.spritesheet = spritesheet;
+    this.type = 'Projectile';
+    this.rect = {x: theX - 6, y: theY - 6, width: 12, height: 12};
+    this.velocityX = 10;
+    if (!goingRight) this.velocityX *= -1;
+    this.animation = new Animation(this.spritesheet, 0, 0, 32, 32, 0.1, 16, true, false);
+}
+
+Fireball.prototype.draw = function () {
+    this.ctx.save();
+    this.ctx.strokeStyle = 'Red';
+    this.ctx.strokeRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
+    this.animation.drawFrame(this.game.clockTick, this.ctx, this.rect.x - 10, this.rect.y - 10, 1);
+    this.ctx.restore();
+}
+
+Fireball.prototype.update = function () {
+    var collision = false;
+    var that = this;
+    this.game.entities.forEach(function(entity) {
+        if (entity.type === 'Enemy') {
+            if (collisionDetector(that.rect, entity.rect)) {
+                collision = true;
+                entity.isHit = true;
+                if (that.rect.x < entity.rect.x) entity.isHitRight = true;
+            } 
+        } else if (entity.type === 'Platform') {
+            if (collisionDetector(that.rect, entity.rect)) collision = true;
+        }
+    })
+    if (collision || that.rect.x > 900 || that.rect.x < 0) {
+        that.removeFromWorld = true;
+    } else {
+        that.rect.x += that.velocityX;
+    }
+
+}
+
 // Slime test enemy
 function RedSlime(game, theX, theY, isMobile) {
     this.type = 'Enemy';
     this.xDraw = theX;
     this.yDraw = theY;
-    this.xBound = theX + 20;
-    this.yBound = theY + 45;
-    this.width = 24;
-    this.height = 20;
+    this.rect = {x: theX + 20, y: theY + 45, width: 24, height: 20};
     this.game = game;
     this.ctx = game.ctx;
     this.faceRight = true;
     this.mobile = isMobile;
     this.velocityX = 0;
     this.velocityY = 0;
+    this.isHit = false;
+    this.isHitRight = false;
     this.idle_left_animation = new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle.png"), 0, 0, 32, 32, 0.2, 10, true, false);
 }
 
 RedSlime.prototype.draw = function (ctx) {
     this.ctx.save();
     this.ctx.strokeStyle = 'Red';
-    this.ctx.strokeRect(this.xBound, this.yBound, this.width, this.height);
+    this.ctx.strokeRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
     this.idle_left_animation.drawFrame(this.game.clockTick, ctx, this.xDraw, this.yDraw, 2);
     this.ctx.restore();
 }
@@ -141,14 +186,14 @@ RedSlime.prototype.draw = function (ctx) {
 RedSlime.prototype.update = function () {
 
     // Check which platform entity will hit first
-    var currentPlatform = getGround(this.xBound, this.xBound + this.width, this.yBound + this.height, this.game);
+    var currentPlatform = getGround(this.rect, this.game);
 
     // Falling checks
-    if (this.yBound + this.height >= currentPlatform[0]) {
+    if (this.rect.y + this.rect.height >= currentPlatform[0]) {
         this.velocityY = 0;
-    } else if (this.yBound + this.height + this.velocityY + this.game.gravity >= currentPlatform[0]) {
-        this.yBound = currentPlatform[0] - this.height;
-        this.yDraw = this.yBound - 45;
+    } else if (this.rect.y + this.rect.height + this.velocityY + this.game.gravity >= currentPlatform[0]) {
+        this.rect.y = currentPlatform[0] - this.rect.height;
+        this.yDraw = this.rect.y - 45;
         this.velocityY = 0;
     } else {
         if (this.velocityY + this.game.gravity >= this.game.terminalVelocity) {
@@ -159,12 +204,12 @@ RedSlime.prototype.update = function () {
     }
 
     if(this.mobile) {
-        if (this.faceRight && this.xBound + this.width < currentPlatform[2]) {
+        if (this.faceRight && this.rect.x + this.rect.width < currentPlatform[2]) {
             this.velocityX = 0.75;
         } else {
             this.faceRight = false;
         }
-        if (!this.faceRight && this.xBound > currentPlatform[1]) {
+        if (!this.faceRight && this.rect.x > currentPlatform[1]) {
             this.velocityX = -0.75;
         } else {
             this.faceRight = true;
@@ -172,9 +217,21 @@ RedSlime.prototype.update = function () {
     }
 
     this.xDraw += this.velocityX;
-    this.xBound += this.velocityX;
+    this.rect.x += this.velocityX;
     this.yDraw += this.velocityY;
-    this.yBound += this.velocityY;
+    this.rect.y += this.velocityY;
+
+    if (this.isHit) {
+        if (this.isHitRight) {
+            this.xDraw += 5;
+            this.rect.x += 5;
+            this.isHitRight = false;
+        } else {
+            this.xDraw -= 5;
+            this.rect.x -= 5;
+        }
+        this.isHit = false;
+    }
 };
 
 // The initial prototype character:
@@ -187,6 +244,7 @@ function BlackMage(game) {
     this.idle_left_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_left.png"), 0, 0, 64, 64, .2, 1, true, false);
     this.walk_left_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_left.png"), 0, 0, 64, 64, .2, 2, true, false);
     this.jump_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/jump.png"), 200, 325, 64, 64, .2, 6, false, true);
+    this.type = 'Player';
     this.faceRight = true;
     this.walking = false;
     this.jumping = false;
@@ -196,15 +254,8 @@ function BlackMage(game) {
     this.velocityX = 0;
     this.velocityY = 0;
     
-    // this.ground = 325;
     Entity.call(this, game, 0, 320);
-
-    // Bounding Box parameters
-    this.xBound = this.x + 52;
-    this.yBound = this.y + 47;
-    this.width = 24;
-    this.height = 40;
-    // End BB
+    this.rect = {x: this.x + 52, y: this.y + 47, width: 24, height: 40};
 }
 
 BlackMage.prototype = new Entity();
@@ -230,6 +281,15 @@ BlackMage.prototype.update = function () {
         this.velocityX = 0;
     }
 
+    if (this.game.xKey) {
+        var isFireball = false;
+        var that = this;
+        this.game.entities.forEach(function(entity) {
+            if (entity.type === 'Projectile') isFireball = true;
+        })
+        if (!isFireball) this.game.addEntity(new Fireball(this.game, AM.getAsset("./img/sprites/heroes/black_mage/growing_fireball.png"), this.rect.x + this.rect.width / 2, this.rect.y + this.rect.height / 2, this.faceRight));
+    }
+
     // if spacebar blackmage is jumping
     if (this.game.space && !this.falling) this.jumping = true;
 
@@ -247,22 +307,22 @@ BlackMage.prototype.update = function () {
     // Activate jump
     if (this.jumping && !this.falling) {
         this.y--;
-        this.yBound--;
+        this.rect.y--;
         this.velocityY = -11;
         this.jumping = false;
         this.falling = true;
     }
 
     // Check which platform entity will hit first
-    var currentPlatform = getGround(this.xBound, this.xBound + this.width, this.yBound + this.height, this.game);
+    var currentPlatform = getGround(this.rect, this.game);
 
     // Falling checks
-    if (this.yBound + this.height >= currentPlatform[0]) {
+    if (this.rect.y + this.rect.height >= currentPlatform[0]) {
         this.velocityY = 0;
         this.falling = false;
-    } else if (this.yBound + this.height + this.velocityY + this.game.gravity >= currentPlatform[0]) {
-        this.yBound = currentPlatform[0] - this.height;
-        this.y = this.yBound - 47;
+    } else if (this.rect.y + this.rect.height + this.velocityY + this.game.gravity >= currentPlatform[0]) {
+        this.rect.y = currentPlatform[0] - this.rect.height;
+        this.y = this.rect.y - 47;
         this.velocityY = 0;
         this.falling = false;
     } else {
@@ -276,11 +336,43 @@ BlackMage.prototype.update = function () {
     }
 
     Entity.prototype.update.call(this);
+
     // Update position
     this.x += this.velocityX;
-    this.xBound += this.velocityX;
+    this.rect.x += this.velocityX;
     this.y += this.velocityY;
-    this.yBound += this.velocityY;
+    this.rect.y += this.velocityY;
+
+    if (this.rect.x < 0) {
+        this.rect.x = 0;
+        this.x = -52;
+    }
+
+    if (this.rect.x + this.rect.width > 900) {
+        this.rect.x = 900 - this.rect.width;
+        this.x = 824;
+    }
+
+    var collision = false;
+    var that = this;
+    this.game.entities.forEach(function(entity) {
+        if (entity.type === 'Enemy') {
+            if (collisionDetector(that.rect, entity.rect)) {
+                collision = true;
+                entity.isHit = true;
+                if (that.rect.x < entity.rect.x) {
+                    entity.isHitRight = true;
+                    entity.faceRight = true;
+                    that.x -= 5;
+                    that.rect.x -= 5;
+                } else {
+                    that.x += 5;
+                    that.rect.x += 5;
+                    entity.faceRight = false;
+                }
+            } 
+        }
+    })
 }
 
 // The draw function that checks what the entity is doing and drawing the appropriate animation
@@ -306,7 +398,7 @@ BlackMage.prototype.draw = function (ctx) {
     // Bounding Box draw
     ctx.save();
     ctx.strokeStyle = 'Red';
-    ctx.strokeRect(this.xBound, this.yBound, this.width, this.height);
+    ctx.strokeRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
     ctx.restore();
 }
 
@@ -419,7 +511,7 @@ EnemyDamage.prototype.draw = function (ctx) {
 
 // example entity for the enemy idle animation
 function EnemyIdle(game) {
-    this.enemy_idle_animation = new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle.png"), 0, 0, 32, 32, .3, 8, true, false);
+    this.enemy_idle_animation = new Animation(AM.getAsset("./img/sprites/enemies/green_slime/idle.png"), 0, 0, 32, 32, .3, 8, true, false);
     this.idle = true;
     Entity.call(this, game, 350, 0);
 }
@@ -439,7 +531,7 @@ EnemyIdle.prototype.draw = function (ctx) {
 
 // example entity for the enemy roll animation
 function EnemyRoll(game) {
-    this.enemy_roll_animation = new Animation(AM.getAsset("./img/sprites/enemies/red_slime/rolling.png"), 0, 0, 32, 32, .3, 8, true, false);
+    this.enemy_roll_animation = new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/rolling.png"), 0, 0, 32, 32, .3, 8, true, false);
     this.roll = true;
     Entity.call(this, game, 400, 0);
 }
@@ -476,7 +568,9 @@ ControlsText.prototype.draw = function (ctx) {
     this.ctx.fillText("Left Arrow Key: move left", 650, 60);
     this.ctx.fillText("Right Arrow Key: move right", 650, 90);
     this.ctx.fillText("Spacebar: Jump", 650, 120);
+    this.ctx.fillText("X key: Fireball (One at a time)", 650, 150);
     this.ctx.fillText("Example Animations:", 5, 20);
+    this.ctx.restore();
 }
 
 // Start of actual game
@@ -494,12 +588,14 @@ AM.queueDownload("./img/sprites/heroes/black_mage/walk_right.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/idle_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/walk_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/jump.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/growing_fireball.png");
 // example animations for prototype
 AM.queueDownload("./img/sprites/heroes/black_mage/damage.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/death.png");
 AM.queueDownload("./img/sprites/enemies/red_slime/damage.png");
+AM.queueDownload("./img/sprites/enemies/green_slime/idle.png");
 AM.queueDownload("./img/sprites/enemies/red_slime/idle.png");
-AM.queueDownload("./img/sprites/enemies/red_slime/rolling.png");
+AM.queueDownload("./img/sprites/enemies/blue_slime/rolling.png");
 
 AM.downloadAll(function () {
     console.log("starting");
