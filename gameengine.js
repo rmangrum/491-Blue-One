@@ -177,13 +177,13 @@ GameEngine.prototype.loop = function () {
     this.draw();
     // keys
     this.space = null;
+    this.xKey = null;
     /*
     this.upKey = null;
     this.leftKey = null;
     this.downKey = null;
     this.rightKey = null;
     this.zKey = null;
-    this.xKey = null;
     this.cKey = null; 
     this.dKey = null; 
     */
