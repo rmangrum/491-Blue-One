@@ -234,10 +234,7 @@ RedSlime.prototype.update = function () {
     }
 };
 
-// The initial prototype character:
-// Created some boolean variables associated to movement that will change depending on the key pressed
-//      a good example of this can be seen with the "jump" that Marriott has in his code,
-//      I've put it in BlackMage as a placeholder/reference for now.
+// The blackmage character
 function BlackMage(game) {
     this.idle_right_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_right.png"), 0, 0, 64,  64, .2, 1, true, false);
     this.walk_right_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 2, true, false);
