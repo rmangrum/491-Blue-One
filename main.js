@@ -187,7 +187,6 @@ Platform.prototype.update = function () {
     // Empty
 };
 
-// STOPPING POINT - DEBUGGING FIREBALL COLLISION/HIT BOX
 // Projectile Entity
 function Fireball(game, sprite, goingRight, position, player) {
     this.type = "Projectile";
@@ -455,11 +454,6 @@ Player.prototype.update = function() {
 }
 
 Player.prototype.draw = function(ctx) {
-    /*
-    if (this.jumping) {
-        this.jump_animation.drawFrame(this.game.clockTick, ctx, this.x + 17, this.y - 34, 2);
-    }
-    */
     var cameraOffsetX = this.position.drawX - this.game.camera.x;
     var cameraOffsetY = this.position.drawY - this.game.camera.y;
 
@@ -486,175 +480,6 @@ Player.prototype.draw = function(ctx) {
         ctx.restore();
     }
 }
-/*
-// The initial prototype character:
-// Created some boolean variables associated to movement that will change depending on the key pressed
-//      a good example of this can be seen with the "jump" that Marriott has in his code,
-//      I've put it in BlackMage as a placeholder/reference for now.
-function BlackMage(game) {
-    this.idle_right_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_right.png"), 0, 0, 64,  64, .2, 1, true, false);
-    this.walk_right_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 2, true, false);
-    this.idle_left_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_left.png"), 0, 0, 64, 64, .2, 1, true, false);
-    this.walk_left_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_left.png"), 0, 0, 64, 64, .2, 2, true, false);
-    this.jump_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/jump.png"), 200, 325, 64, 64, .2, 6, false, true);
-    this.type = 'Player';
-    this.faceRight = true;
-    this.walking = false;
-    this.jumping = false;
-    this.falling = false;
-    this.game = game;
-
-    this.velocityX = 0;
-    this.velocityY = 0;
-    
-    Entity.call(this, game, 0, 320);
-    this.rect = {x: this.x + 52, y: this.y + 47, width: 24, height: 40};
-}
-
-BlackMage.prototype = new Entity();
-BlackMage.prototype.constructor = BlackMage;
-
-BlackMage.prototype.update = function () {
-    // if blackmage is facing right when the left key is pressed
-    if (this.game.leftKey && !this.game.rightKey && this.faceRight) {
-        this.faceRight = false;
-    }
-    // if blackmage is facing left when the right key is pressed
-    if (this.game.rightKey && !this.game.leftKey && !this.faceRight) {
-        this.faceRight = true;
-    }
-    // if left/right is pressed blackmage is walking
-    if (this.game.leftKey || this.game.rightKey) {
-        this.walking = true;
-    }
-
-    // test for idle
-    if (!this.game.leftKey && !this.game.rightKey) {
-        this.walking = false;
-        this.velocityX = 0;
-    }
-
-    if (this.game.xKey) {
-        var isFireball = false;
-        var that = this;
-        this.game.entities.forEach(function(entity) {
-            if (entity.type === 'Projectile') isFireball = true;
-        })
-        if (!isFireball) this.game.addEntity(new Fireball(this.game, AM.getAsset("./img/sprites/heroes/black_mage/growing_fireball.png"), this.rect.x + this.rect.width / 2, this.rect.y + this.rect.height / 2, this.faceRight, true));
-    }
-
-    // if spacebar blackmage is jumping
-    if (this.game.space && !this.falling) this.jumping = true;
-
-    // Walking
-    if (this.walking) {
-        // walking and facing right 
-        if (this.faceRight) {
-            this.velocityX = 3;
-        // walking and facing left
-        } else {
-            this.velocityX = -3;
-        }
-    }
-
-    // Activate jump
-    if (this.jumping && !this.falling) {
-        this.y--;
-        this.rect.y--;
-        this.velocityY = -11;
-        this.jumping = false;
-        this.falling = true;
-    }
-
-    // Check which platform entity will hit first
-    var currentPlatform = getGround(this.rect, this.game);
-
-    // Falling checks
-    if (this.rect.y + this.rect.height >= currentPlatform[0]) {
-        this.velocityY = 0;
-        this.falling = false;
-    } else if (this.rect.y + this.rect.height + this.velocityY + this.game.gravity >= currentPlatform[0]) {
-        this.rect.y = currentPlatform[0] - this.rect.height;
-        this.y = this.rect.y - 47;
-        this.velocityY = 0;
-        this.falling = false;
-    } else {
-        if (this.velocityY + this.game.gravity >= this.game.terminalVelocity) {
-            this.velocityY = this.game.terminalVelocity;
-            this.falling = true;
-        } else {
-            this.velocityY += this.game.gravity;
-            this.falling = true;
-        }
-    }
-
-    Entity.prototype.update.call(this);
-
-    // Update position
-    this.x += this.velocityX;
-    this.rect.x += this.velocityX;
-    this.y += this.velocityY;
-    this.rect.y += this.velocityY;
-
-    if (this.rect.x < 0) {
-        this.rect.x = 0;
-        this.x = -52;
-    }
-
-    if (this.rect.x + this.rect.width > 900) {
-        this.rect.x = 900 - this.rect.width;
-        this.x = 824;
-    }
-
-    var collision = false;
-    var that = this;
-    this.game.entities.forEach(function(entity) {
-        if (entity.type === 'Enemy') {
-            if (collisionDetector(that.rect, entity.rect)) {
-                collision = true;
-                entity.isHit = true;
-                if (that.rect.x < entity.rect.x) {
-                    entity.isHitRight = true;
-                    entity.faceRight = true;
-                    that.x -= 5;
-                    that.rect.x -= 5;
-                } else {
-                    that.x += 5;
-                    that.rect.x += 5;
-                    entity.faceRight = false;
-                }
-            } 
-        }
-    })
-}
-
-// The draw function that checks what the entity is doing and drawing the appropriate animation
-BlackMage.prototype.draw = function (ctx) {
-    if (this.jumping) {
-        this.jump_animation.drawFrame(this.game.clockTick, ctx, this.x + 17, this.y - 34, 2);
-    }
-    if (this.walking) {
-        if (this.faceRight) {
-            this.walk_right_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
-        } else {
-            this.walk_left_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
-        }
-    } else {
-        if (this.faceRight) {
-            this.idle_right_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
-        } else {
-            this.idle_left_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
-        }
-    }
-    Entity.prototype.draw.call(this);
-
-    // Bounding Box draw
-    ctx.save();
-    ctx.strokeStyle = 'Red';
-    ctx.strokeRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
-    ctx.restore();
-}
-*/
 
 // example entity to show the damage animation
 function BMDamage(game) {
