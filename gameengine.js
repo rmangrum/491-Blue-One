@@ -30,16 +30,22 @@ Timer.prototype.tick = function () {
 
 function GameEngine() {
     this.entities = [];
-    this.showOutlines = false;
+    this.player = null;
+    this.background = null;
+    this.camera = null;
+    this.enemies = [];
+    this.platforms = [];
+    this.projectiles = [];
+
+    this.showOutlines = true;
     this.ctx = null;
     this.click = null;
     this.mouse = null;
     this.wheel = null;
     this.surfaceWidth = null;
     this.surfaceHeight = null;
-    this.gravity = 0.5;
-    this.terminalVelocity = 10;
-    this.ground = 412;
+    this.gravity = 80;
+    this.terminalVelocity = 800;
 }
 
 GameEngine.prototype.init = function (ctx) {
@@ -142,6 +148,9 @@ GameEngine.prototype.startInput = function () {
 GameEngine.prototype.addEntity = function (entity) {
     console.log('added entity');
     this.entities.push(entity);
+    if (entity.type === 'Enemy') this.enemies.push(entity);
+    if (entity.type === 'Platform') this.platforms.push(entity);
+    if (entity.type === 'Projectile') this.projectiles.push(entity);
 }
 
 GameEngine.prototype.draw = function () {
@@ -169,6 +178,20 @@ GameEngine.prototype.update = function () {
             this.entities.splice(i, 1);
         }
     }
+
+    for (var i = this.enemies.length - 1; i >= 0; --i) {
+        if (this.enemies[i].removeFromWorld) {
+            this.enemies.splice(i, 1);
+        }
+    }
+
+    for (var i = this.projectiles.length - 1; i >= 0; --i) {
+        if (this.projectiles[i].removeFromWorld) {
+            this.projectiles.splice(i, 1);
+        }
+    }
+
+
 }
 
 GameEngine.prototype.loop = function () {
