@@ -53,187 +53,440 @@ Animation.prototype.isDone = function () {
 }
 
 function getGround(rect, game) {
-    var highGround = game.ground;
+    var highGround = game.background.ground;
+    var leftBound = game.background.left;
+    var rightBound = game.background.right;
 
-    // Grab these from the background later
-    var leftBound = 0;
-    var rightBound = 900;
-
-    game.entities.forEach(function(entity) {
-        if (entity.type === 'Platform' && entity.rect.y >= rect.y + rect.height) {
-            if ((rect.x >= entity.rect.x && rect.x + rect.width <= entity.rect.x + entity.rect.width) || 
-                    (rect.x <= entity.rect.x && rect.x + rect.width >= entity.rect.x) ||
-                    (rect.x + rect.width >= entity.rect.x + entity.rect.width && rect.x <= entity.rect.x + entity.rect.width)) {
-                if (entity.rect.y <= highGround) {
-                    highGround = entity.rect.y;
-                    leftBound = entity.rect.x;
-                    rightBound = entity.rect.x + entity.rect.width;
+    game.platforms.forEach(function(entity) {
+        if (entity.position.top >= rect.bottom) {
+            if ((rect.left >= entity.position.left && rect.right <= entity.position.right) || 
+                    (rect.left <= entity.position.left && rect.right >= entity.position.left) ||
+                    (rect.right >= entity.position.right && rect.left <= entity.position.right)) {
+                if (entity.position.top <= highGround) {
+                    highGround = entity.position.top;
+                    leftBound = entity.position.left;
+                    rightBound = entity.position.right;
                 } 
             }
         }
     })
-    return [highGround, leftBound, rightBound];
+    return {ground: highGround, theLeft: leftBound, theRight: rightBound};
 }
 
-function collisionDetector(rect1, rect2) {
-    if (rect1.x < rect2.x + rect2.width && rect1.x + rect1.width > rect2.x && rect1.y < rect2.y + rect2.height && rect1.height + rect1.y > rect2.y){
+function collisionDetector(position1, position2) {
+    if (position1.left < position2.right && position1.right > position2.left && position1.top < position2.bottom && position1.bottom > position2.top) {
         return true;
     }
     return false;
 }
 
-function Background(game, spritesheet) {
-    this.rect = {x: 0, y: 0, width: 900, height: 412};
+function Position(drawX, drawY, boxX, boxY, width, height) {
+    this.drawX = drawX;
+    this.drawY = drawY;
+    this.left = boxX;
+    this.right = boxX + width;
+    this.top = boxY;
+    this.bottom = boxY + height;
+    this.width = width;
+    this.height = height;
+}
+
+Position.prototype.moveBy = function(deltaX, deltaY) {
+    this.drawX += deltaX;
+    this.drawY += deltaY;
+    this.left += deltaX;
+    this.right += deltaX;
+    this.top += deltaY;
+    this.bottom += deltaY;
+}
+
+// Moves the upper right corner of the bounding box coordinates to the new x and y
+Position.prototype.moveTo = function(newX, newY) {
+    var deltaX = this.left - this.drawX;
+    var deltaY = this.top - this.drawY;
+    this.left = newX;
+    this.right = newX + this.width;
+    this.top = newY;
+    this.bottom = newY + this.height;
+    this.drawX = newX - deltaX;
+    this.drawY = newY - deltaY;
+}
+
+function Camera(game) {
+    this.game = game;
+    this.x = this.game.player.position.left - (this.game.ctx.canvas.width * 0.5) + 32;
+    this.y = this.game.player.position.top - (this.game.ctx.canvas.height * 0.75) + 32;
+}
+
+Camera.prototype.update = function () {
+    // Update camera position
+    this.x = this.game.player.position.left - (this.game.ctx.canvas.width * 0.5) + 32; // 32 offset for half of x2 scale player animation frame
+    this.y = this.game.player.position.top - (this.game.ctx.canvas.height * 0.75) + 32; // 32 offset for half of x2 scale player animation frame
+    // Check x-bound
+    if (this.x < this.game.background.left) { // Check if to the left of half the canvas width
+        this.x = this.game.background.left;
+    } else if (this.x > this.game.background.right - this.game.ctx.canvas.width) { // Check if to the right of the background minus canvas width
+        this.x = this.game.background.right - this.game.ctx.canvas.width;
+    }
+    // Check y-bound
+    if (this.y < this.game.background.top) { // Check if above half the canvas height
+        this.y = this.game.background.top;
+    } else if (this.game.background.bottom < this.y + this.game.ctx.canvas.height) { // Check if below the background minus canvas height
+        this.y = this.game.background.bottom - this.game.ctx.canvas.height;
+    }
+}
+
+Camera.prototype.draw = function (ctx) {
+    // Head-up display elements here
+}
+
+function Background(game, spritesheet, width, ground, height) {
+    this.top = 0;
+    this.ground = ground;
+    this.bottom = height;
+    this.left = 0;
+    this.right = width;
     this.spritesheet = spritesheet;
     this.game = game;
     this.ctx = game.ctx;
 };
 
-Background.prototype.draw = function () {
-    this.ctx.drawImage(this.spritesheet, this.rect.x, this.rect.y);
+Background.prototype.draw = function (ctx) {
+    ctx.drawImage(this.spritesheet, 
+        this.game.camera.x, this.game.camera.y, ctx.canvas.width, ctx.canvas.height, // Only display the canvas size with camera in top left correr
+        this.left, this.top, ctx.canvas.width, ctx.canvas.height); // Draw into top left corner of canvas, at canvas size
 }
 
 Background.prototype.update = function () {
+    // Empty
 }
 
 // Platform Prototype
 function Platform(game, spritesheet, theX, theY, theWidth, theHeight) {
     this.type = 'Platform';
-    this.rect = {x: theX, y: theY, width: theWidth, height: theHeight};
+    this.position = new Position(theX, theY, theX, theY, theWidth, theHeight);
     this.spritesheet = spritesheet;
     this.game = game;
     this.ctx = game.ctx;
 }
 
-Platform.prototype.draw = function () {
-    this.ctx.save();
-    this.ctx.strokeStyle = 'Red';   
-    this.ctx.strokeRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
-    this.ctx.drawImage(this.spritesheet, this.rect.x, this.rect.y, this.rect.width, this.rect.height);
-    this.ctx.restore();
+Platform.prototype.draw = function (ctx) {
+    var cameraOffsetX = this.position.left - this.game.camera.x;
+    var cameraOffsetY = this.position.top - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';   
+        ctx.strokeRect(cameraOffsetX, cameraOffsetY, this.position.width, this.position.height);
+        ctx.restore();
+    }
+    ctx.drawImage(this.spritesheet, cameraOffsetX, cameraOffsetY, this.position.width, this.position.height);
 }
 
 Platform.prototype.update = function () {
+    // Empty
 };
 
-// Fireball Prototype
-function Fireball(game, spritesheet, theX, theY, goingRight) {
+// STOPPING POINT - DEBUGGING FIREBALL COLLISION/HIT BOX
+// Projectile Entity
+function Fireball(game, sprite, goingRight, position, player) {
+    this.type = "Projectile";
     this.game = game;
-    this.ctx = game.ctx;
-    this.spritesheet = spritesheet;
-    this.type = 'Projectile';
-    this.rect = {x: theX - 6, y: theY - 6, width: 12, height: 12};
-    this.velocityX = 10;
-    if (!goingRight) this.velocityX *= -1;
-    this.animation = new Animation(this.spritesheet, 0, 0, 32, 32, 0.1, 16, true, false);
+    this.position = position;
+    this.player = player;
+    this.velocityX = 750;
+    this.animation = new Animation(sprite, 0, 0, 32, 32, 0.125, 4, true, false);
+    if (!goingRight) {
+        this.velocityX *= -1;
+    }
 }
 
-Fireball.prototype.draw = function () {
-    this.ctx.save();
-    this.ctx.strokeStyle = 'Red';
-    this.ctx.strokeRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
-    this.animation.drawFrame(this.game.clockTick, this.ctx, this.rect.x - 10, this.rect.y - 10, 1);
-    this.ctx.restore();
+Fireball.prototype.draw = function (ctx) {
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();
+    }
+
+    this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
 }
 
 Fireball.prototype.update = function () {
     var collision = false;
     var that = this;
-    this.game.entities.forEach(function(entity) {
-        if (entity.type === 'Enemy') {
-            if (collisionDetector(that.rect, entity.rect)) {
-                collision = true;
-                entity.isHit = true;
-                if (that.rect.x < entity.rect.x) entity.isHitRight = true;
-            } 
-        } else if (entity.type === 'Platform') {
-            if (collisionDetector(that.rect, entity.rect)) collision = true;
+    this.game.enemies.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position)) {
+            collision = true;
+            entity.isHit = true;
+            if (that.velocityX > 0) entity.isHitRight = true;
         }
-    })
-    if (collision || that.rect.x > 900 || that.rect.x < 0) {
-        that.removeFromWorld = true;
-    } else {
-        that.rect.x += that.velocityX;
-    }
+    });
 
+    this.game.platforms.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position)) {
+            collision = true;
+        } 
+    });
+    
+    if (collision || this.position.right > this.game.background.right || this.position.left < this.game.background.left || this.position.right > this.game.camera.x + this.game.ctx.width * 1.5 || this.position.left < this.game.camera.x - this.game.ctx.width * 0.5) {
+        this.removeFromWorld = true;
+    } else {
+        this.position.moveBy(this.velocityX * this.game.clockTick, 0);
+    }
 }
 
 // Slime test enemy
-function RedSlime(game, theX, theY, isMobile) {
-    this.type = 'Enemy';
-    this.xDraw = theX;
-    this.yDraw = theY;
-    this.rect = {x: theX + 20, y: theY + 45, width: 24, height: 20};
-    this.game = game;
-    this.ctx = game.ctx;
-    this.faceRight = true;
-    this.mobile = isMobile;
+function RedSlime(game, theX, theY, faceRight) {
+    this.type = "Enemy";
+    this.HP = 4;
+    this.state = 'walk';
+    this.position = new Position(theX, theY, theX + 20, theY + 45, 24, 20);
+    this.faceRight = faceRight;
     this.velocityX = 0;
     this.velocityY = 0;
+    this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle.png"), 0, 0, 32, 32, 0.2, 10, true, false)};
+    this.game = game;
+    
     this.isHit = false;
     this.isHitRight = false;
-    this.idle_left_animation = new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle.png"), 0, 0, 32, 32, 0.2, 10, true, false);
 }
 
 RedSlime.prototype.draw = function (ctx) {
-    this.ctx.save();
-    this.ctx.strokeStyle = 'Red';
-    this.ctx.strokeRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
-    this.idle_left_animation.drawFrame(this.game.clockTick, ctx, this.xDraw, this.yDraw, 2);
-    this.ctx.restore();
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();
+    }
+
+    if (this.state === 'idle' && !this.faceRight) {
+        this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+    } else { // Placeholder
+        this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+    }
 }
 
 RedSlime.prototype.update = function () {
 
-    // Check which platform entity will hit first
-    var currentPlatform = getGround(this.rect, this.game);
+    var currentPlatform = getGround(this.position, this.game);
 
     // Falling checks
-    if (this.rect.y + this.rect.height >= currentPlatform[0]) {
+    if (this.position.bottom === currentPlatform.ground) {
         this.velocityY = 0;
-    } else if (this.rect.y + this.rect.height + this.velocityY + this.game.gravity >= currentPlatform[0]) {
-        this.rect.y = currentPlatform[0] - this.rect.height;
-        this.yDraw = this.rect.y - 45;
+        this.falling = false;
+    } else if (this.position.bottom + (this.velocityY + this.game.gravity) * this.game.clockTick >= currentPlatform.ground &&
+                this.velocityY > 0) {
+        this.position.moveTo(this.position.left, currentPlatform.ground - this.position.height);
         this.velocityY = 0;
+        this.falling = false;
     } else {
-        if (this.velocityY + this.game.gravity >= this.game.terminalVelocity) {
-            this.velocityY = this.game.terminalVelocity;
-        } else {
-            this.velocityY += this.game.gravity;
-        }
+        this.falling = true;
+        (this.velocityY + this.game.gravity >= this.game.terminalVelocity) ? this.velocityY = this.game.terminalVelocity : this.velocityY += this.game.gravity;
     }
 
-    if(this.mobile) {
-        if (this.faceRight && this.rect.x + this.rect.width < currentPlatform[2]) {
-            this.velocityX = 0.75;
+    if(this.state === 'walk') {
+        if (this.faceRight && this.position.right < currentPlatform.theRight) {
+            this.velocityX = 50;
         } else {
             this.faceRight = false;
         }
-        if (!this.faceRight && this.rect.x > currentPlatform[1]) {
-            this.velocityX = -0.75;
+        if (!this.faceRight && this.position.left > currentPlatform.theLeft) {
+            this.velocityX = -50;
         } else {
             this.faceRight = true;
         }
     }
 
-    this.xDraw += this.velocityX;
-    this.rect.x += this.velocityX;
-    this.yDraw += this.velocityY;
-    this.rect.y += this.velocityY;
+    this.position.moveBy(this.velocityX * this.game.clockTick, this.velocityY * this.game.clockTick);
 
     if (this.isHit) {
         if (this.isHitRight) {
-            this.xDraw += 5;
-            this.rect.x += 5;
+            this.position.moveBy(5, 0);
             this.isHitRight = false;
         } else {
-            this.xDraw -= 5;
-            this.rect.x -= 5;
+            this.position.moveBy(-5, 0);
         }
         this.isHit = false;
     }
+
+    // Stay on background
+    if (this.position.left < this.game.background.left) this.position.moveTo(this.game.background.left, this.position.top);
+    if (this.position.right > this.game.background.right) this.position.moveTo(this.game.background.right - this.position.width, this.position.top);
 };
 
+function Player(game) {
+    this.HP = 2;
+    this.inactiveHP = 6;
+    this.firstActive = true;
+    this.walking = false;
+    this.attacking = false;
+    this.damaged = false;
+    this.jumping = false;
+    this.falling = false;
+    this.position = new Position(0, 320, 52, 367, 24, 40);
+    this.faceRight = true;
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.firstAnimations = {idleLeft: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_left.png"), 0, 0, 64, 64, .2, 1, true, false),
+                            idleRight: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_right.png"), 0, 0, 64,  64, .2, 1, true, false),
+                            walkLeft: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_left.png"), 0, 0, 64, 64, .2, 2, true, false),
+                            walkRight: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 2, true, false),
+                            dmgLeft: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_left.png"), 0, 0, 64, 64, .2, 5, false, false),
+                            dmgRight: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_right.png"), 0, 0, 64, 64, .2, 5, false, false),
+                            deathLeft: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_left.png"), 0, 0, 64, 64, .2, 6, false, false), 
+                            deathRight: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 6, false, false)};
+    this.secondAnimations = {};
+    this.game = game;
+}
+
+Player.prototype.update = function() {
+    // ***********************************
+    // Updates to state based on key input
+    // ***********************************
+
+    // Facing right when left key pressed
+    if (this.game.leftKey && !this.game.rightKey && this.faceRight) {
+        this.faceRight = false;
+    }
+    // Facing left when right key pressed
+    if (this.game.rightKey && !this.game.leftKey && !this.faceRight) {
+        this.faceRight = true;
+    }
+    // If left or right key pressed, set walking; else set idle
+    (this.game.leftKey || this.game.rightKey) ? this.walking = true : this.walking = false;
+
+    // Attack key 'X' pressed
+    if (this.game.xKey) {
+        var isFireball = false;
+        this.game.projectiles.forEach(function(entity) {
+            if (entity.player) isFireball = true;
+        })
+        if (!isFireball) {
+            var sprite = AM.getAsset("./img/sprites/heroes/black_mage/fireball_right.png");
+            if (!this.faceRight) {
+                sprite = AM.getAsset("./img/sprites/heroes/black_mage/fireball_left.png");
+            }
+            this.game.addEntity(new Fireball(this.game, sprite, this.faceRight, 
+                                new Position(this.position.left + this.position.width * 0.5 - 16, this.position.top + this.position.height * 0.5 - 16,
+                                this.position.left + this.position.width * 0.5 - 6, this.position.top + this.position.height * 0.5 - 6, 12, 12), true));
+        }
+    }
+
+    // Spacebar pressed
+    if (this.game.space && !this.falling) this.jumping = true;
+
+    // ****************
+    // Position updates
+    // ****************
+
+    // Walking
+    if (this.walking) {
+        this.faceRight ? this.velocityX = 250 : this.velocityX = -250;
+    } else {
+        this.velocityX = 0;
+    }
+
+    // Activate jump
+    if (this.jumping && !this.falling) {
+        this.velocityY = -1200;
+        this.position.moveBy(0, -1);
+        this.jumping = false;
+    }
+
+    // Falling
+    var currentPlatform = getGround(this.position, this.game);
+
+    // Falling checks
+    if (this.position.bottom === currentPlatform.ground) {
+        this.velocityY = 0;
+        this.falling = false;
+    } else if (this.position.bottom + (this.velocityY + this.game.gravity) * this.game.clockTick >= currentPlatform.ground &&
+                this.velocityY > 0) {
+        this.position.moveTo(this.position.left, currentPlatform.ground - this.position.height);
+        this.velocityY = 0;
+        this.falling = false;
+    } else {
+        this.falling = true;
+        (this.velocityY + this.game.gravity >= this.game.terminalVelocity) ? this.velocityY = this.game.terminalVelocity : this.velocityY += this.game.gravity;
+    }
+
+    // Final position update
+    this.position.moveBy(this.velocityX * this.game.clockTick, this.velocityY * this.game.clockTick);
+
+    // Collision checks
+    // ****************
+    // Left background bound
+    if (this.position.left < this.game.background.left) {
+        this.position.moveTo(this.game.background.left, this.position.top);
+    }
+
+    // Right background bound
+    if (this.position.right > this.game.background.right) {
+        this.position.moveTo(this.game.background.right - this.position.width, this.position.top);
+    }
+
+    var collision = false;
+    var that = this;
+    this.game.enemies.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position)) {
+            collision = true;
+            entity.isHit = true;
+            if (that.position.left < entity.position.left) {
+                entity.isHitRight = true;
+                that.position.moveBy(-5, 0);
+            } else {
+                that.position.moveBy(5, 0);
+            }
+        } 
+    })
+
+    Entity.prototype.update.call(this); // What does this do? - Robert
+}
+
+Player.prototype.draw = function(ctx) {
+    /*
+    if (this.jumping) {
+        this.jump_animation.drawFrame(this.game.clockTick, ctx, this.x + 17, this.y - 34, 2);
+    }
+    */
+    var cameraOffsetX = this.position.drawX - this.game.camera.x;
+    var cameraOffsetY = this.position.drawY - this.game.camera.y;
+
+    if (this.walking) {
+        if (this.faceRight) {
+            this.firstAnimations.walkRight.drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+        } else {
+            this.firstAnimations.walkLeft.drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+        }
+    } else {
+        if (this.faceRight) {
+            this.firstAnimations.idleRight.drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+        } else {
+            this.firstAnimations.idleLeft.drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+        }
+    }
+    Entity.prototype.draw.call(this);
+
+    // Bounding Box draw
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(this.position.left - this.game.camera.x, this.position.top - this.game.camera.y, this.position.width, this.position.height);
+        ctx.restore();
+    }
+}
+/*
 // The initial prototype character:
 // Created some boolean variables associated to movement that will change depending on the key pressed
 //      a good example of this can be seen with the "jump" that Marriott has in his code,
@@ -287,7 +540,7 @@ BlackMage.prototype.update = function () {
         this.game.entities.forEach(function(entity) {
             if (entity.type === 'Projectile') isFireball = true;
         })
-        if (!isFireball) this.game.addEntity(new Fireball(this.game, AM.getAsset("./img/sprites/heroes/black_mage/growing_fireball.png"), this.rect.x + this.rect.width / 2, this.rect.y + this.rect.height / 2, this.faceRight));
+        if (!isFireball) this.game.addEntity(new Fireball(this.game, AM.getAsset("./img/sprites/heroes/black_mage/growing_fireball.png"), this.rect.x + this.rect.width / 2, this.rect.y + this.rect.height / 2, this.faceRight, true));
     }
 
     // if spacebar blackmage is jumping
@@ -401,10 +654,11 @@ BlackMage.prototype.draw = function (ctx) {
     ctx.strokeRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
     ctx.restore();
 }
+*/
 
 // example entity to show the damage animation
 function BMDamage(game) {
-    this.damage_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/damage.png"), 0, 0, 64, 64, .3, 5, true, false);
+    this.damage_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_right.png"), 0, 0, 64, 64, .3, 5, true, false);
     this.takingDmg = true;
     Entity.call(this, game, 0, 0);
 }
@@ -424,7 +678,7 @@ BMDamage.prototype.draw = function (ctx) {
 
 // example entity to show the death animation
 function BMDeath(game) {
-    this.death_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death.png"), 0, 0, 64, 64, .3, 6, true, false);
+    this.death_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_left.png"), 0, 0, 64, 64, .3, 6, true, false);
     this.dead = true;
     Entity.call(this, game, 100, 0);
 }
@@ -578,6 +832,7 @@ var AM = new AssetManager();
 
 // background image
 AM.queueDownload("./img/background.jpg");
+AM.queueDownload("./img/background_tiled.jpg");
 
 // Platform image
 AM.queueDownload("./img/grass_platform.png");
@@ -588,26 +843,33 @@ AM.queueDownload("./img/sprites/heroes/black_mage/walk_right.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/idle_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/walk_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/jump.png");
-AM.queueDownload("./img/sprites/heroes/black_mage/growing_fireball.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/fireball_left.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/fireball_right.png");
+
 // example animations for prototype
-AM.queueDownload("./img/sprites/heroes/black_mage/damage.png");
-AM.queueDownload("./img/sprites/heroes/black_mage/death.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/dmg_right.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/death_left.png");
 AM.queueDownload("./img/sprites/enemies/red_slime/damage.png");
 AM.queueDownload("./img/sprites/enemies/green_slime/idle.png");
 AM.queueDownload("./img/sprites/enemies/red_slime/idle.png");
 AM.queueDownload("./img/sprites/enemies/blue_slime/rolling.png");
 
 AM.downloadAll(function () {
-    console.log("starting");
     var canvas = document.getElementById("gameWorld");
     var ctx = canvas.getContext("2d");
 
     var gameEngine = new GameEngine();
     gameEngine.init(ctx);
     gameEngine.start();
+    
+    gameEngine.background = new Background(gameEngine, AM.getAsset("./img/background_tiled.jpg"), 1797, 412, 468);
+    gameEngine.player = new Player(gameEngine);
+    gameEngine.camera = new Camera(gameEngine);
 
-    gameEngine.addEntity(new Background(gameEngine, AM.getAsset("./img/background.jpg")));
-    gameEngine.addEntity(new BlackMage(gameEngine));
+    gameEngine.addEntity(gameEngine.background);
+    gameEngine.addEntity(gameEngine.player);
+    gameEngine.addEntity(gameEngine.camera);
+
     // example animation entities
     gameEngine.addEntity(new BMDamage(gameEngine));
     gameEngine.addEntity(new BMDeath(gameEngine));
@@ -619,6 +881,6 @@ AM.downloadAll(function () {
 
     // collision temporaries
     gameEngine.addEntity(new Platform(gameEngine, AM.getAsset("./img/grass_platform.png"), 450, 310, 200, 25));
-    gameEngine.addEntity(new RedSlime(gameEngine, 450, 220, true));
-    gameEngine.addEntity(new RedSlime(gameEngine, 800, 200, false));
+    gameEngine.addEntity(new RedSlime(gameEngine, 450, 100, false));
+    gameEngine.addEntity(new RedSlime(gameEngine, 800, 100, false));
 });
