@@ -133,11 +133,11 @@ GameEngine.prototype.startInput = function () {
             that.xKey = false;
         }
         if (e.keyCode === 67) { // c key
-            // interact/action
+            // action2
             that.cKey = false;
         }
         if (e.keyCode === 68) { // d key
-            // interact2/action2
+            // interact
             that.dKey = false;
         }
         e.preventDefault();
