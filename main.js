@@ -187,8 +187,7 @@ Platform.prototype.update = function () {
     // Empty
 };
 
-// STOPPING POINT - DEBUGGING FIREBALL COLLISION/HIT BOX
-// Projectile Entity
+// Fireball Entity
 function Fireball(game, sprite, goingRight, position, player) {
     this.type = "Projectile";
     this.game = game;
@@ -234,14 +233,17 @@ Fireball.prototype.update = function () {
         } 
     });
     
-    if (collision || this.position.right > this.game.background.right || this.position.left < this.game.background.left || this.position.right > this.game.camera.x + this.game.ctx.width * 1.5 || this.position.left < this.game.camera.x - this.game.ctx.width * 0.5) {
+    if (collision || this.position.right > this.game.background.right
+                || this.position.left < this.game.background.left 
+                || this.position.right > this.game.camera.x + this.game.ctx.width * 1.5 
+                || this.position.left < this.game.camera.x - this.game.ctx.width * 0.5) {
         this.removeFromWorld = true;
     } else {
         this.position.moveBy(this.velocityX * this.game.clockTick, 0);
     }
 }
 
-// Frostbolt
+// Frostbolt Entity
 function Frostbolt(game, sprite, goingRight, position, player) {
     this.type = "Projectile";
     this.game = game;
@@ -276,8 +278,8 @@ Frostbolt.prototype.update = function () {
     this.game.enemies.forEach(function(entity) {
         if (collisionDetector(that.position, entity.position)) {
             collision = true;
-            entity.isHit = true;
-            if (that.velocityX > 0) entity.isHitRight = true;
+            entity.state = 'frozen';
+            //entity.isFrozen = true;
         }
     });
 
@@ -306,11 +308,12 @@ function RedSlime(game, theX, theY, faceRight) {
     this.faceRight = faceRight;
     this.velocityX = 0;
     this.velocityY = 0;
-    this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle.png"), 0, 0, 32, 32, 0.2, 10, true, false)};
+    this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle.png"), 0, 0, 32, 32, 0.2, 10, true, false),
+                       frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};
     this.game = game;
-    
     this.isHit = false;
     this.isHitRight = false;
+    //this.isFrozen = false;
 }
 
 RedSlime.prototype.draw = function (ctx) {
@@ -330,6 +333,9 @@ RedSlime.prototype.draw = function (ctx) {
         this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
     } else { // Placeholder
         this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+    }
+    if (this.state === 'frozen') {
+       this.animations.frozen.drawFrame(this.game.clockTick, ctx, drawOffsetX + 16, drawOffsetY + 36, 1);
     }
 }
 
@@ -363,6 +369,17 @@ RedSlime.prototype.update = function () {
             this.faceRight = true;
         }
     }
+
+    if(this.state === 'frozen') {
+        this.velocityX = 0;
+        this.velocityY = 0;
+        if (this.animations.frozen.isDone()) {
+            this.animations.frozen.elapsedTime = 0;
+            this.state = 'walk';
+        }
+    }
+
+    
 
     this.position.moveBy(this.velocityX * this.game.clockTick, this.velocityY * this.game.clockTick);
 
@@ -434,11 +451,15 @@ Player.prototype.update = function() {
                 sprite = AM.getAsset("./img/sprites/heroes/black_mage/fireball_left.png");
             }
             this.game.addEntity(new Fireball(this.game, sprite, this.faceRight, 
-                                new Position(this.position.left + this.position.width * 0.5 - 16, this.position.top + this.position.height * 0.5 - 16,
-                                this.position.left + this.position.width * 0.5 - 6, this.position.top + this.position.height * 0.5 - 6, 12, 12), true));
+                                new Position(this.position.left + this.position.width * 0.5 - 16,
+                                             this.position.top + this.position.height * 0.5 - 16,
+                                             this.position.left + this.position.width * 0.5 - 6, 
+                                             this.position.top + this.position.height * 0.5 - 6,
+                                             12, 12), true));
         }
     }
 
+    // Attack key 'C' Pressed
     if (this.game.cKey) {
         var isFrostbolt = false;
         this.game.projectiles.forEach(function(entity) {
@@ -450,8 +471,11 @@ Player.prototype.update = function() {
                 sprite = AM.getAsset("./img/sprites/heroes/black_mage/frostbolt_left.png");
             }
             this.game.addEntity(new Frostbolt(this.game, sprite, this.faceRight,
-                                new Position(this.position.left + this.position.width * 0.5 - 32, this.position.top + this.position.height * 0.5 - 32,
-                                this.position.left + this.position.width * 0.5 - 6, this.position.top + this.position.height * 0.5 - 6, 12, 12), true));
+                                new Position(this.position.left + this.position.width * 0.5 - 32,
+                                             this.position.top + this.position.height * 0.5 - 32,
+                                             this.position.left + this.position.width * 0.5 - 6,
+                                             this.position.top + this.position.height * 0.5 - 6,
+                                             12, 12), true));
         }
     }
 
@@ -746,6 +770,7 @@ AM.queueDownload("./img/sprites/heroes/black_mage/fireball_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/fireball_right.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/frostbolt_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/frostbolt_right.png");
+AM.queueDownload("./img/ice_cube.png");
 
 // example animations for prototype
 AM.queueDownload("./img/sprites/heroes/black_mage/dmg_right.png");
