@@ -74,7 +74,10 @@ function getGround(rect, game) {
 }
 
 function collisionDetector(position1, position2) {
-    if (position1.left < position2.right && position1.right > position2.left && position1.top < position2.bottom && position1.bottom > position2.top) {
+    if (position1.left < position2.right
+            && position1.right > position2.left
+            && position1.top < position2.bottom
+            && position1.bottom > position2.top) {
         return true;
     }
     return false;
@@ -89,6 +92,13 @@ function Position(drawX, drawY, boxX, boxY, width, height) {
     this.bottom = boxY + height;
     this.width = width;
     this.height = height;
+}
+
+// d = sqrt((x2-x1)^2 + (y2-y1)^2)
+function distance(objectA, objectB) {
+    var disX = objectA.drawX - objectB.drawY;
+    var disY = objectA.drawY - objectB.drawY;
+    return Math.sqrt(disX * disX + disY + disY);
 }
 
 Position.prototype.moveBy = function(deltaX, deltaY) {
@@ -279,7 +289,6 @@ Frostbolt.prototype.update = function () {
         if (collisionDetector(that.position, entity.position)) {
             collision = true;
             entity.state = 'frozen';
-            //entity.isFrozen = true;
         }
     });
 
@@ -313,7 +322,7 @@ function RedSlime(game, theX, theY, faceRight) {
     this.game = game;
     this.isHit = false;
     this.isHitRight = false;
-    //this.isFrozen = false;
+    this.isChasing = false;
 }
 
 RedSlime.prototype.draw = function (ctx) {
@@ -326,7 +335,7 @@ RedSlime.prototype.draw = function (ctx) {
         ctx.save();
         ctx.strokeStyle = 'Red';
         ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
-        ctx.restore();
+        ctx.restore();  
     }
 
     if (this.state === 'idle' && !this.faceRight) {
@@ -357,7 +366,7 @@ RedSlime.prototype.update = function () {
         (this.velocityY + this.game.gravity >= this.game.terminalVelocity) ? this.velocityY = this.game.terminalVelocity : this.velocityY += this.game.gravity;
     }
 
-    if(this.state === 'walk') {
+    if (this.state === 'walk') {
         if (this.faceRight && this.position.right < currentPlatform.theRight) {
             this.velocityX = 50;
         } else {
@@ -370,7 +379,7 @@ RedSlime.prototype.update = function () {
         }
     }
 
-    if(this.state === 'frozen') {
+    if (this.state === 'frozen') {
         this.velocityX = 0;
         this.velocityY = 0;
         if (this.animations.frozen.isDone()) {
@@ -378,8 +387,6 @@ RedSlime.prototype.update = function () {
             this.state = 'walk';
         }
     }
-
-    
 
     this.position.moveBy(this.velocityX * this.game.clockTick, this.velocityY * this.game.clockTick);
 
@@ -391,6 +398,10 @@ RedSlime.prototype.update = function () {
             this.position.moveBy(-5, 0);
         }
         this.isHit = false;
+    }
+
+    if (this.isChasing) {
+
     }
 
     // Stay on background
@@ -573,7 +584,8 @@ Player.prototype.draw = function(ctx) {
     if (this.game.showOutlines) {
         ctx.save();
         ctx.strokeStyle = 'Red';
-        ctx.strokeRect(this.position.left - this.game.camera.x, this.position.top - this.game.camera.y, this.position.width, this.position.height);
+        ctx.strokeRect(this.position.left - this.game.camera.x, this.position.top - this.game.camera.y,
+                    this.position.width, this.position.height);
         ctx.restore();
     }
 }
