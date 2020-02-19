@@ -109,11 +109,17 @@ function Position(drawX, drawY, boxX, boxY, width, height) {
     this.height = height;
 }
 
-// d = sqrt((x2-x1)^2 + (y2-y1)^2)
-function distance(objectA, objectB) {
-    var disX = objectA.drawX - objectB.drawY;
-    var disY = objectA.drawY - objectB.drawY;
-    return Math.sqrt(disX * disX + disY + disY);
+// calculates the distance between two entities
+// @return negative distance if object is to the right
+// @return positive if to the left
+function distance(entityA, entityB) {
+    var disX = entityA.drawX - entityB.drawX;
+    var disY = entityA.drawY - entityB.drawY;
+    if (disX < 0) {
+        return -Math.sqrt(disX * disX + disY + disY);
+    } else if (disX > 0) {
+        return Math.sqrt(disX * disX + disY + disY);
+    }
 }
 
 Position.prototype.moveBy = function(deltaX, deltaY) {
@@ -362,6 +368,12 @@ Frostbolt.prototype.update = function () {
             collision = true;
         } 
     });
+
+    this.game.walls.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position)) {
+            collision = true;
+        } 
+    });
     
     if (collision || this.position.right > this.game.background.right 
                 || this.position.left < this.game.background.left 
@@ -418,6 +430,18 @@ RedSlime.prototype.update = function () {
     var currentPlatform = getGround(this.position, this.game);
     var that = this;
 
+    // Check for player within a certain distance
+    // if within set distance enemy aggros
+    var playerDistance = distance(this.position, this.game.player.position);
+    if ((playerDistance > -200 && playerDistance < 0) || (playerDistance < 200 && playerDistance > 0)) {
+        this.isChasing = true;
+    } else {
+        this.isChasing = false;
+    }
+
+    
+    
+
     // Falling checks
     if (this.position.bottom === currentPlatform.ground) {
         this.velocityY = 0;
@@ -467,7 +491,16 @@ RedSlime.prototype.update = function () {
     }
 
     if (this.isChasing) {
-
+        // move right
+        if (playerDistance > -200 && playerDistance < -32) {
+            this.faceRight = true;
+            this.velocityX = 60;
+        } 
+        // move left
+        if (playerDistance < 200 && playerDistance > 32) {
+            this.faceRight = false;
+            this.velocityX = -60;
+        }
     }
     
     // Wall collision
@@ -475,7 +508,7 @@ RedSlime.prototype.update = function () {
         if (collisionDetector(that.position, entity.position) && that.position.bottom > entity.position.top) {
             if (that.position.left < entity.position.left) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
             if (that.position.right > entity.position.right) that.position.moveTo(entity.position.right, that.position.top);
-        } 
+        }
     });
 
     // Stay on background
@@ -848,10 +881,10 @@ AM.downloadAll(function () {
 
     gameEngine.sceneManager.stages.push(new Stage(new Background(gameEngine, AM.getAsset("./img/levels/st1lv1.png"), 24, 2310, 24, 1030, 2336, 1056),
                                         [new Wall(gameEngine, null, 262, 664, 338, 96), new Wall(gameEngine, null, 262, 760, 18, 224),
-                                        new Wall(gameEngine, null, 390, 390, 18, 256), new Wall(gameEngine, null,646, 870, 18, 160),
-                                        new Wall(gameEngine, null, 1030, 234, 18, 412), new Wall(gameEngine, null, 1030, 646, 1280, 18), 
-                                        new Wall(gameEngine, null, 1030, 934, 274, 96), new Wall(gameEngine, null, 1190, 664, 370, 128), 
-                                        new Wall(gameEngine, null, 1798, 774, 402, 256), new Wall(gameEngine, null, 2182, 664, 18, 32)],
+                                            new Wall(gameEngine, null, 390, 390, 18, 256), new Wall(gameEngine, null,646, 870, 18, 160),
+                                            new Wall(gameEngine, null, 1030, 234, 18, 412), new Wall(gameEngine, null, 1030, 646, 1280, 18), 
+                                            new Wall(gameEngine, null, 1030, 934, 274, 96), new Wall(gameEngine, null, 1190, 664, 370, 128), 
+                                            new Wall(gameEngine, null, 1798, 774, 402, 256), new Wall(gameEngine, null, 2182, 664, 18, 32)],
                                         [new Platform(gameEngine, grass, 24, 646, 832, 18), new Platform(gameEngine, grass, 24, 134, 160, 18),
                                             new Platform(gameEngine, grass, 134, 262, 242, 18), new Platform(gameEngine, grass, 134, 518, 178, 18),
                                             new Platform(gameEngine, grass, 230, 422, 114, 18), new Platform(gameEngine, grass, 390, 870, 256, 18),
@@ -861,7 +894,7 @@ AM.downloadAll(function () {
                                             new Platform(gameEngine, grass, 1158, 454, 274, 18), new Platform(gameEngine, grass, 1286, 262, 402, 18),
                                             new Platform(gameEngine, grass, 1414, 134, 146, 18), new Platform(gameEngine, grass, 1510, 902, 146, 18),
                                             new Platform(gameEngine, grass, 1798, 390, 274, 18), new Platform(gameEngine, grass, 2086, 134, 224, 18)],
-                                        [], [], [], [new Position(-27, 553, 25, 600, 24, 40), new Position (2230, 39, 2282, 86, 24, 40),
+                                        [new RedSlime(gameEngine, 1510, 800, false)], [], [], [new Position(-27, 553, 25, 600, 24, 40), new Position (2230, 39, 2282, 86, 24, 40),
                                         new Position(2229, 937, 2281, 984, 24, 40)]));
     
     gameEngine.sceneManager.stages.push(new Stage(new Background(gameEngine, AM.getAsset("./img/levels/st1lv2.png"), 24, 1190, 24, 1958, 1216, 1984),
