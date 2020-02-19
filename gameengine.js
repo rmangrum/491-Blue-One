@@ -39,6 +39,7 @@ function GameEngine() {
     this.walls = [];
     this.projectiles = [];
     this.items = [];
+    this.doors = [];
 
     this.showOutlines = true;
     this.ctx = null;
@@ -48,7 +49,7 @@ function GameEngine() {
     this.surfaceWidth = null;
     this.surfaceHeight = null;
     this.gravity = 80;
-    this.terminalVelocity = 250;
+    this.terminalVelocity = 400;
 }
 
 GameEngine.prototype.init = function (ctx) {
@@ -104,6 +105,10 @@ GameEngine.prototype.startInput = function () {
         if (e.keyCode === 67) { // c key
             // interact/action
             that.cKey = true;
+        }
+        if (e.keyCode === 68) { // d key
+            // interact/action
+            that.dKey = true;
         }
         e.preventDefault();
     }, false);
@@ -201,6 +206,7 @@ GameEngine.prototype.update = function () {
             this.items.splice(i, 1);
         }
     }
+    this.sceneManager.update();
 }
 
 GameEngine.prototype.loop = function () {
@@ -210,14 +216,15 @@ GameEngine.prototype.loop = function () {
     // keys
     this.space = null;
     this.xKey = null;
+    this.cKey = null;
+    this.zKey = null;
+    this.dKey = null; 
+
     /*
     this.upKey = null;
     this.leftKey = null;
     this.downKey = null;
     this.rightKey = null;
-    this.zKey = null;
-    this.cKey = null; 
-    this.dKey = null; 
     */
 }
 

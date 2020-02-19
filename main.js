@@ -146,13 +146,13 @@ Position.prototype.moveTo = function(newX, newY) {
 function Camera(game) {
     this.game = game;
     this.x = this.game.player.position.left - (this.game.ctx.canvas.width * 0.5) + 32;
-    this.y = this.game.player.position.top - (this.game.ctx.canvas.height * 0.75) + 32;
+    this.y = this.game.player.position.bottom - (this.game.ctx.canvas.height * 0.75) + 32;
 }
 
 Camera.prototype.update = function () {
     // Update camera position
     this.x = this.game.player.position.left - (this.game.ctx.canvas.width * 0.5) + 32; // 32 offset for half of x2 scale player animation frame
-    this.y = this.game.player.position.top - (this.game.ctx.canvas.height * 0.75) + 32; // 32 offset for half of x2 scale player animation frame
+    this.y = this.game.player.position.bottom - (this.game.ctx.canvas.height * 0.75) + 32; // 32 offset for half of x2 scale player animation frame
     // Check x-bound
     if (this.x < this.game.background.left) { // Check if to the left of half the canvas width
         this.x = this.game.background.left;
@@ -182,7 +182,6 @@ function Background(game, spritesheet, left, right, top, bottom, width, height) 
     this.rightWall = right;
     this.spritesheet = spritesheet;
     this.game = game;
-    this.ctx = game.ctx;
 };
 
 Background.prototype.draw = function (ctx) {
@@ -262,16 +261,35 @@ Wall.prototype.update = function () {
     // Empty
 };
 
+function Door(game, theX, theY, theLevel, theDoor) {
+    this.type = 'Door';
+    this.game = game;
+    this.position = new Position(theX, theY, theX, theY, 5, 60);
+    this.destination = {level: theLevel, door: theDoor};
+}
+
 // Projectile Entity
-function Fireball(game, sprite, goingRight, position, player) {
+function Fireball(game, goingRight, position, player, fireball) {
     this.type = "Projectile";
     this.game = game;
     this.position = position;
-    this.fireball = true;
+    this.player = player;
+    this.fireball = fireball;
     this.velocityX = 750;
-    this.animation = new Animation(sprite, 0, 0, 32, 32, 0.125, 4, true, false);
+    this.animation = null;
     if (!goingRight) {
         this.velocityX *= -1;
+        if (fireball) {
+            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/fireball_left.png"), 0, 0, 32, 32, 0.125, 4, true, false);
+        } else {
+            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/frostbolt_left.png"), 0, 0, 32, 32, 0.125, 4, true, false);
+        }
+    } else {
+        if (fireball) {
+            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/fireball_right.png"), 0, 0, 32, 32, 0.125, 4, true, false);
+        } else {
+            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/frostbolt_right.png"), 0, 0, 32, 32, 0.125, 4, true, false);
+        }
     }
 }
 
@@ -288,7 +306,12 @@ Fireball.prototype.draw = function (ctx) {
         ctx.restore();
     }
 
-    this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+    if (this.fireball){
+        this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+    } else {
+        this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+    }
+    
 }
 
 Fireball.prototype.update = function () {
@@ -296,9 +319,14 @@ Fireball.prototype.update = function () {
     var that = this;
     this.game.enemies.forEach(function(entity) {
         if (collisionDetector(that.position, entity.position)) {
-            collision = true;
-            entity.isHit = true;
-            if (that.velocityX > 0) entity.isHitRight = true;
+            if (this.fireball) {
+                collision = true;
+                entity.isHit = true;
+                if (that.velocityX > 0) entity.isHitRight = true;
+            } else {
+                collision = true;
+                entity.state = 'frozen';
+            }           
         }
     });
 
@@ -327,69 +355,6 @@ Fireball.prototype.update = function () {
     }
 }
 
-// Frostbolt Entity
-function Frostbolt(game, sprite, goingRight, position, player) {
-    this.type = "Projectile";
-    this.game = game;
-    this.position = position;
-    this.frostbolt = true;
-    this.velocityX = 750;
-    this.animation = new Animation(sprite, 0, 0, 32, 32, 0.125, 4, true, false);
-    if (!goingRight) {
-        this.velocityX *= -1;
-    }
-}
-
-Frostbolt.prototype.draw = function (ctx) {
-    var boxOffsetX = this.position.left - this.game.camera.x;
-    var boxOffsetY = this.position.top - this.game.camera.y;
-    var drawOffsetX = this.position.drawX - this.game.camera.x;
-    var drawOffsetY = this.position.drawY - this.game.camera.y;
-
-    if (this.game.showOutlines) {
-        ctx.save();
-        ctx.strokeStyle = 'Red';
-        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
-        ctx.restore();
-    }
-
-    this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
-}
-
-Frostbolt.prototype.update = function () {
-    var collision = false;
-    var that = this;
-    this.game.enemies.forEach(function(entity) {
-        if (collisionDetector(that.position, entity.position)) {
-            collision = true;
-            entity.state = 'frozen';
-        }
-    });
-
-    this.game.platforms.forEach(function(entity) {
-        if (collisionDetector(that.position, entity.position)) {
-            collision = true;
-        } 
-    });
-
-    this.game.walls.forEach(function(entity) {
-        if (collisionDetector(that.position, entity.position)) {
-            collision = true;
-        } 
-    });
-
-    if (this.position.left < this.game.background.leftWall) collision = true;
-    if (this.position.right > this.game.background.rightWall) collision = true;
-    
-    if (collision || this.position.right > this.game.background.right 
-                || this.position.left < this.game.background.left 
-                || this.position.right > this.game.camera.x + this.game.ctx.width * 1.5 
-                || this.position.left < this.game.camera.x - this.game.ctx.width * 0.5) {
-        this.removeFromWorld = true;
-    } else {
-        this.position.moveBy(this.velocityX * this.game.clockTick, 0);
-    }
-}
 
 // Slime test enemy
 function RedSlime(game, theX, theY, faceRight) {
@@ -475,7 +440,7 @@ RedSlime.prototype.update = function () {
 
     if (this.state === 'frozen') {
         this.velocityX = 0;
-        this.velocityY = 0;
+        //this.velocityY = 0;
         if (this.animations.frozen.isDone()) {
             this.animations.frozen.elapsedTime = 0;
             this.state = 'walk';
@@ -521,37 +486,41 @@ RedSlime.prototype.update = function () {
 };
 
 function Player(game) {
-    this.HP = 2;
-    this.inactiveHP = 6;
-    this.firstActive = true;
+    this.game = game;
+    this.HP = [2,6];
+    this.maxHP = [2,6];
+    this.activeHero = 0;
     this.walking = false;
     this.attacking = false;
     this.damaged = false;
     this.jumping = false;
     this.falling = false;
-    this.jumpsLeft = 2;
+    this.jumpsLeft = [1, 2];
+    this.jumpsMax = [1, 2];
+    this.invulnerable = false;
     this.position = new Position(0, 320, 52, 367, 24, 40);
     this.faceRight = true;
     this.velocityX = 0;
     this.velocityY = 0;
-    this.firstAnimations = {idleLeft: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_left.png"), 0, 0, 64, 64, .2, 1, true, false),
-                            idleRight: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_right.png"), 0, 0, 64, 64, .2, 1, true, false),
-                            walkLeft: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_left.png"), 0, 0, 64, 64, .2, 2, true, false),
-                            walkRight: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 2, true, false),
-                            dmgLeft: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_left.png"), 0, 0, 64, 64, .2, 5, false, false),
-                            dmgRight: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_right.png"), 0, 0, 64, 64, .2, 5, false, false),
-                            deathLeft: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_left.png"), 0, 0, 64, 64, .2, 6, false, false), 
-                            deathRight: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_right.png"), 0, 0, 64, 64, .2, 6, false, false)};
-    this.secondAnimations = {idleLeft: new Animation(AM.getAsset("./img/sprites/heroes/monk/idle_left.png"), 0, 0, 64, 64, .2, 1, true, false),
-                            idleRight: new Animation(AM.getAsset("./img/sprites/heroes/monk/idle_right.png"), 0, 0, 64, 64, .2, 1, true, false),
-                            walkLeft: new Animation(AM.getAsset("./img/sprites/heroes/monk/walk_left.png"), 0, 0, 64, 64, .2, 8, true, false),
-                            walkRight: new Animation(AM.getAsset("./img/sprites/heroes/monk/walk_right.png"), 0, 0, 64, 64, .2, 8, true, false),
-                            jumpLeft: new Animation(AM.getAsset("./img/sprites/heroes/monk/jump_left.png"), 0, 0, 64, 64, .2, 8, true, false),
-                            jumpRight: new Animation(AM.getAsset("./img/sprites/heroes/monk/jump_right.png"), 0, 0, 64, 64, .2, 8, true, false)};
-    this.game = game;
+    this.animations = {idleLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_left.png"), 0, 0, 64, 64, .2, 1, true, false),
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/idle_left.png"), 0, 0, 32, 32, .2, 1, true, false)],
+                        idleRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_right.png"), 0, 0, 64, 64, .2, 1, true, false),
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/idle_right.png"), 0, 0, 32, 32, .2, 1, true, false)],
+                        walkLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_left.png"), 0, 0, 64, 64, .2, 2, true, false),
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/walk_left.png"), 0, 0, 32, 32, .125, 2, true, false)],
+                        walkRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 2, true, false),
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/walk_right.png"), 0, 0, 32, 32, .125, 2, true, false)],
+                        dmgLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_left.png"), 0, 0, 64, 64, .2, 5, false, false)],
+                        dmgRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_right.png"), 0, 0, 64, 64, .2, 5, false, false)],
+                        deathLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_left.png"), 0, 0, 64, 64, .2, 6, false, false)], 
+                        deathRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 6, false, false)]};
+
+                            
+                            
 }
 
 Player.prototype.update = function() {
+    var that = this;
     // ***********************************
     // Updates to state based on key input
     // ***********************************
@@ -567,48 +536,102 @@ Player.prototype.update = function() {
     // If left or right key pressed, set walking; else set idle
     (this.game.leftKey || this.game.rightKey) ? this.walking = true : this.walking = false;
 
-    // Attack key 'X' pressed
-    if (this.game.xKey) {
-        var isFireball = false;
-        this.game.projectiles.forEach(function(entity) {
-            if (entity.fireball) isFireball = true;
-        })
-        if (!isFireball) {
-            var sprite = AM.getAsset("./img/sprites/heroes/black_mage/fireball_right.png");
-            if (!this.faceRight) {
-                sprite = AM.getAsset("./img/sprites/heroes/black_mage/fireball_left.png");
-            }
-            this.game.addEntity(new Fireball(this.game, sprite, this.faceRight, 
-                                new Position(this.position.left + this.position.width * 0.5 - 16,
-                                             this.position.top + this.position.height * 0.5 - 16,
-                                             this.position.left + this.position.width * 0.5 - 6, 
-                                             this.position.top + this.position.height * 0.5 - 6,
-                                             12, 12), true));
+    // Swap key 'Z' pressed
+    if (this.game.zKey) {
+        if (this.activeHero === 0) {
+            this.activeHero = 1;
+            this.position = new Position(this.position.left + this.position.width * 0.5 - 31, this.position.bottom - 64,
+                                        this.position.left + this.position.width * 0.5 - 11, this.position.bottom - 62, 22, 62);
+        } else {
+            this.activeHero = 0;
+            this.position = new Position(this.position.left + this.position.width * 0.5 - 64, this.position.bottom - 87,
+                                        this.position.left + this.position.width * 0.5 - 12, this.position.bottom - 40, 24, 40);
         }
     }
 
-    // Attack key 'C' Pressed
-    if (this.game.cKey) {
+    // Attack key 'X' pressed
+    if (this.game.xKey && this.activeHero === 0) {
+        var isFireball = false;
+        this.game.projectiles.forEach(function(entity) {
+            if (entity.player && entity.fireball) isFireball = true;
+        })
+        if (!isFireball) {
+            this.game.addEntity(new Fireball(this.game, this.faceRight, new Position(this.position.left + this.position.width * 0.5 - 16, this.position.top + this.position.height * 0.5 - 16,
+                                this.position.left + this.position.width * 0.5 - 6, this.position.top + this.position.height * 0.5 - 6, 12, 12), true, true));
+        }
+    }
+
+    // Action key 'C' pressed
+    if (this.game.cKey && this.activeHero === 0) {
         var isFrostbolt = false;
         this.game.projectiles.forEach(function(entity) {
-            if (entity.frostbolt) isFrostbolt = true;
+            if (entity.player && !entity.fireball) isFrostbolt = true;
         })
         if (!isFrostbolt) {
-            var sprite = AM.getAsset("./img/sprites/heroes/black_mage/frostbolt_right.png");
-            if (!this.faceRight) {
-                sprite = AM.getAsset("./img/sprites/heroes/black_mage/frostbolt_left.png");
-            }
-            this.game.addEntity(new Frostbolt(this.game, sprite, this.faceRight,
-                                new Position(this.position.left + this.position.width * 0.5 - 32,
-                                             this.position.top + this.position.height * 0.5 - 32,
-                                             this.position.left + this.position.width * 0.5 - 6,
-                                             this.position.top + this.position.height * 0.5 - 6,
-                                             12, 12), true));
+            this.game.addEntity(new Fireball(this.game, this.faceRight,
+                                new Position(this.position.left + this.position.width * 0.5 - 32, this.position.top + this.position.height * 0.5 - 32,
+                                this.position.left + this.position.width * 0.5 - 6, this.position.top + this.position.height * 0.5 - 6, 12, 12), true, false));
+        }
+    }
+
+    // Interact key 'D' pressed
+    if (this.game.dKey) {
+        var onDoor = false;
+        this.game.doors.forEach(function(entity) {
+            if (collisionDetector(that.position, entity.position)) {
+                that.game.sceneManager.currentStage = entity.destination.level;
+                that.game.sceneManager.startNum = entity.destination.door;
+                that.game.sceneManager.newStage = true;
+                onDoor = true;
+            } 
+        })
+        if (!onDoor && this.activeHero === 0) { // Blink
+            var blinkDistance = 100;
+            if (!this.faceRight) blinkDistance *= -1;
+            var blinkPosition = new Position(this.position.drawX, this.position.drawY, this.position.left, this.position.top, 
+                                            this.position.width, this.position.height);
+            blinkPosition.moveTo(blinkPosition.left + blinkDistance, blinkPosition.top);
+            var collision = false;
+            do {
+                collision = false;
+
+                if (blinkPosition.right > this.game.background.right) {
+                    blinkPosition.moveTo(this.game.background.right - blinkPosition.width - 2, blinkPosition.top);
+                }
+                if (blinkPosition.left < this.game.background.left) {
+                    blinkPosition.moveTo(this.game.background.left, blinkPosition.top);
+                }
+
+                this.game.walls.forEach(function(entity) {
+                    if (!collision && collisionDetector(blinkPosition, entity.position)) {
+                        collision = true;
+                        if (that.faceRight) blinkPosition.moveTo(entity.position.left - blinkPosition.width, blinkPosition.top);
+                        else blinkPosition.moveTo(entity.position.right, blinkPosition.top);
+                    }
+                });
+
+                this.game.platforms.forEach(function(entity) {
+                    if (!collision && collisionDetector(blinkPosition, entity.position)) {
+                        collision = true;
+                        if (that.faceRight) blinkPosition.moveTo(entity.position.left - blinkPosition.width, blinkPosition.top);
+                        else blinkPosition.moveTo(entity.position.right, blinkPosition.top);
+                    }
+                });
+            
+                this.game.enemies.forEach(function(entity) {
+                    if (!collision && collisionDetector(blinkPosition, entity.position)) {
+                        collision = true;
+                        if (that.faceRight) blinkPosition.moveTo(entity.position.left - blinkPosition.width - 5, blinkPosition.top);
+                        else blinkPosition.moveTo(entity.position.right + 5, blinkPosition.top);
+                    } 
+                })
+            } while (collision);
+            this.position = blinkPosition;
         }
     }
 
     // Spacebar pressed
-    if (this.game.space && this.jumpsLeft > 0) this.jumping = true;
+    if (this.game.space && this.jumpsLeft[this.activeHero] > 0) this.jumping = true;
 
     // ****************
     // Position updates
@@ -622,11 +645,11 @@ Player.prototype.update = function() {
     }
 
     // Activate jump
-    if (this.jumping && this.jumpsLeft > 0) {
+    if (this.jumping && this.jumpsLeft[this.activeHero] > 0) {
         this.velocityY = -1200;
         this.position.moveBy(0, -1);
         this.jumping = false;
-        this.jumpsLeft--;
+        this.jumpsLeft[this.activeHero]--;
     }
 
     // Falling
@@ -636,13 +659,13 @@ Player.prototype.update = function() {
     if (this.position.bottom === currentPlatform.ground) {
         this.velocityY = 0;
         this.falling = false;
-        this.jumpsLeft = 2;
+        this.jumpsLeft[this.activeHero] = this.jumpsMax[this.activeHero];
     } else if (this.position.bottom + (this.velocityY + this.game.gravity) * this.game.clockTick >= currentPlatform.ground &&
                 this.velocityY > 0) {
         this.position.moveTo(this.position.left, currentPlatform.ground - this.position.height);
         this.velocityY = 0;
         this.falling = false;
-        this.jumpsLeft = 2;
+        this.jumpsLeft[this.activeHero] = this.jumpsMax[this.activeHero];
     } else {
         this.falling = true;
         ((this.velocityY + this.game.gravity) * this.game.clockTick >= this.game.terminalVelocity) ? 
@@ -669,8 +692,6 @@ Player.prototype.update = function() {
         this.position.moveTo(this.position.left, this.game.background.ceiling);
         this.velocityY = 0;
     }
-
-    var that = this;
 
     // Wall collision
     this.game.walls.forEach(function(entity) {
@@ -704,15 +725,15 @@ Player.prototype.draw = function(ctx) {
 
     if (this.walking) {
         if (this.faceRight) {
-            this.firstAnimations.walkRight.drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+            this.animations.walkRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
         } else {
-            this.firstAnimations.walkLeft.drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+            this.animations.walkLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
         }
     } else {
         if (this.faceRight) {
-            this.firstAnimations.idleRight.drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+            this.animations.idleRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
         } else {
-            this.firstAnimations.idleLeft.drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+            this.animations.idleLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
         }
     }
     Entity.prototype.draw.call(this);
@@ -747,6 +768,7 @@ ControlsText.prototype.draw = function (ctx) {
     this.ctx.fillText("Right Arrow Key: move right", 650, 90);
     this.ctx.fillText("Spacebar: Jump", 650, 120);
     this.ctx.fillText("X key: Fireball (One at a time)", 650, 150);
+    this.ctx.fillText("C key: Frostbolt (One at a time)", 650, 180);
     this.ctx.fillText("Example Animations:", 5, 20);
     this.ctx.restore();
 }
@@ -768,70 +790,69 @@ class Stage {
 }
 
 
-function SceneManager(game) {
+function SceneManager(game, stageList) {
     this.game = game;
     this.newStage = true;
-    this.stages = [];
+    this.stages = stageList;
     this.currentStage = 0;
     this.startNum = 2;
-}
-
-SceneManager.prototype.getScene = function() {
-    // ****************************
-    // Load entities for new stage
-    // ****************************
-
-    // Background
-    this.game.background = this.stages[this.currentStage].background;
-    this.game.addEntity(this.game.background);
-
-    // Player
-    this.game.addEntity(this.game.player);
-    this.game.player.position.moveTo(this.stages[this.currentStage].getPosition(this.startNum).left, 
-                                    this.stages[this.currentStage].getPosition(this.startNum).top);
-
-    // Camera
-    this.game.addEntity(this.game.camera);
-
-    // Walls
-    for (var i = 0; i < this.stages[this.currentStage].walls.length; i++) {
-        this.game.addEntity(this.stages[this.currentStage].walls[i]);
-    }
-
-    // Platforms
-    for (var i = 0; i < this.stages[this.currentStage].platforms.length; i++) {
-        this.game.addEntity(this.stages[this.currentStage].platforms[i]);
-    }
-
-    // Enemies
-    for (var i = 0; i < this.stages[this.currentStage].enemies.length; i++) {
-        this.game.addEntity(this.stages[this.currentStage].enemies[i]);
-    }
-
-    // Doors
-    for (var i = 0; i < this.stages[this.currentStage].doors.length; i++) {
-        this.game.addEntity(this.stages[this.currentStage].doors[i]);
-    }
-
-    // Items
-    for (var i = 0; i < this.stages[this.currentStage].items.length; i++) {
-        this.game.addEntity(this.stages[this.currentStage].items[i]);
-    }
+    this.game.player.position.moveTo(this.stages[this.currentStage].getPosition(this.startNum).left, this.stages[this.currentStage].getPosition(this.startNum).top);
 }
 
 SceneManager.prototype.update = function() {
     if (this.newStage) {
         // Remove all entities from the gameManager
+        /*
         var entityCount = this.game.entities.length;
         for (var i = 0; i < entityCount; i++) {
-            if (this.game.entities[i] !== this) this.game.entities[i].removeFromWorld = true;
+            if (this.game.entities[i] !== this && this.game.entities[i] !== this.game.player && this.game.entities[i] !== this.game.camera) this.game.entities[i].removeFromWorld = true;
         }
+        */
+        this.game.background = this.stages[this.currentStage].background;
+        console.log(this.game.background);
+
+        this.game.entities = [this.game.background, this.game.player, this.game.camera];
+        console.log(`Background: ${this.game.entities[0]}`);
+        console.log(`Player: ${this.game.entities[1]}`);
+        console.log(`Camera: ${this.game.entities[2]}`);
+
         this.game.platforms = [];
         this.game.walls = [];
         this.game.items = [];
+        this.game.doors = [];
 
         // Load new entities
-        this.getScene();
+        // Walls
+        for (var i = 0; i < this.stages[this.currentStage].walls.length; i++) {
+            this.game.addEntity(this.stages[this.currentStage].walls[i]);
+        }
+        console.log(`Number of Walls: ${this.game.walls.length}`);
+
+        // Platforms
+        for (var i = 0; i < this.stages[this.currentStage].platforms.length; i++) {
+            this.game.addEntity(this.stages[this.currentStage].platforms[i]);
+        }
+        console.log(`Number of Platforms${this.game.platforms.length}`);
+
+        // Enemies
+        for (var i = 0; i < this.stages[this.currentStage].enemies.length; i++) {
+            this.game.addEntity(this.stages[this.currentStage].enemies[i]);
+        }
+        console.log(`Number of Enemies${this.game.enemies.length}`);
+
+        // Doors
+        for (var i = 0; i < this.stages[this.currentStage].doors.length; i++) {
+            this.game.doors.push(this.stages[this.currentStage].doors[i]);
+        }
+        console.log(`Number of Doors: ${this.game.doors.length}`);
+
+        // Items
+        for (var i = 0; i < this.stages[this.currentStage].items.length; i++) {
+            this.game.addEntity(this.stages[this.currentStage].items[i]);
+        }
+
+        this.game.player.position.moveTo(this.stages[this.currentStage].getPosition(this.startNum).left, this.stages[this.currentStage].getPosition(this.startNum).top);
+        this.game.camera.update();
         this.newStage = false;
     }
 }
@@ -865,6 +886,14 @@ AM.queueDownload("./img/sprites/heroes/black_mage/frostbolt_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/frostbolt_right.png");
 AM.queueDownload("./img/ice_cube.png");
 
+// Monk images
+AM.queueDownload("./img/sprites/heroes/monk/idle_left.png");
+AM.queueDownload("./img/sprites/heroes/monk/idle_right.png");
+AM.queueDownload("./img/sprites/heroes/monk/walk_left.png");
+AM.queueDownload("./img/sprites/heroes/monk/walk_right.png");
+AM.queueDownload("./img/sprites/heroes/monk/jump_left.png");
+AM.queueDownload("./img/sprites/heroes/monk/jump_right.png");
+
 // example animations for prototype
 AM.queueDownload("./img/sprites/heroes/black_mage/dmg_right.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/death_left.png");
@@ -877,75 +906,73 @@ AM.queueDownload("./img/sprites/enemies/blue_slime/rolling.png");
 AM.downloadAll(function () {
     var canvas = document.getElementById("gameWorld");
     var ctx = canvas.getContext("2d");
+    var grass = AM.getAsset("./img/platforms/grass_platform.png");
 
     var gameEngine = new GameEngine();
     gameEngine.init(ctx);
-    gameEngine.start();
-    
-    gameEngine.sceneManager = new SceneManager(gameEngine);
     gameEngine.player = new Player(gameEngine);
     gameEngine.camera = new Camera(gameEngine);
-    //gameEngine.background = new Background(gameEngine, AM.getAsset("./img/background_tiled.jpg"), 1797, 412, 468);
+    gameEngine.addEntity(gameEngine.player);
+    gameEngine.addEntity(gameEngine.camera);
 
-    var grass = AM.getAsset("./img/platforms/grass_platform.png");
+    var stageList = [new Stage(new Background(gameEngine, AM.getAsset("./img/levels/st1lv1.png"), 24, 2310, 24, 1030, 2336, 1056),
+                        [new Wall(gameEngine, null, 262, 664, 338, 96), new Wall(gameEngine, null, 262, 760, 18, 224),
+                        new Wall(gameEngine, null, 390, 390, 18, 256), new Wall(gameEngine, null,646, 870, 18, 160),
+                        new Wall(gameEngine, null, 1030, 234, 18, 412), new Wall(gameEngine, null, 1030, 646, 1280, 18), 
+                        new Wall(gameEngine, null, 1030, 934, 274, 96), new Wall(gameEngine, null, 1190, 664, 370, 128), 
+                        new Wall(gameEngine, null, 1798, 774, 402, 256), new Wall(gameEngine, null, 2182, 664, 18, 32)],
+                        [new Platform(gameEngine, grass, 24, 646, 832, 18), new Platform(gameEngine, grass, 24, 134, 160, 18),
+                        new Platform(gameEngine, grass, 134, 262, 242, 18), new Platform(gameEngine, grass, 134, 518, 178, 18),
+                        new Platform(gameEngine, grass, 230, 422, 114, 18), new Platform(gameEngine, grass, 390, 870, 256, 18),
+                        new Platform(gameEngine, grass, 408, 390, 622, 18), new Platform(gameEngine, grass, 518, 582, 146, 18),
+                        new Platform(gameEngine, grass, 646, 518, 146, 18), new Platform(gameEngine, grass, 742, 902, 82, 18),
+                        new Platform(gameEngine, grass, 774, 454, 146, 18), new Platform(gameEngine, grass, 806, 774, 274, 18),
+                        new Platform(gameEngine, grass, 1158, 454, 274, 18), new Platform(gameEngine, grass, 1286, 262, 402, 18),
+                        new Platform(gameEngine, grass, 1414, 134, 146, 18), new Platform(gameEngine, grass, 1510, 902, 146, 18),
+                        new Platform(gameEngine, grass, 1798, 390, 274, 18), new Platform(gameEngine, grass, 2086, 134, 224, 18)],
+                        [new RedSlime(gameEngine, 1510, 800, false)], [new Door(gameEngine, 2304, 72, 1, 0)], [], [new Position(25, 575, 25, 575, 1, 1), new Position (2260, 72, 2260, 72, 1, 1),
+                        new Position(2281, 962, 2281, 962, 1, 1)]),
+                    new Stage(new Background(gameEngine, AM.getAsset("./img/levels/st1lv2.png"), 24, 1190, 24, 1958, 1216, 1984),
+                        [new Wall(gameEngine, null, 24, 24, 366, 160), new Wall(gameEngine, null, 390, 24, 242, 384), 
+                        new Wall(gameEngine, null, 24, 390, 192, 242), new Wall(gameEngine, null, 390, 408, 18, 320), 
+                        new Wall(gameEngine, null, 646, 518, 434, 274), new Wall(gameEngine, null, 486, 934, 18, 320), 
+                        new Wall(gameEngine, null, 294, 1190, 82, 64), new Wall(gameEngine, null, 24, 1446, 192, 512), 
+                        new Wall(gameEngine, null, 216, 1574, 224, 384), new Wall(gameEngine, null, 440, 1702, 192, 256), 
+                        new Wall(gameEngine, null, 632, 1830, 224, 128)], [new Platform(gameEngine, null, 630, 133, 162, 18), 
+                        new Platform(gameEngine, null, 998, 134, 192, 18), new Platform(gameEngine, null, 774, 230, 114, 18), 
+                        new Platform(gameEngine, null, 632, 294, 160, 18), new Platform(gameEngine, null, 632, 390, 352, 18), 
+                        new Platform(gameEngine, null, 408, 518, 96, 18), new Platform(gameEngine, null, 550, 582, 96, 18), 
+                        new Platform(gameEngine, null, 408, 678, 96, 18), new Platform(gameEngine, null, 326, 358, 64, 18), 
+                        new Platform(gameEngine, null, 294, 486, 96, 18), new Platform(gameEngine, null, 216, 582, 96, 18), 
+                        new Platform(gameEngine, null, 230, 710, 160, 18), new Platform(gameEngine, null, 646, 998, 338, 18), 
+                        new Platform(gameEngine, null, 134, 998, 210, 18), new Platform(gameEngine, null, 24, 806, 160, 18), 
+                        new Platform(gameEngine, null, 24, 1126, 192, 18), new Platform(gameEngine, null, 1030, 1126, 160, 18), 
+                        new Platform(gameEngine, null, 24, 1254, 704, 18), new Platform(gameEngine, null, 774, 1382, 210, 18), 
+                        new Platform(gameEngine, null, 614, 1574, 146, 18), new Platform(gameEngine, null, 1030, 1542, 160, 18), 
+                        new Platform(gameEngine, null, 1030, 1798, 160, 18)], [], [new Door(gameEngine, 25, 1384, 0, 1), new Door(gameEngine, 25, 328, 2, 0)], [],
+                        [new Position(32, 1378, 32, 1378, 1, 1), new Position(32, 323, 32, 323, 1, 1)]),
+                    new Stage(new Background(gameEngine, AM.getAsset("./img/levels/st1lv3.png"), 24, 2310, 24, 1318, 2336, 1344),
+                        [new Wall(gameEngine, null, 262, 678, 18, 242), new Wall(gameEngine, null, 358, 134, 18, 562), 
+                        new Wall(gameEngine, null, 376, 230, 1454, 242), new Wall(gameEngine, null, 646, 902, 82, 192), 
+                        new Wall(gameEngine, null, 422, 1094, 626, 224), new Wall(gameEngine, null, 1062, 774, 370, 178), 
+                        new Wall(gameEngine, null, 1606, 902, 82, 192), new Wall(gameEngine, null, 1446, 1094, 562, 224), 
+                        new Wall(gameEngine, null, 1830, 134, 18, 786)], [new Platform(gameEngine, null, 24, 134, 224, 18), 
+                        new Platform(gameEngine, null, 166, 230, 82, 18), new Platform(gameEngine, null, 134, 454, 114, 18), 
+                        new Platform(gameEngine, null, 262, 550, 96, 18), new Platform(gameEngine, null, 230, 326, 128, 18), 
+                        new Platform(gameEngine, null, 24, 678, 96, 18), new Platform(gameEngine, null, 134, 902, 128, 18), 
+                        new Platform(gameEngine, null, 280, 902, 192, 18), new Platform(gameEngine, null, 280, 678, 78, 18), 
+                        new Platform(gameEngine, null, 24, 1094, 192, 18), new Platform(gameEngine, null, 1670, 646, 160, 18), 
+                        new Platform(gameEngine, null, 486, 646, 338, 18), new Platform(gameEngine, null, 1848, 134, 96, 18), 
+                        new Platform(gameEngine, null, 2150, 390, 160, 18), new Platform(gameEngine, null, 1062, 614, 370, 18), 
+                        new Platform(gameEngine, null, 1990, 518, 146, 18), new Platform(gameEngine, null, 1848, 646, 160, 18), 
+                        new Platform(gameEngine, null, 2182, 742, 128, 18), new Platform(gameEngine, null, 2054, 806, 82, 18), 
+                        new Platform(gameEngine, null, 1848, 902, 160, 18), new Platform(gameEngine, null, 2182, 1030, 128, 18)],
+                        [], [new Door(gameEngine, 2304, 328, 1, 1)], [], [new Position(2305, 323, 2305, 323, 1, 1)])];
 
-    gameEngine.sceneManager.stages.push(new Stage(new Background(gameEngine, AM.getAsset("./img/levels/st1lv1.png"), 24, 2310, 24, 1030, 2336, 1056),
-                                        [new Wall(gameEngine, null, 262, 664, 338, 96), new Wall(gameEngine, null, 262, 760, 18, 224),
-                                            new Wall(gameEngine, null, 390, 390, 18, 256), new Wall(gameEngine, null,646, 870, 18, 160),
-                                            new Wall(gameEngine, null, 1030, 234, 18, 412), new Wall(gameEngine, null, 1030, 646, 1280, 18), 
-                                            new Wall(gameEngine, null, 1030, 934, 274, 96), new Wall(gameEngine, null, 1190, 664, 370, 128), 
-                                            new Wall(gameEngine, null, 1798, 774, 402, 256), new Wall(gameEngine, null, 2182, 664, 18, 32)],
-                                        [new Platform(gameEngine, grass, 24, 646, 832, 18), new Platform(gameEngine, grass, 24, 134, 160, 18),
-                                            new Platform(gameEngine, grass, 134, 262, 242, 18), new Platform(gameEngine, grass, 134, 518, 178, 18),
-                                            new Platform(gameEngine, grass, 230, 422, 114, 18), new Platform(gameEngine, grass, 390, 870, 256, 18),
-                                            new Platform(gameEngine, grass, 408, 390, 622, 18), new Platform(gameEngine, grass, 518, 582, 146, 18),
-                                            new Platform(gameEngine, grass, 646, 518, 146, 18), new Platform(gameEngine, grass, 742, 902, 82, 18),
-                                            new Platform(gameEngine, grass, 774, 454, 146, 18), new Platform(gameEngine, grass, 806, 774, 274, 18),
-                                            new Platform(gameEngine, grass, 1158, 454, 274, 18), new Platform(gameEngine, grass, 1286, 262, 402, 18),
-                                            new Platform(gameEngine, grass, 1414, 134, 146, 18), new Platform(gameEngine, grass, 1510, 902, 146, 18),
-                                            new Platform(gameEngine, grass, 1798, 390, 274, 18), new Platform(gameEngine, grass, 2086, 134, 224, 18)],
-                                        [new RedSlime(gameEngine, 1510, 800, false)], [], [], [new Position(-27, 553, 25, 600, 24, 40), new Position (2230, 39, 2282, 86, 24, 40),
-                                        new Position(2229, 937, 2281, 984, 24, 40)]));
+    gameEngine.sceneManager = new SceneManager(gameEngine, stageList);
+    gameEngine.sceneManager.update();
+    gameEngine.start();
     
-    gameEngine.sceneManager.stages.push(new Stage(new Background(gameEngine, AM.getAsset("./img/levels/st1lv2.png"), 24, 1190, 24, 1958, 1216, 1984),
-                                        [new Wall(gameEngine, null, 24, 24, 366, 160), new Wall(gameEngine, null, 390, 24, 242, 384), 
-                                        new Wall(gameEngine, null, 24, 390, 192, 242), new Wall(gameEngine, null, 390, 408, 18, 320), 
-                                        new Wall(gameEngine, null, 646, 518, 434, 274), new Wall(gameEngine, null, 486, 934, 18, 320), 
-                                        new Wall(gameEngine, null, 294, 1190, 82, 64), new Wall(gameEngine, null, 24, 1446, 192, 512), 
-                                        new Wall(gameEngine, null, 216, 1574, 224, 384), new Wall(gameEngine, null, 440, 1702, 192, 256), 
-                                        new Wall(gameEngine, null, 632, 1830, 224, 128)], [new Platform(gameEngine, null, 630, 133, 162, 18), 
-                                        new Platform(gameEngine, null, 998, 134, 192, 18), new Platform(gameEngine, null, 774, 230, 114, 18), 
-                                        new Platform(gameEngine, null, 632, 294, 160, 18), new Platform(gameEngine, null, 632, 390, 352, 18), 
-                                        new Platform(gameEngine, null, 408, 518, 96, 18), new Platform(gameEngine, null, 550, 582, 96, 18), 
-                                        new Platform(gameEngine, null, 408, 678, 96, 18), new Platform(gameEngine, null, 326, 358, 64, 18), 
-                                        new Platform(gameEngine, null, 294, 486, 96, 18), new Platform(gameEngine, null, 216, 582, 96, 18), 
-                                        new Platform(gameEngine, null, 230, 710, 160, 18), new Platform(gameEngine, null, 646, 998, 338, 18), 
-                                        new Platform(gameEngine, null, 134, 998, 210, 18), new Platform(gameEngine, null, 24, 806, 160, 18), 
-                                        new Platform(gameEngine, null, 24, 1126, 192, 18), new Platform(gameEngine, null, 1030, 1126, 160, 18), 
-                                        new Platform(gameEngine, null, 24, 1254, 704, 18), new Platform(gameEngine, null, 774, 1382, 210, 18), 
-                                        new Platform(gameEngine, null, 614, 1574, 146, 18), new Platform(gameEngine, null, 1030, 1542, 160, 18), 
-                                        new Platform(gameEngine, null, 1030, 1798, 160, 18)], [], [], [],
-                                        [new Position(-20, 1353, 32, 1400, 24, 40), new Position(-20, 298, 32, 345, 24, 40)]));
-
-        gameEngine.sceneManager.stages.push(new Stage(new Background(gameEngine, AM.getAsset("./img/levels/st1lv3.png"), 24, 2310, 24, 1318, 2336, 1344),
-                                        [new Wall(gameEngine, null, 262, 678, 18, 242), new Wall(gameEngine, null, 358, 134, 18, 562), 
-                                        new Wall(gameEngine, null, 376, 230, 1454, 242), new Wall(gameEngine, null, 646, 902, 82, 192), 
-                                        new Wall(gameEngine, null, 422, 1094, 626, 224), new Wall(gameEngine, null, 1062, 774, 370, 178), 
-                                        new Wall(gameEngine, null, 1606, 902, 82, 192), new Wall(gameEngine, null, 1446, 1094, 562, 224), 
-                                        new Wall(gameEngine, null, 1830, 134, 18, 786)], [new Platform(gameEngine, null, 24, 134, 224, 18), 
-                                        new Platform(gameEngine, null, 166, 230, 82, 18), new Platform(gameEngine, null, 134, 454, 114, 18), 
-                                        new Platform(gameEngine, null, 262, 550, 96, 18), new Platform(gameEngine, null, 230, 326, 128, 18), 
-                                        new Platform(gameEngine, null, 24, 678, 96, 18), new Platform(gameEngine, null, 134, 902, 128, 18), 
-                                        new Platform(gameEngine, null, 280, 902, 192, 18), new Platform(gameEngine, null, 280, 678, 78, 18), 
-                                        new Platform(gameEngine, null, 24, 1094, 192, 18), new Platform(gameEngine, null, 1670, 646, 160, 18), 
-                                        new Platform(gameEngine, null, 486, 646, 338, 18), new Platform(gameEngine, null, 1848, 134, 96, 18), 
-                                        new Platform(gameEngine, null, 2150, 390, 160, 18), new Platform(gameEngine, null, 1062, 614, 370, 18), 
-                                        new Platform(gameEngine, null, 1990, 518, 146, 18), new Platform(gameEngine, null, 1848, 646, 160, 18), 
-                                        new Platform(gameEngine, null, 2182, 742, 128, 18), new Platform(gameEngine, null, 2054, 806, 82, 18), 
-                                        new Platform(gameEngine, null, 1848, 902, 160, 18), new Platform(gameEngine, null, 2182, 1030, 128, 18)],
-                                        [], [], [], [new Position(2253, 298, 2305, 345, 24, 40)]));
-
-    gameEngine.addEntity(gameEngine.sceneManager);
 
     /*
     gameEngine.addEntity(gameEngine.background);
