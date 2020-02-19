@@ -48,7 +48,7 @@ function GameEngine() {
     this.surfaceWidth = null;
     this.surfaceHeight = null;
     this.gravity = 80;
-    this.terminalVelocity = 400;
+    this.terminalVelocity = 250;
 }
 
 GameEngine.prototype.init = function (ctx) {

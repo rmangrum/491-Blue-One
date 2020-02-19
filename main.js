@@ -313,6 +313,9 @@ Fireball.prototype.update = function () {
             collision = true;
         } 
     });
+
+    if (this.position.left < this.game.background.leftWall) collision = true;
+    if (this.position.right > this.game.background.rightWall) collision = true;
     
     if (collision || this.position.right > this.game.background.right
                 || this.position.left < this.game.background.left 
@@ -374,6 +377,9 @@ Frostbolt.prototype.update = function () {
             collision = true;
         } 
     });
+
+    if (this.position.left < this.game.background.leftWall) collision = true;
+    if (this.position.right > this.game.background.rightWall) collision = true;
     
     if (collision || this.position.right > this.game.background.right 
                 || this.position.left < this.game.background.left 
@@ -394,7 +400,8 @@ function RedSlime(game, theX, theY, faceRight) {
     this.faceRight = faceRight;
     this.velocityX = 0;
     this.velocityY = 0;
-    this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle.png"), 0, 0, 32, 32, 0.2, 10, true, false),
+    this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_left.png"), 0, 0, 32, 32, 0.2, 10, true, false),
+                       idleRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_right.png"), 0, 0, 32, 32, 0.2, 10, true, false),
                        frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};
     this.game = game;
     this.isHit = false;
@@ -418,7 +425,7 @@ RedSlime.prototype.draw = function (ctx) {
     if (this.state === 'idle' && !this.faceRight) {
         this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
     } else { // Placeholder
-        this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+        this.animations.idleRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
     }
     if (this.state === 'frozen') {
        this.animations.frozen.drawFrame(this.game.clockTick, ctx, drawOffsetX + 16, drawOffsetY + 36, 1);
@@ -438,9 +445,6 @@ RedSlime.prototype.update = function () {
     } else {
         this.isChasing = false;
     }
-
-    
-    
 
     // Falling checks
     if (this.position.bottom === currentPlatform.ground) {
@@ -531,14 +535,19 @@ function Player(game) {
     this.velocityX = 0;
     this.velocityY = 0;
     this.firstAnimations = {idleLeft: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_left.png"), 0, 0, 64, 64, .2, 1, true, false),
-                            idleRight: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_right.png"), 0, 0, 64,  64, .2, 1, true, false),
+                            idleRight: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_right.png"), 0, 0, 64, 64, .2, 1, true, false),
                             walkLeft: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_left.png"), 0, 0, 64, 64, .2, 2, true, false),
                             walkRight: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 2, true, false),
                             dmgLeft: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_left.png"), 0, 0, 64, 64, .2, 5, false, false),
                             dmgRight: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_right.png"), 0, 0, 64, 64, .2, 5, false, false),
                             deathLeft: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_left.png"), 0, 0, 64, 64, .2, 6, false, false), 
-                            deathRight: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 6, false, false)};
-    this.secondAnimations = {};
+                            deathRight: new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_right.png"), 0, 0, 64, 64, .2, 6, false, false)};
+    this.secondAnimations = {idleLeft: new Animation(AM.getAsset("./img/sprites/heroes/monk/idle_left.png"), 0, 0, 64, 64, .2, 1, true, false),
+                            idleRight: new Animation(AM.getAsset("./img/sprites/heroes/monk/idle_right.png"), 0, 0, 64, 64, .2, 1, true, false),
+                            walkLeft: new Animation(AM.getAsset("./img/sprites/heroes/monk/walk_left.png"), 0, 0, 64, 64, .2, 8, true, false),
+                            walkRight: new Animation(AM.getAsset("./img/sprites/heroes/monk/walk_right.png"), 0, 0, 64, 64, .2, 8, true, false),
+                            jumpLeft: new Animation(AM.getAsset("./img/sprites/heroes/monk/jump_left.png"), 0, 0, 64, 64, .2, 8, true, false),
+                            jumpRight: new Animation(AM.getAsset("./img/sprites/heroes/monk/jump_right.png"), 0, 0, 64, 64, .2, 8, true, false)};
     this.game = game;
 }
 
@@ -861,7 +870,8 @@ AM.queueDownload("./img/sprites/heroes/black_mage/dmg_right.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/death_left.png");
 AM.queueDownload("./img/sprites/enemies/red_slime/damage.png");
 AM.queueDownload("./img/sprites/enemies/green_slime/idle.png");
-AM.queueDownload("./img/sprites/enemies/red_slime/idle.png");
+AM.queueDownload("./img/sprites/enemies/red_slime/idle_left.png");
+AM.queueDownload("./img/sprites/enemies/red_slime/idle_right.png");
 AM.queueDownload("./img/sprites/enemies/blue_slime/rolling.png");
 
 AM.downloadAll(function () {
