@@ -319,7 +319,7 @@ Fireball.prototype.update = function () {
     var that = this;
     this.game.enemies.forEach(function(entity) {
         if (collisionDetector(that.position, entity.position)) {
-            if (this.fireball) {
+            if (that.fireball) {
                 collision = true;
                 entity.isHit = true;
                 if (that.velocityX > 0) entity.isHitRight = true;
