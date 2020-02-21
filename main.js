@@ -116,9 +116,9 @@ function distance(entityA, entityB) {
     var disX = entityA.drawX - entityB.drawX;
     var disY = entityA.drawY - entityB.drawY;
     if (disX < 0) {
-        return -Math.sqrt(disX * disX + disY + disY);
+        return -Math.sqrt(disX * disX + disY * disY);
     } else if (disX > 0) {
-        return Math.sqrt(disX * disX + disY + disY);
+        return Math.sqrt(disX * disX + disY * disY);
     }
 }
 
@@ -321,7 +321,8 @@ Fireball.prototype.update = function () {
         if (collisionDetector(that.position, entity.position)) {
             if (that.fireball) {
                 collision = true;
-                entity.isHit = true;
+                //entity.isHit = true;
+                entity.state = 'damaged';
                 if (that.velocityX > 0) entity.isHitRight = true;
             } else {
                 collision = true;
@@ -355,6 +356,48 @@ Fireball.prototype.update = function () {
     }
 }
 
+// function Punch(game, goingRight, position, player) {
+//     this.type = "Projectile";
+//     this.game = game;
+//     this.position = position;
+//     this.player = player;
+//     this.animation = null;
+//     if (!goingRight) {
+//         //this.animation = new Animation(AM.getAsset("./img/sprites/heroes/monk/.png"));
+//     } else {
+//         //this.animation = new Animation(AM.getAsset("./img/sprites/heroes/monk/.png"));
+//     }
+// }
+
+// Punch.prototype.draw = function (ctx) {
+//     var boxOffsetX = this.position.left - this.game.camera.x;
+//     var boxOffsetY = this.position.top - this.game.camera.y;
+//     var drawOffsetX = this.position.drawX - this.game.camera.x;
+//     var drawOffsetY = this.position.drawY - this.game.camera.y;
+
+//     if (this.game.showOutlines) {
+//         ctx.save();
+//         ctx.strokeStyle = 'Red';
+//         ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+//         ctx.restore();
+//     }
+
+//     this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+// }
+
+// Punch.prototype.update = function () {
+//     var collision = false;
+//     var that = this;
+//     this.game.enemies.forEach(function(entity) {
+//         if (collisionDetector(that.position, entity.position)) {
+//             collision = true;
+//             entity.isHit = true;
+//             entity.HP -= 1;
+//             // if (that.velocityX > 0) entity.isHitRight = true;
+//         }
+//     });
+// }
+
 
 // Slime test enemy
 function RedSlime(game, theX, theY, faceRight) {
@@ -365,13 +408,18 @@ function RedSlime(game, theX, theY, faceRight) {
     this.faceRight = faceRight;
     this.velocityX = 0;
     this.velocityY = 0;
-    this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_left.png"), 0, 0, 32, 32, 0.2, 10, true, false),
-                       idleRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_right.png"), 0, 0, 32, 32, 0.2, 10, true, false),
-                       frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};
+    this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_left.png"), 0, 0, 32, 32.3, 0.2, 10, true, false),
+                       idleRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_right.png"), 0, 0, 32, 32.3, 0.2, 10, true, false),
+                       frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false),
+                       dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/dmg_left.png"), 0, 0, 32, 32.3, 0.1, 8, false, false),
+                       dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/dmg_right.png"), 0, 0, 32, 32.3, 0.1, 8, false, false),
+                       deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/death_left.png"), 0, 0, 32, 32.3, 0.2, 13, false, false),
+                       deathRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/death_right.png"), 0, 0, 32, 32.3, 0.2, 13, false, false)};
     this.game = game;
     this.isHit = false;
     this.isHitRight = false;
     this.isChasing = false;
+    this.dead = false;
 }
 
 RedSlime.prototype.draw = function (ctx) {
@@ -384,18 +432,34 @@ RedSlime.prototype.draw = function (ctx) {
         ctx.save();
         ctx.strokeStyle = 'Red';
         ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
-        ctx.restore();  
+        ctx.restore(); 
     }
 
-    if (this.state === 'idle' && !this.faceRight) {
+    if (this.state === 'walk' && !this.faceRight) {
         this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
-    } else { // Placeholder
+    } else {
         this.animations.idleRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
     }
     if (this.state === 'frozen') {
        this.animations.frozen.drawFrame(this.game.clockTick, ctx, drawOffsetX + 16, drawOffsetY + 36, 1);
     }
+    if (this.state === 'damaged') {
+        if (this.faceRight) {
+            this.animations.dmgRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+        } else {
+            this.animations.dmgLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+        }
+    }
+    if (this.HP <= 0) {
+        this.dead = true;
+        if (this.faceRight) {
+            this.animations.deathRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+        } else {
+            this.animations.deathLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+        }
+    }
 }
+
 
 RedSlime.prototype.update = function () {
 
@@ -405,7 +469,8 @@ RedSlime.prototype.update = function () {
     // Check for player within a certain distance
     // if within set distance enemy aggros
     var playerDistance = distance(this.position, this.game.player.position);
-    if ((playerDistance > -200 && playerDistance < 0) || (playerDistance < 200 && playerDistance > 0)) {
+    //console.log(playerDistance);
+    if ((playerDistance > -200 && playerDistance < -32) || (playerDistance < 200 && playerDistance > 32)) {
         this.isChasing = true;
     } else {
         this.isChasing = false;
@@ -440,10 +505,23 @@ RedSlime.prototype.update = function () {
 
     if (this.state === 'frozen') {
         this.velocityX = 0;
-        //this.velocityY = 0;
         if (this.animations.frozen.isDone()) {
             this.animations.frozen.elapsedTime = 0;
             this.state = 'walk';
+        }
+    }
+
+    if (this.state === 'damaged') {
+        this.velocityX = 0;
+        if (this.faceRight && this.animations.dmgRight.isDone()) {    
+                this.animations.dmgRight.elapsedTime = 0;
+                this.state = 'walk';
+                this.HP -= 1;    
+                console.log(this.HP);
+        } else if (!this.faceRight && this.animations.dmgLeft.isDone()) {
+                this.animations.dmgLeft.elapsedTime = 0; 
+                this.state = 'walk';
+                this.HP -= 1;         
         }
     }
 
@@ -461,14 +539,23 @@ RedSlime.prototype.update = function () {
 
     if (this.isChasing) {
         // move right
-        if (playerDistance > -200 && playerDistance < -32) {
+        if (playerDistance > -200 && playerDistance < 0) {
             this.faceRight = true;
             this.velocityX = 60;
         } 
         // move left
-        if (playerDistance < 200 && playerDistance > 32) {
+        if (playerDistance < 200 && playerDistance > 0) {
             this.faceRight = false;
             this.velocityX = -60;
+        }
+    }
+
+    if (this.dead) {
+        this.velocityX = 0;
+        if (this.faceRight && this.animations.deathRight.isDone()) {
+            this.removeFromWorld = true;
+        } else if (!this.faceRight && this.animations.deathLeft.isDone()) {
+            this.removeFromWorld = true;
         }
     }
     
@@ -495,6 +582,8 @@ function Player(game) {
     this.damaged = false;
     this.jumping = false;
     this.falling = false;
+    this.blinking = false;
+    //this.punching = false;
     this.jumpsLeft = [1, 2];
     this.jumpsMax = [1, 2];
     this.invulnerable = false;
@@ -513,7 +602,9 @@ function Player(game) {
                         dmgLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_left.png"), 0, 0, 64, 64, .2, 5, false, false)],
                         dmgRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_right.png"), 0, 0, 64, 64, .2, 5, false, false)],
                         deathLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_left.png"), 0, 0, 64, 64, .2, 6, false, false)], 
-                        deathRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 6, false, false)]};
+                        deathRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_right.png"), 0, 0, 64, 64, .2, 6, false, false)],
+                        blinkLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/blink_left.png"), 0, 0, 32, 32, .2, 14, false, false)],
+                        blinkRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/blink_right.png"), 0, 0, 32, 32, .2, 14, false, false)]};
 
                             
                             
@@ -550,7 +641,7 @@ Player.prototype.update = function() {
     }
 
     // Attack key 'X' pressed
-    if (this.game.xKey && this.activeHero === 0) {
+    if (this.game.xKey && this.activeHero === 0) { // fireball
         var isFireball = false;
         this.game.projectiles.forEach(function(entity) {
             if (entity.player && entity.fireball) isFireball = true;
@@ -559,7 +650,10 @@ Player.prototype.update = function() {
             this.game.addEntity(new Fireball(this.game, this.faceRight, new Position(this.position.left + this.position.width * 0.5 - 16, this.position.top + this.position.height * 0.5 - 16,
                                 this.position.left + this.position.width * 0.5 - 6, this.position.top + this.position.height * 0.5 - 6, 12, 12), true, true));
         }
-    }
+    } 
+    // else if (this.game.xKey && this.activeHero === 1) { // punch attack
+    //     this.punching = true;
+    // }
 
     // Action key 'C' pressed
     if (this.game.cKey && this.activeHero === 0) {
@@ -586,6 +680,7 @@ Player.prototype.update = function() {
             } 
         })
         if (!onDoor && this.activeHero === 0) { // Blink
+            this.blinking = true;
             var blinkDistance = 100;
             if (!this.faceRight) blinkDistance *= -1;
             var blinkPosition = new Position(this.position.drawX, this.position.drawY, this.position.left, this.position.top, 
@@ -627,6 +722,7 @@ Player.prototype.update = function() {
                 })
             } while (collision);
             this.position = blinkPosition;
+            this.blinking = this.false;
         }
     }
 
@@ -704,6 +800,7 @@ Player.prototype.update = function() {
         }
     });
 
+    // Enemy collision
     this.game.enemies.forEach(function(entity) {
         if (collisionDetector(that.position, entity.position)) {
             entity.isHit = true;
@@ -734,6 +831,13 @@ Player.prototype.draw = function(ctx) {
             this.animations.idleRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
         } else {
             this.animations.idleLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+        }
+    }
+    if (this.blinking) {
+        if (this.faceRight) {
+            this.animations.blinkRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+        } else {
+            this.animations.blinkLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
         }
     }
     Entity.prototype.draw.call(this);
@@ -795,7 +899,7 @@ function SceneManager(game, stageList) {
     this.newStage = true;
     this.stages = stageList;
     this.currentStage = 0;
-    this.startNum = 2;
+    this.startNum = 0;
     this.game.player.position.moveTo(this.stages[this.currentStage].getPosition(this.startNum).left, this.stages[this.currentStage].getPosition(this.startNum).top);
 }
 
@@ -832,13 +936,13 @@ SceneManager.prototype.update = function() {
         for (var i = 0; i < this.stages[this.currentStage].platforms.length; i++) {
             this.game.addEntity(this.stages[this.currentStage].platforms[i]);
         }
-        console.log(`Number of Platforms${this.game.platforms.length}`);
+        console.log(`Number of Platforms: ${this.game.platforms.length}`);
 
         // Enemies
         for (var i = 0; i < this.stages[this.currentStage].enemies.length; i++) {
             this.game.addEntity(this.stages[this.currentStage].enemies[i]);
         }
-        console.log(`Number of Enemies${this.game.enemies.length}`);
+        console.log(`Number of Enemies: ${this.game.enemies.length}`);
 
         // Doors
         for (var i = 0; i < this.stages[this.currentStage].doors.length; i++) {
@@ -884,7 +988,13 @@ AM.queueDownload("./img/sprites/heroes/black_mage/fireball_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/fireball_right.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/frostbolt_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/frostbolt_right.png");
-AM.queueDownload("./img/ice_cube.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/blink_left.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/blink_right.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/dmg_left.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/dmg_right.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/death_left.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/death_right.png");
+
 
 // Monk images
 AM.queueDownload("./img/sprites/heroes/monk/idle_left.png");
@@ -894,14 +1004,16 @@ AM.queueDownload("./img/sprites/heroes/monk/walk_right.png");
 AM.queueDownload("./img/sprites/heroes/monk/jump_left.png");
 AM.queueDownload("./img/sprites/heroes/monk/jump_right.png");
 
-// example animations for prototype
-AM.queueDownload("./img/sprites/heroes/black_mage/dmg_right.png");
-AM.queueDownload("./img/sprites/heroes/black_mage/death_left.png");
-AM.queueDownload("./img/sprites/enemies/red_slime/damage.png");
+// Slime images
+AM.queueDownload("./img/sprites/enemies/red_slime/dmg_left.png");
+AM.queueDownload("./img/sprites/enemies/red_slime/dmg_right.png");
+AM.queueDownload("./img/sprites/enemies/red_slime/death_left.png");
+AM.queueDownload("./img/sprites/enemies/red_slime/death_right.png");
 AM.queueDownload("./img/sprites/enemies/green_slime/idle.png");
 AM.queueDownload("./img/sprites/enemies/red_slime/idle_left.png");
 AM.queueDownload("./img/sprites/enemies/red_slime/idle_right.png");
 AM.queueDownload("./img/sprites/enemies/blue_slime/rolling.png");
+AM.queueDownload("./img/ice_cube.png");
 
 AM.downloadAll(function () {
     var canvas = document.getElementById("gameWorld");
@@ -930,7 +1042,7 @@ AM.downloadAll(function () {
                         new Platform(gameEngine, grass, 1158, 454, 274, 18), new Platform(gameEngine, grass, 1286, 262, 402, 18),
                         new Platform(gameEngine, grass, 1414, 134, 146, 18), new Platform(gameEngine, grass, 1510, 902, 146, 18),
                         new Platform(gameEngine, grass, 1798, 390, 274, 18), new Platform(gameEngine, grass, 2086, 134, 224, 18)],
-                        [new RedSlime(gameEngine, 1510, 800, false)], [new Door(gameEngine, 2304, 72, 1, 0)], [], [new Position(25, 575, 25, 575, 1, 1), new Position (2260, 72, 2260, 72, 1, 1),
+                        [new RedSlime(gameEngine, 1000, 600, false)], [new Door(gameEngine, 2304, 72, 1, 0)], [], [new Position(25, 575, 25, 575, 1, 1), new Position (2260, 72, 2260, 72, 1, 1),
                         new Position(2281, 962, 2281, 962, 1, 1)]),
                     new Stage(new Background(gameEngine, AM.getAsset("./img/levels/st1lv2.png"), 24, 1190, 24, 1958, 1216, 1984),
                         [new Wall(gameEngine, null, 24, 24, 366, 160), new Wall(gameEngine, null, 390, 24, 242, 384), 
