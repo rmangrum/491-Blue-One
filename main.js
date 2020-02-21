@@ -17,7 +17,7 @@ Animation.prototype.drawFrame = function (tick, ctx, x, y, scaleBy) {
     this.elapsedTime += tick;
     if (this.loop) {
         if (this.isDone()) {
-            this.elapsedTime = 0;
+            this.elapsedTime -= this.totalTime;
         }
     } else if (this.isDone()) {
         return;
@@ -318,10 +318,11 @@ Fireball.prototype.update = function () {
     var collision = false;
     var that = this;
     this.game.enemies.forEach(function(entity) {
-        if (collisionDetector(that.position, entity.position)) {
+        if (collisionDetector(that.position, entity.position) && entity.state !== 'dead') {
             if (that.fireball) {
                 collision = true;
-                //entity.isHit = true;
+                entity.isHit = true;
+                entity.HP -= 2;
                 entity.state = 'damaged';
                 if (that.velocityX > 0) entity.isHitRight = true;
             } else {
@@ -400,29 +401,60 @@ Fireball.prototype.update = function () {
 
 
 // Slime test enemy
-function RedSlime(game, theX, theY, faceRight) {
+function Slime(game, theX, theY, faceRight, theColor) {
     this.type = "Enemy";
+    this.color = theColor;
     this.HP = 4;
-    this.state = 'walk';
+    this.state = 'idle';
     this.position = new Position(theX, theY, theX + 20, theY + 45, 24, 20);
     this.faceRight = faceRight;
     this.velocityX = 0;
     this.velocityY = 0;
-    this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_left.png"), 0, 0, 32, 32.3, 0.2, 10, true, false),
-                       idleRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_right.png"), 0, 0, 32, 32.3, 0.2, 10, true, false),
-                       frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false),
-                       dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/dmg_left.png"), 0, 0, 32, 32.3, 0.1, 8, false, false),
-                       dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/dmg_right.png"), 0, 0, 32, 32.3, 0.1, 8, false, false),
-                       deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/death_left.png"), 0, 0, 32, 32.3, 0.2, 13, false, false),
-                       deathRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/death_right.png"), 0, 0, 32, 32.3, 0.2, 13, false, false)};
+    this.animations = {};
+    if (theColor === 'Red') {
+        this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_left.png"), 0, 0, 32, 32, 0.2, 10, true, false),
+                            idleRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_right.png"), 0, 0, 32, 32, 0.2, 10, true, false),
+                            walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/rolling_left.png"), 0, 0, 32, 32, 0.2, 8, true, false),
+                            walkRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/rolling_right.png"), 0, 0, 32, 32, 0.2, 8, true, false),
+                            deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/death_left.png"), 0, 0, 32, 32, 0.125, 12, false, false),
+                            deathRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/death_right.png"), 0, 0, 32, 32, 0.125, 12, false, false),
+                            dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/dmg_left.png"), 0, 0, 32, 32, 0.125, 8, false, false),
+                            dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/dmg_right.png"), 0, 0, 32, 32, 0.125, 8, false, false),
+                            frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};
+    } else if (theColor === 'Green') {
+        this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/idle_left.png"), 0, 0, 32, 32, 0.2, 10, true, false),
+                            idleRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/idle_right.png"), 0, 0, 32, 32, 0.2, 10, true, false),
+                            walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/rolling_left.png"), 0, 0, 32, 32, 0.2, 8, true, false),
+                            walkRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/rolling_right.png"), 0, 0, 32, 32, 0.2, 8, true, false),
+                            deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/death_left.png"), 0, 0, 32, 32, 0.125, 12, false, false),
+                            deathRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/death_right.png"), 0, 0, 32, 32, 0.125, 12, false, false),
+                            dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/dmg_left.png"), 0, 0, 32, 32, 0.125, 8, false, false),
+                            dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/dmg_right.png"), 0, 0, 32, 32, 0.125, 8, false, false),
+                            frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};
+    } else {
+        this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/idle_left.png"), 0, 0, 32, 32, 0.2, 10, true, false),
+                            idleRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/idle_right.png"), 0, 0, 32, 32, 0.2, 10, true, false),
+                            walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/rolling_left.png"), 0, 0, 32, 32, 0.2, 8, true, false),
+                            walkRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/rolling_right.png"), 0, 0, 32, 32, 0.2, 8, true, false),
+                            deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/death_left.png"), 0, 0, 32, 32, 0.125, 12, false, false),
+                            deathRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/death_right.png"), 0, 0, 32, 32, 0.125, 12, false, false),
+                            dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/dmg_left.png"), 0, 0, 32, 32, 0.125, 8, false, false),
+                            dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/dmg_right.png"), 0, 0, 32, 32, 0.125, 8, false, false),
+                            frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};
+    }
+    
     this.game = game;
     this.isHit = false;
     this.isHitRight = false;
     this.isChasing = false;
-    this.dead = false;
 }
 
-RedSlime.prototype.draw = function (ctx) {
+Slime.prototype.split = function () {
+    this.game.addEntity(new Slime(this.game, this.position.drawX - this.position.width * 0.5, this.position.drawY - 2, false, 'Red'));
+    this.game.addEntity(new Slime(this.game, this.position.drawX + this.position.width, this.position.drawY - 2, true, 'Red'));
+}
+
+Slime.prototype.draw = function (ctx) {
     var drawOffsetX = this.position.drawX - this.game.camera.x;
     var drawOffsetY = this.position.drawY - this.game.camera.y;
     var boxOffsetX = this.position.left - this.game.camera.x;
@@ -432,45 +464,69 @@ RedSlime.prototype.draw = function (ctx) {
         ctx.save();
         ctx.strokeStyle = 'Red';
         ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
-        ctx.restore(); 
+        ctx.restore();  
     }
 
-    if (this.state === 'walk' && !this.faceRight) {
-        this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
-    } else {
-        this.animations.idleRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+    if (this.state === 'idle') {
+        (this.faceRight) ? this.animations.idleRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2) : 
+                            this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
     }
-    if (this.state === 'frozen') {
-       this.animations.frozen.drawFrame(this.game.clockTick, ctx, drawOffsetX + 16, drawOffsetY + 36, 1);
+    
+    if (this.state === 'walk') {
+        (this.faceRight) ? this.animations.walkRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2) : 
+                            this.animations.walkLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
     }
+
+    if (this.state === 'frozen') this.animations.frozen.drawFrame(this.game.clockTick, ctx, drawOffsetX + 16, drawOffsetY + 36, 1);
+    
     if (this.state === 'damaged') {
-        if (this.faceRight) {
-            this.animations.dmgRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+        if(this.faceRight) {
+            if (this.animations.dmgRight.isDone()) {
+                this.state = 'idle';
+                this.animations.dmgRight.elapsedTime = 0;
+            } else {
+                this.animations.dmgRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+            }
         } else {
-            this.animations.dmgLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+            if (this.animations.dmgLeft.isDone()) {
+                this.state = 'idle';
+                this.animations.dmgLeft.elapsedTime = 0;
+            } else {
+                this.animations.dmgLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+            }
         }
     }
-    if (this.HP <= 0) {
-        this.dead = true;
-        if (this.faceRight) {
-            this.animations.deathRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+
+    if (this.state === 'dead') {
+        if(this.faceRight) {
+            if (this.animations.deathRight.isDone()) {
+                if (this.color === 'Green') this.split();
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+            }
         } else {
-            this.animations.deathLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+            if (this.animations.deathLeft.isDone()) {
+                if (this.color === 'Green') this.split();
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+            }
         }
     }
 }
 
-
-RedSlime.prototype.update = function () {
+Slime.prototype.update = function () {
 
     var currentPlatform = getGround(this.position, this.game);
     var that = this;
 
+    if (this.HP <= 0) this.state = 'dead';
+
     // Check for player within a certain distance
     // if within set distance enemy aggros
     var playerDistance = distance(this.position, this.game.player.position);
-    //console.log(playerDistance);
-    if ((playerDistance > -200 && playerDistance < -32) || (playerDistance < 200 && playerDistance > 32)) {
+    if ((playerDistance > -200 && playerDistance < 0) || (playerDistance < 200 && playerDistance > 0)) {
         this.isChasing = true;
     } else {
         this.isChasing = false;
@@ -511,18 +567,8 @@ RedSlime.prototype.update = function () {
         }
     }
 
-    if (this.state === 'damaged') {
+    if (this.state === 'dead') {
         this.velocityX = 0;
-        if (this.faceRight && this.animations.dmgRight.isDone()) {    
-                this.animations.dmgRight.elapsedTime = 0;
-                this.state = 'walk';
-                this.HP -= 1;    
-                console.log(this.HP);
-        } else if (!this.faceRight && this.animations.dmgLeft.isDone()) {
-                this.animations.dmgLeft.elapsedTime = 0; 
-                this.state = 'walk';
-                this.HP -= 1;         
-        }
     }
 
     this.position.moveBy(this.velocityX * this.game.clockTick, this.velocityY * this.game.clockTick);
@@ -537,25 +583,17 @@ RedSlime.prototype.update = function () {
         this.isHit = false;
     }
 
-    if (this.isChasing) {
+    if (this.isChasing && this.state !== 'dead' && this.state !== 'damaged') {
+        this.state = 'walk';
         // move right
-        if (playerDistance > -200 && playerDistance < 0) {
+        if (playerDistance > -200 && playerDistance < -32) {
             this.faceRight = true;
             this.velocityX = 60;
         } 
         // move left
-        if (playerDistance < 200 && playerDistance > 0) {
+        if (playerDistance < 200 && playerDistance > 32) {
             this.faceRight = false;
             this.velocityX = -60;
-        }
-    }
-
-    if (this.dead) {
-        this.velocityX = 0;
-        if (this.faceRight && this.animations.deathRight.isDone()) {
-            this.removeFromWorld = true;
-        } else if (!this.faceRight && this.animations.deathLeft.isDone()) {
-            this.removeFromWorld = true;
         }
     }
     
@@ -571,6 +609,267 @@ RedSlime.prototype.update = function () {
     if (this.position.left < this.game.background.leftWall) this.position.moveTo(this.game.background.leftWall, this.position.top);
     if (this.position.right > this.game.background.rightWall) this.position.moveTo(this.game.background.rightWall - this.position.width, this.position.top);
 };
+
+function Bunny(game, theX, theY, faceRight) {
+    this.game = game;
+    this.type = "Enemy";
+    this.HP = 4;
+    this.state = 'idle';
+    this.position = new Position(theX, theY, theX + 19, theY + 15, 28, 48);
+    this.faceRight = faceRight;
+    this.isHit = false;
+    this.isHitRight = false;
+    this.aggro = false;
+    this.shotTimer = 1;
+    this.shot = false;
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.animations = {deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/bunny/death_l.png"), 0, 0, 40, 32, 8, 0.125, false, false),
+                        deathRight: new Animation(AM.getAsset("./img/sprites/enemies/bunny/death_r.png"), 0, 0, 40, 32, 8, 0.125, false, false),
+                        dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/bunny/death_l.png"), 0, 0, 40, 32, 2, 0.25, false, false),
+                        dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/bunny/death_r.png"), 0, 0, 40, 32, 2, 0.25, false, false),
+                        idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/bunny/idle_l.png"), 0, 0, 32, 32, 4, 0.2, true, false),
+                        idleRight: new Animation(AM.getAsset("./img/sprites/enemies/bunny/idle_r.png"), 0, 0, 32, 32, 4, 0.2, true, false),
+                        atkLeft: new Animation(AM.getAsset("./img/sprites/enemies/bunny/atk_l.png"), 0, 0, 32, 32, 6, 0.2, false, false),
+                        atkRight: new Animation(AM.getAsset("./img/sprites/enemies/bunny/atk_r.png"), 0, 0, 32, 32, 6, 0.2, false, false),
+                        frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};
+}
+
+Bunny.prototype.update = function() {
+    var currentPlatform = getGround(this.position, this.game);
+    var that = this;
+
+    if (this.HP <= 0) this.state = 'dead';
+
+    // Check for player within a certain distance
+    // if within set distance enemy aggros
+    var playerDistance = distance(this.position, this.game.player.position);
+    if ((playerDistance > -400 && playerDistance < 0) || (playerDistance < 400 && playerDistance > 0)) {
+        this.aggro = true;
+    } else {
+        this.aggro = false;
+    }
+
+    // Falling checks
+    if (this.position.bottom === currentPlatform.ground) {
+        this.velocityY = 0;
+        this.falling = false;
+    } else if (this.position.bottom + (this.velocityY + this.game.gravity) * this.game.clockTick >= currentPlatform.ground &&
+                this.velocityY > 0) {
+        this.position.moveTo(this.position.left, currentPlatform.ground - this.position.height);
+        this.velocityY = 0;
+        this.falling = false;
+    } else {
+        this.falling = true;
+        (this.velocityY + this.game.gravity >= this.game.terminalVelocity) ? this.velocityY = this.game.terminalVelocity : this.velocityY += this.game.gravity;
+    }
+
+    if (this.state === 'frozen') {
+        this.velocityX = 0;
+        //this.velocityY = 0;
+        if (this.animations.frozen.isDone()) {
+            this.animations.frozen.elapsedTime = 0;
+            this.state = 'idle';
+        }
+    }
+
+    if (this.state === 'dead') {
+        this.velocityX = 0;
+    }
+
+    this.position.moveBy(this.velocityX * this.game.clockTick, this.velocityY * this.game.clockTick);
+
+    if (this.isHit) {
+        if (this.isHitRight) {
+            this.position.moveBy(5, 0);
+            this.isHitRight = false;
+        } else {
+            this.position.moveBy(-5, 0);
+        }
+        this.isHit = false;
+    }
+
+    if (this.aggro && this.state !== 'dead' && this.state !== 'damaged' && this.state !== 'frozen') {
+        this.state = 'attack';
+        // face right
+        if (playerDistance > -400 && playerDistance < 0) {
+            this.faceRight = true;
+        } 
+        // face left
+        if (playerDistance < 400 && playerDistance > 0) {
+            this.faceRight = false;
+        }
+    } else if (this.state !== 'dead' && this.state !== 'damaged' && this.state != 'frozen') {
+        this.state = 'idle';
+    }
+    
+    // Wall collision
+    this.game.walls.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position) && that.position.bottom > entity.position.top) {
+            if (that.position.left < entity.position.left) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
+            if (that.position.right > entity.position.right) that.position.moveTo(entity.position.right, that.position.top);
+        }
+    });
+
+    // Stay on background
+    if (this.position.left < this.game.background.leftWall) this.position.moveTo(this.game.background.leftWall, this.position.top);
+    if (this.position.right > this.game.background.rightWall) this.position.moveTo(this.game.background.rightWall - this.position.width, this.position.top);
+}
+
+Bunny.prototype.draw = function (ctx) {
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();  
+    }
+
+    if (this.state === 'idle') {
+        (this.faceRight) ? this.animations.idleRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2) : 
+                            this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+    }
+
+    if (this.state === 'frozen') this.animations.frozen.drawFrame(this.game.clockTick, ctx, drawOffsetX + 16, drawOffsetY + 30, 1);
+    
+    if (this.state === 'damaged') {
+        if (this.HP <= 0) this.state = 'dead';
+        else {
+            if(this.faceRight) {
+                if (this.animations.dmgRight.isDone()) {
+                    this.state = 'idle';
+                } else {
+                    this.animations.dmgRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+                }
+            } else {
+                if (this.animations.dmgLeft.isDone()) {
+                    this.state = 'idle';
+                } else {
+                    this.animations.dmgLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+                }
+            }
+        }
+        
+    }
+
+    if (this.state === 'dead') {
+        if(this.faceRight) {
+            if (this.animations.deathRight.isDone()) {
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+            }
+        } else {
+            if (this.animations.deathLeft.isDone()) {
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+            }
+        }
+    }
+
+    if (this.state === 'attack') {
+        var rockLeft = this.position.left + this.position.width * 0.5;
+        var rockTop = this.position.top + this.position.height * 0.25;
+        if (this.shotTimer <= 0) {
+            if (this.faceRight) {
+                if (!this.animations.atkRight.isDone()) {
+                    this.animations.atkRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+                    if (this.animations.atkRight.elapsedTime / this.animations.atkRight.totalTime > 0.33 && !this.shot) {
+                        this.shot = true;
+                        this.game.addEntity(new Rock(this.game, this.faceRight, new Position(rockLeft, rockTop,rockLeft, rockTop, 16, 16), this));
+                    }
+                } else {
+                    this.animations.atkRight.elapsedTime = 0;
+                    this.shotTimer = 1.5;
+                    this.shot = false;
+                }
+            } else {
+                if (!this.animations.atkLeft.isDone()) {
+                    this.animations.atkLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+                    if (this.animations.atkLeft.elapsedTime / this.animations.atkLeft.totalTime > 0.33 && !this.shot) {
+                        this.game.addEntity(new Rock(this.game, this.faceRight, new Position(rockLeft, rockTop,rockLeft, rockTop, 16, 16), this));
+                        this.shot = true;
+                    }
+                } else {
+                    this.animations.atkLeft.elapsedTime = 0;
+                    this.shotTimer = 1.5;
+                    this.shot = false;
+                }
+            }
+        } else {
+            this.shotTimer -= this.game.clockTick;
+            (this.faceRight) ? this.animations.idleRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2) : 
+                                this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+        }
+    }
+};
+
+function Rock(game, goingRight, position) {
+    this.type = "Projectile";
+    this.game = game;
+    this.position = position;
+    this.velocityX = 600;
+    this.animation = new Animation(AM.getAsset("./img/sprites/enemies/bunny/medium_rock.png"), 0, 0, 16, 16, 0.125, 1, true, false);
+    if (!goingRight) this.velocityX *= -1;
+}
+
+Rock.prototype.draw = function (ctx) {
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();
+    }
+
+    this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+}
+
+Rock.prototype.update = function () {
+    var collision = false;
+    var that = this;
+
+    if (collisionDetector(this.position, this.game.player.position)) {
+        // Monk damaged sprites needed
+        // this.game.player.damaged = true;
+        // this.game.player.invulnerable = true;
+        this.game.player.HP[this.game.player.activeHero] -= 1;
+        collision = true;
+    }
+
+    this.game.platforms.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position)) {
+            collision = true;
+        } 
+    });
+
+    this.game.walls.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position)) {
+            collision = true;
+        } 
+    });
+
+    if (this.position.left < this.game.background.leftWall) collision = true;
+    if (this.position.right > this.game.background.rightWall) collision = true;
+    
+    if (collision || this.position.right > this.game.background.right
+                || this.position.left < this.game.background.left 
+                || this.position.right > this.game.camera.x + this.game.ctx.width * 1.5 
+                || this.position.left < this.game.camera.x - this.game.ctx.width * 0.5) {
+        this.removeFromWorld = true;
+    } else {
+        this.position.moveBy(this.velocityX * this.game.clockTick, 0);
+    }
+}
 
 function Player(game) {
     this.game = game;
@@ -615,6 +914,14 @@ Player.prototype.update = function() {
     // ***********************************
     // Updates to state based on key input
     // ***********************************
+
+    if (this.HP[this.activeHero] <= 0) {
+        this.game.zKey = true;
+        if (this.HP[this.activeHero] <= 0) {
+            console.log('Game Over!');
+            this.HP[this.activeHero] = this.maxHP[this.activeHero];
+        }
+    }
 
     // Facing right when left key pressed
     if (this.game.leftKey && !this.game.rightKey && this.faceRight) {
@@ -680,7 +987,6 @@ Player.prototype.update = function() {
             } 
         })
         if (!onDoor && this.activeHero === 0) { // Blink
-            this.blinking = true;
             var blinkDistance = 100;
             if (!this.faceRight) blinkDistance *= -1;
             var blinkPosition = new Position(this.position.drawX, this.position.drawY, this.position.left, this.position.top, 
@@ -722,7 +1028,6 @@ Player.prototype.update = function() {
                 })
             } while (collision);
             this.position = blinkPosition;
-            this.blinking = this.false;
         }
     }
 
@@ -802,7 +1107,7 @@ Player.prototype.update = function() {
 
     // Enemy collision
     this.game.enemies.forEach(function(entity) {
-        if (collisionDetector(that.position, entity.position)) {
+        if (collisionDetector(that.position, entity.position) && entity.state !== 'dead') {
             entity.isHit = true;
             if (that.position.left < entity.position.left) {
                 entity.isHitRight = true;
@@ -819,7 +1124,11 @@ Player.prototype.update = function() {
 Player.prototype.draw = function(ctx) {
     var cameraOffsetX = this.position.drawX - this.game.camera.x;
     var cameraOffsetY = this.position.drawY - this.game.camera.y;
+    
+    /* DAMAGED ANIMATIONS FOR MONK NEEDED
+    if (this.damaged) {
 
+    } else */
     if (this.walking) {
         if (this.faceRight) {
             this.animations.walkRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
@@ -988,13 +1297,9 @@ AM.queueDownload("./img/sprites/heroes/black_mage/fireball_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/fireball_right.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/frostbolt_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/frostbolt_right.png");
-AM.queueDownload("./img/sprites/heroes/black_mage/blink_left.png");
-AM.queueDownload("./img/sprites/heroes/black_mage/blink_right.png");
-AM.queueDownload("./img/sprites/heroes/black_mage/dmg_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/dmg_right.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/death_left.png");
-AM.queueDownload("./img/sprites/heroes/black_mage/death_right.png");
-
+AM.queueDownload("./img/ice_cube.png");
 
 // Monk images
 AM.queueDownload("./img/sprites/heroes/monk/idle_left.png");
@@ -1004,16 +1309,42 @@ AM.queueDownload("./img/sprites/heroes/monk/walk_right.png");
 AM.queueDownload("./img/sprites/heroes/monk/jump_left.png");
 AM.queueDownload("./img/sprites/heroes/monk/jump_right.png");
 
-// Slime images
-AM.queueDownload("./img/sprites/enemies/red_slime/dmg_left.png");
-AM.queueDownload("./img/sprites/enemies/red_slime/dmg_right.png");
+// Slime Sprites
 AM.queueDownload("./img/sprites/enemies/red_slime/death_left.png");
 AM.queueDownload("./img/sprites/enemies/red_slime/death_right.png");
-AM.queueDownload("./img/sprites/enemies/green_slime/idle.png");
+AM.queueDownload("./img/sprites/enemies/red_slime/dmg_left.png");
+AM.queueDownload("./img/sprites/enemies/red_slime/dmg_right.png");
 AM.queueDownload("./img/sprites/enemies/red_slime/idle_left.png");
 AM.queueDownload("./img/sprites/enemies/red_slime/idle_right.png");
-AM.queueDownload("./img/sprites/enemies/blue_slime/rolling.png");
-AM.queueDownload("./img/ice_cube.png");
+AM.queueDownload("./img/sprites/enemies/red_slime/rolling_left.png");
+AM.queueDownload("./img/sprites/enemies/red_slime/rolling_right.png");
+
+AM.queueDownload("./img/sprites/enemies/green_slime/death_left.png");
+AM.queueDownload("./img/sprites/enemies/green_slime/death_right.png");
+AM.queueDownload("./img/sprites/enemies/green_slime/dmg_left.png");
+AM.queueDownload("./img/sprites/enemies/green_slime/dmg_right.png");
+AM.queueDownload("./img/sprites/enemies/green_slime/idle_left.png");
+AM.queueDownload("./img/sprites/enemies/green_slime/idle_right.png");
+AM.queueDownload("./img/sprites/enemies/green_slime/rolling_left.png");
+AM.queueDownload("./img/sprites/enemies/green_slime/rolling_right.png");
+
+AM.queueDownload("./img/sprites/enemies/blue_slime/death_left.png");
+AM.queueDownload("./img/sprites/enemies/blue_slime/death_right.png");
+AM.queueDownload("./img/sprites/enemies/blue_slime/dmg_left.png");
+AM.queueDownload("./img/sprites/enemies/blue_slime/dmg_right.png");
+AM.queueDownload("./img/sprites/enemies/blue_slime/idle_left.png");
+AM.queueDownload("./img/sprites/enemies/blue_slime/idle_right.png");
+AM.queueDownload("./img/sprites/enemies/blue_slime/rolling_left.png");
+AM.queueDownload("./img/sprites/enemies/blue_slime/rolling_right.png");
+
+// Bunny Sprites
+AM.queueDownload("./img/sprites/enemies/bunny/death_l.png");
+AM.queueDownload("./img/sprites/enemies/bunny/death_r.png");
+AM.queueDownload("./img/sprites/enemies/bunny/idle_l.png");
+AM.queueDownload("./img/sprites/enemies/bunny/idle_r.png");
+AM.queueDownload("./img/sprites/enemies/bunny/atk_l.png");
+AM.queueDownload("./img/sprites/enemies/bunny/atk_r.png");
+AM.queueDownload("./img/sprites/enemies/bunny/medium_rock.png");
 
 AM.downloadAll(function () {
     var canvas = document.getElementById("gameWorld");
@@ -1042,8 +1373,19 @@ AM.downloadAll(function () {
                         new Platform(gameEngine, grass, 1158, 454, 274, 18), new Platform(gameEngine, grass, 1286, 262, 402, 18),
                         new Platform(gameEngine, grass, 1414, 134, 146, 18), new Platform(gameEngine, grass, 1510, 902, 146, 18),
                         new Platform(gameEngine, grass, 1798, 390, 274, 18), new Platform(gameEngine, grass, 2086, 134, 224, 18)],
-                        [new RedSlime(gameEngine, 1000, 600, false)], [new Door(gameEngine, 2304, 72, 1, 0)], [], [new Position(25, 575, 25, 575, 1, 1), new Position (2260, 72, 2260, 72, 1, 1),
-                        new Position(2281, 962, 2281, 962, 1, 1)]),
+                        [new Slime(gameEngine, 209, 448, false, 'Red'), new Slime(gameEngine, 272, 576, false, 'Red'), 
+                        new Slime(gameEngine, 497, 576, false, 'Red'), new Slime(gameEngine, 721, 576, false, 'Red'),
+                        new Slime(gameEngine, 240, 192, false, 'Green'), new Slime(gameEngine, 1080, 961, false, 'Green'), 
+                        new Slime(gameEngine, 400, 960, false, 'Green'), new Slime(gameEngine, 880, 703, false, 'Green'), 
+                        new Slime(gameEngine, 1552, 193, false, 'Green'), new Slime(gameEngine, 1263, 384, false, 'Green'), 
+                        new Slime(gameEngine, 1552, 832, false, 'Green'), new Slime(gameEngine, 1936, 704, false, 'Green'), 
+                        new Slime(gameEngine, 1904, 320, false, 'Green'), new Bunny(gameEngine, 431, 800, false),
+                        new Bunny(gameEngine, 561, 512, false), new Bunny(gameEngine, 880, 320, false),
+                        new Bunny(gameEngine, 686, 448, false), new Bunny(gameEngine, 1104, 575, false),
+                        new Bunny(gameEngine, 751, 833, false), new Bunny(gameEngine, 1456, 64, false),
+                        new Bunny(gameEngine, 1326, 191, false), new Bunny(gameEngine, 2128, 576, false),
+                        new Bunny(gameEngine, 2128, 64, false)], [new Door(gameEngine, 2304, 72, 1, 0)], [],
+                        [new Position(25, 575, 25, 575, 1, 1), new Position (2260, 72, 2260, 72, 1, 1), new Position(2281, 962, 2281, 962, 1, 1)]),
                     new Stage(new Background(gameEngine, AM.getAsset("./img/levels/st1lv2.png"), 24, 1190, 24, 1958, 1216, 1984),
                         [new Wall(gameEngine, null, 24, 24, 366, 160), new Wall(gameEngine, null, 390, 24, 242, 384), 
                         new Wall(gameEngine, null, 24, 390, 192, 242), new Wall(gameEngine, null, 390, 408, 18, 320), 
@@ -1105,4 +1447,4 @@ AM.downloadAll(function () {
     gameEngine.addEntity(new RedSlime(gameEngine, 450, 100, false));
     gameEngine.addEntity(new RedSlime(gameEngine, 800, 100, false));
     */
-});
+})
