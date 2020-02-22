@@ -178,6 +178,10 @@ Camera.prototype.update = function () {
     } else if (this.game.background.bottom < this.y + this.game.ctx.canvas.height) { // Check if below the background minus canvas height
         this.y = this.game.background.bottom - this.game.ctx.canvas.height;
     }
+    if (this.game.player.gameOver) {
+        this.x = 0;
+        this.y = 0;
+    }
 }
 
 Camera.prototype.draw = function (ctx) {
@@ -382,6 +386,7 @@ Slime.prototype.draw = function (ctx) {
         if(this.faceRight) {
             if (this.animations.deathRight.isDone()) {
                 if (this.color === 'Green') this.split();
+                else if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
                 this.removeFromWorld = true;
             } else {
                 this.animations.deathRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
@@ -636,6 +641,7 @@ Bunny.prototype.draw = function (ctx) {
             }
         } else {
             if (this.animations.deathLeft.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
                 this.removeFromWorld = true;
             } else {
                 this.animations.deathLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
@@ -710,9 +716,8 @@ Rock.prototype.update = function () {
     var that = this;
 
     if (collisionDetector(this.position, this.game.player.position)) {
-        // Monk damaged sprites needed
-        // this.game.player.damaged = true;
-        // this.game.player.invulnerable = true;
+        this.game.player.damaged = true;
+        this.game.player.invulnerable = true;
         this.game.player.HP[this.game.player.activeHero] -= 1;
         collision = true;
     }
@@ -752,15 +757,18 @@ function Player(game) {
     this.damaged = false;
     this.jumping = false;
     this.falling = false;
+    this.blinkEnabled = false;
     this.blinking = false;
     this.punching = false;
-    this.jumpsLeft = [1, 2];
-    this.jumpsMax = [1, 2];
+    this.jumpsLeft = [1, 1];
+    this.jumpsMax = [1, 1];
     this.invulnerable = false;
+    this.gameOver = false;
     this.position = new Position(0, 320, 52, 367, 24, 40);
     this.faceRight = true;
     this.velocityX = 0;
     this.velocityY = 0;
+    this.keys = [false, false];
     this.animations = {idleLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_left.png"), 0, 0, 64, 64, .2, 1, true, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/idle_left.png"), 0, 0, 32, 32, .2, 1, true, false)],
                         idleRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_right.png"), 0, 0, 64, 64, .2, 1, true, false),
@@ -770,17 +778,31 @@ function Player(game) {
                         walkRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 2, true, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/walk_right.png"), 0, 0, 32, 32, .125, 2, true, false)],
                         dmgLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_left.png"), 0, 0, 64, 64, .2, 5, false, false),
-                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/dmg_l.png"), 0, 0, 32, 32, .2, 5, false, false)],
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/dmg_l.png"), 0, 0, 36, 36, .2, 5, false, false)],
                         dmgRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_right.png"), 0, 0, 64, 64, .2, 5, false, false),
-                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/dmg_r.png"), 0, 0, 32, 32, .2, 5, false, false)],
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/dmg_r.png"), 0, 0, 36, 36, .2, 5, false, false)],
                         deathLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_left.png"), 0, 0, 64, 64, .2, 6, false, false),
-                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/death_l.png"), 0, 0, 32, 32, .2, 10, false, false)], 
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/death_l.png"), 0, 0, 36, 36, .2, 10, false, false)], 
                         deathRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_right.png"), 0, 0, 64, 64, .2, 6, false, false),
-                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/death_r.png"), 0, 0, 32, 32, .2, 10, false, false)],
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/death_r.png"), 0, 0, 36, 36, .2, 10, false, false)],
                         blinkLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/blink_left.png"), 0, 0, 32, 32, .2, 14, false, false)],
                         blinkRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/blink_right.png"), 0, 0, 32, 32, .2, 14, false, false)],
+                        gameOver: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_right.png"), 64, 128, 64, 64, 1, 1, true, false),
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/death_r.png"), 72, 72, 36, 36, 1, 1, true, false)],
                         punchLeft: new Animation(AM.getAsset("./img/sprites/heroes/monk/punch_l.png"), 0, 0, 36, 36.2, 0.1, 9, false, false),
-                        punchRight: new Animation(AM.getAsset("./img/sprites/heroes/monk/punch_r.png"), 0, 0, 36, 36.2, 0.1, 9, false, false)};                         
+                        punchRight: new Animation(AM.getAsset("./img/sprites/heroes/monk/punch_r.png"), 0, 0, 36, 36.2, 0.1, 9, false, false)};                      
+}
+
+Player.prototype.swap = function() {
+    if(this.activeHero === 1) {
+        this.activeHero = 0;
+        this.position = new Position(this.position.left + this.position.width * 0.5 - 64, this.position.bottom - 87,
+            this.position.left + this.position.width * 0.5 - 12, this.position.bottom - 40, 24, 40);
+    } else {
+        this.activeHero = 1;
+        this.position = new Position(this.position.left + this.position.width * 0.5 - 31, this.position.bottom - 64,
+            this.position.left + this.position.width * 0.5 - 11, this.position.bottom - 62, 22, 62);
+    }
 }
 
 Player.prototype.update = function() {
@@ -788,14 +810,6 @@ Player.prototype.update = function() {
     // ***********************************
     // Updates to state based on key input
     // ***********************************
-
-    if (this.HP[this.activeHero] <= 0) {
-        this.game.zKey = true;
-        if (this.HP[this.activeHero] <= 0) {
-            console.log('Game Over!');
-            this.HP[this.activeHero] = this.maxHP[this.activeHero];
-        }
-    }
 
     // Facing right when left key pressed
     if (this.game.leftKey && !this.game.rightKey && this.faceRight) {
@@ -809,16 +823,8 @@ Player.prototype.update = function() {
     (this.game.leftKey || this.game.rightKey) ? this.walking = true : this.walking = false;
 
     // Swap key 'Z' pressed
-    if (this.game.zKey) {
-        if (this.activeHero === 0) {
-            this.activeHero = 1;
-            this.position = new Position(this.position.left + this.position.width * 0.5 - 31, this.position.bottom - 64,
-                                        this.position.left + this.position.width * 0.5 - 11, this.position.bottom - 62, 22, 62);
-        } else {
-            this.activeHero = 0;
-            this.position = new Position(this.position.left + this.position.width * 0.5 - 64, this.position.bottom - 87,
-                                        this.position.left + this.position.width * 0.5 - 12, this.position.bottom - 40, 24, 40);
-        }
+    if (this.game.zKey && this.damaged === false) {
+        if ((this.activeHero === 0 && this.HP[1] > 0) || (this.activeHero === 1 && this.HP[0] > 0)) this.swap();
     }
 
     // Attack key 'X' pressed
@@ -868,7 +874,7 @@ Player.prototype.update = function() {
                 onDoor = true;
             } 
         })
-        if (!onDoor && this.activeHero === 0) { // Blink
+        if (!onDoor && this.activeHero === 0 && this.blinkEnabled) { // Blink
             var blinkDistance = 100;
             if (!this.faceRight) blinkDistance *= -1;
             var blinkPosition = new Position(this.position.drawX, this.position.drawY, this.position.left, this.position.top, 
@@ -962,19 +968,16 @@ Player.prototype.update = function() {
     // ****************
     // Left background bound
     if (this.position.left < this.game.background.leftWall) {
-        console.log('Collided with left background edge');
         this.position.moveTo(this.game.background.leftWall, this.position.top);
     }
 
     // Right background bound
     if (this.position.right > this.game.background.rightWall) {
-        console.log('Collided with right background edge');
         this.position.moveTo(this.game.background.rightWall - this.position.width, this.position.top);
     }
     
     // Top background/wall bound
     if (this.position.top < currentPlatform.theCeiling) {
-        console.log('Hit my head on the ceiling');
         this.position.moveTo(this.position.left, currentPlatform.theCeiling);
         this.velocityY = 0;
     }
@@ -983,32 +986,25 @@ Player.prototype.update = function() {
     this.game.walls.forEach(function(entity) {
 
         if(collisionDetector(that.position, entity.position)) {
-            console.log(`Collided with wall at ${entity.position.left}, ${entity.position.top}, ${entity.position.width}, ${entity.position.height}`);
             if (that.position.left < entity.position.left) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
             else that.position.moveTo(entity.position.right, that.position.top);
         }
-
-        /*
-        if (collisionDetector(that.position, entity.position) && that.position.bottom > entity.position.top) {
-            if (that.position.left < entity.position.left) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
-            if (that.position.right > entity.position.right) that.position.moveTo(entity.position.right, that.position.top);
-        } else if (collisionDetector(that.position, entity.position) && that.position.bottom > entity.position.bottom) {
-            that.position.moveTo(that.position.left, entity.ceiling);
-            that.velocityY = 0;
-        }
-        */
     });
 
     // Enemy collision
     this.game.enemies.forEach(function(entity) {
         if (collisionDetector(that.position, entity.position) && entity.state !== 'dead') {
-            console.log('Collided with an enemy at ');
             entity.isHit = true;
             if (that.position.left < entity.position.left) {
                 entity.isHitRight = true;
                 that.position.moveBy(-5, 0);
             } else {
                 that.position.moveBy(5, 0);
+            }
+            if (!that.invulnerable) {
+                that.HP[that.activeHero] -= 1;
+                that.damaged = true;
+                that.invulnerable = true;
             }
         } 
     })
@@ -1019,17 +1015,48 @@ Player.prototype.update = function() {
 Player.prototype.draw = function(ctx) {
     var cameraOffsetX = this.position.drawX - this.game.camera.x;
     var cameraOffsetY = this.position.drawY - this.game.camera.y;
-    
-    /* DAMAGED ANIMATIONS FOR MONK NEEDED
-    if (this.damaged) {
 
-    } else */
-    if (this.punching) {
+    if (this.gameOver) {
+        this.animations.gameOver[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+    }
+    else if (this.HP[this.activeHero] <= 0) {
+        if(this.faceRight) {
+            if(!this.animations.deathRight[this.activeHero].isDone()) this.animations.deathRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+            else if (this.activeHero === 0 && this.HP[1] <= 0 || this.activeHero === 1 && this.HP[0] <= 0) this.game.sceneManager.gameOver();
+            else {
+                this.damaged = false;
+                this.swap();
+            } 
+        } else {
+            if(!this.animations.deathLeft[this.activeHero].isDone()) this.animations.deathLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+            else if (this.activeHero === 0 && this.HP[1] <= 0 || this.activeHero === 1 && this.HP[0] <= 0) this.game.sceneManager.gameOver();
+            else {
+                this.damaged = false;
+                this.swap();
+            }
+        }
+    } else if (this.damaged) {
+        if (this.faceRight) {
+            if(!this.animations.dmgRight[this.activeHero].isDone()) this.animations.dmgRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+            else {
+                this.invulnerable = false;
+                this.damaged = false;
+                this.animations.dmgRight[this.activeHero].elapsedTime = 0;
+            }
+        } else {
+            if(!this.animations.dmgLeft[this.activeHero].isDone()) this.animations.dmgLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+            else {
+                this.invulnerable = false;
+                this.damaged = false;
+                this.animations.dmgLeft[this.activeHero].elapsedTime = 0;
+            }
+        }
+    } else if (this.punching) {
         if (this.faceRight) {
             this.animations.punchRight.drawFrame(this.game.clockTick, ctx, cameraOffsetX - 5, cameraOffsetY - 3, 2);
         } else {
             this.animations.punchLeft.drawFrame(this.game.clockTick, ctx, cameraOffsetX - 5, cameraOffsetY - 3, 2);
-        }   
+        }
     } else if (this.walking) {
         if (this.faceRight) {
             this.animations.walkRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
@@ -1099,13 +1126,11 @@ Fireball.prototype.draw = function (ctx) {
         ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
         ctx.restore();
     }
-
     if (this.fireball){
         this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
     } else {
         this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
-    }
-    
+    } 
 }
 
 Fireball.prototype.update = function () {
@@ -1151,6 +1176,7 @@ Fireball.prototype.update = function () {
     }
 }
 
+
 function Punch(game, position, player) {
     this.type = "Projectile";
     this.game = game;
@@ -1195,6 +1221,105 @@ Punch.prototype.update = function () {
     } 
 }
 
+
+function Key(game, theX, theY, number) {
+    this.game = game;
+    this.position = new Position(theX - 9, theY - 2, theX, theY, 11, 26);
+    this.number = number;
+    this.animation = [new Animation(AM.getAsset("./img/sprites/items/key_idle_spin.png"), 0, 0, 32, 32, .2, 16, true, false),
+                        new Animation(AM.getAsset("./img/sprites/items/bosskey_idle_spin.png"), 0, 0, 32, 32, .2, 16, true, false)];
+}
+
+Key.prototype.update = function() {
+    if (collisionDetector(this.position, this.game.player.position)) {
+        this.game.player.keys[this.number] = true;
+        this.removeFromWorld = true;
+    }
+}
+
+Key.prototype.draw = function(ctx) {
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();
+    }
+
+    this.animation[this.number].drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+}
+
+
+function PowerUp(game, theX, theY) {
+    this.game = game;
+    this.position = new Position(theX - 4, theY - 4, theX, theY, 32, 32);
+    this.animation = [new Animation(AM.getAsset("./img/sprites/power-ups/blink.png"), 0, 0, 40, 40, .2, 17, true, false),
+                        new Animation(AM.getAsset("./img/sprites/power-ups/double-jump.png"), 0, 0, 40, 40, .2, 17, true, false)];
+}
+
+PowerUp.prototype.update = function() {
+    if (collisionDetector(this.position, this.game.player.position)) {
+        if (this.game.player.activeHero === 0) {
+            if (!this.game.player.blinkEnabled) this.game.player.blinkEnabled = true;
+            else this.game.player.jumpsMax[1] = 2;
+        } else {
+            if (this.game.player.jumpsMax[1] !== 2) this.game.player.jumpsMax[1] = 2;
+            else this.game.player.blinkEnabled = true;
+        }
+        this.removeFromWorld = true;
+    }
+}
+
+PowerUp.prototype.draw = function(ctx) {
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();
+    }
+
+    this.animation[this.game.player.activeHero].drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+}
+
+
+function Heart(game, theX, theY) {
+    this.game = game;
+    this.position = new Position(theX - 6, theY - 7, theX, theY, 19, 18);
+    this.animation = new Animation(AM.getAsset("./img/sprites/items/heart_idle_spin.png"), 0, 0, 32, 32, 0.2, 11, true, false);
+}
+
+Heart.prototype.update = function() {
+    if (collisionDetector(this.position, this.game.player.position)) {
+        if (this.game.player.HP[this.game.player.activeHero] < this.game.player.maxHP[this.game.player.activeHero]) {
+            this.game.player.HP[this.game.player.activeHero]++;
+            this.removeFromWorld = true;
+        }
+    }
+}
+
+Heart.prototype.draw = function(ctx) {
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();
+    }
+    this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+}
 
 // an entity to display controls in text form
 function ControlsText(game, theX, theY) {
@@ -1243,10 +1368,28 @@ function SceneManager(game) {
     this.newStage = true;
     this.currentStage = 0;
     this.startNum = 0;
-
+    this.key1 = new Key(this.game, 551, 987, 0);
+    this.key2 = new Key(this.game, 1880, 90, 1);
+    this.power1 = new PowerUp(this.game, 55, 95);
+    this.power2 = new PowerUp(this.game, 90, 90);
+    this.power3 = new PowerUp(this.game, 32, 992);
     this.stages = [this.createStage(0), this.createStage(1), this.createStage(2)];
     
     this.game.player.position.moveTo(this.stages[this.currentStage].getPosition(this.startNum).left, this.stages[this.currentStage].getPosition(this.startNum).top);
+}
+
+SceneManager.prototype.gameOver = function() {
+    this.game.background = new Background(this.game, AM.getAsset("./img/sprites/backgrounds/game_over.png"), 0, 1000, 0, 452, 1000, 452);
+    this.game.entities[0] = this.game.background;
+    this.game.entities.length = 3;
+    this.game.player.position.moveTo(500 - this.game.player.position.width * 0.5, 452 - this.game.player.height);
+    this.game.camera.update();
+    this.game.platforms.length = 0;
+    this.game.walls.length = 0;
+    this.game.items.length = 0;
+    this.game.doors.length = 0;
+    this.game.enemies.length = 0;
+    this.game.player.gameOver = true;
 }
 
 SceneManager.prototype.update = function() {
@@ -1262,7 +1405,6 @@ SceneManager.prototype.update = function() {
         this.game.background = this.stages[this.currentStage].background;
 
         this.game.entities = [this.game.background, this.game.player, this.game.camera];
-
         this.game.platforms.length = 0;
         this.game.walls.length = 0;
         this.game.items.length = 0;
@@ -1308,6 +1450,7 @@ SceneManager.prototype.draw = function(ctx) {
 SceneManager.prototype.createStage = function(theStageNum) {
     var newStage = null;
     var grass = AM.getAsset("./img/platforms/grass_platform.png");
+    
     if (theStageNum === 0) {
         newStage = new Stage(new Background(this.game, AM.getAsset("./img/levels/st1lv1.png"), 24, 2310, 24, 1030, 2336, 1056),
                     [new Wall(this.game, null, 262, 664, 338, 96), new Wall(this.game, null, 262, 760, 18, 224),
@@ -1335,7 +1478,7 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Bunny(this.game, 686, 448, false), new Bunny(this.game, 1104, 575, false),
                     new Bunny(this.game, 751, 833, false), new Bunny(this.game, 1456, 64, false),
                     new Bunny(this.game, 1326, 191, false), new Bunny(this.game, 2128, 576, false),
-                    new Bunny(this.game, 2128, 64, false)], [new Door(this.game, 2304, 72, 1, 0)], [],
+                    new Bunny(this.game, 2128, 64, false)], [new Door(this.game, 2304, 72, 1, 0)], [this.key1, this.power1, this.power3],
                     [new Position(25, 575, 25, 575, 1, 1), new Position (2260, 72, 2260, 72, 1, 1), new Position(2281, 962, 2281, 962, 1, 1)]);
     } else if (theStageNum === 1) {
         newStage = new Stage(new Background(this.game, AM.getAsset("./img/levels/st1lv2.png"), 24, 1190, 24, 1958, 1216, 1984),
@@ -1355,7 +1498,21 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Platform(this.game, null, 24, 1126, 192, 18), new Platform(this.game, null, 1030, 1126, 160, 18), 
                     new Platform(this.game, null, 24, 1254, 704, 18), new Platform(this.game, null, 774, 1382, 210, 18), 
                     new Platform(this.game, null, 614, 1574, 146, 18), new Platform(this.game, null, 1030, 1542, 160, 18), 
-                    new Platform(this.game, null, 1030, 1798, 160, 18)], [], [new Door(this.game, 25, 1384, 0, 1), new Door(this.game, 25, 328, 2, 0)], [],
+                    new Platform(this.game, null, 1030, 1798, 160, 18)], 
+                    [new Slime(this.game, 304, 417, false, 'Red'), new Slime(this.game, 688, 224, false,'Green'),
+                    new Slime(this.game, 816, 1312, false,'Green'), new Slime(this.game, 656, 448, false,'Green'),
+                    new Slime(this.game, 272, 1504, false,'Green'), new Slime(this.game, 272, 640, false,'Green'),
+                    new Slime(this.game, 496, 1632, false,'Green'), new Slime(this.game, 208, 929, false,'Green'),
+                    new Slime(this.game, 719, 1760, false,'Green'), new Slime(this.game, 77, 1056, false,'Green'),
+                    new Slime(this.game, 1039, 1472, false,'Green'), new Slime(this.game, 912, 927, false,'Green'),
+                    new Slime(this.game, 976, 448, false,'Green'), new Bunny(this.game, 721, 64, false),
+                    new Bunny(this.game, 1008, 64, false), new Bunny(this.game, 656, 321, false),
+                    new Bunny(this.game, 1136, 1888, false), new Bunny(this.game, 336, 287, false),
+                    new Bunny(this.game, 1073, 1728, false), new Bunny(this.game, 47, 320, false),
+                    new Bunny(this.game, 656, 1503, false), new Bunny(this.game, 400, 448, false),
+                    new Bunny(this.game, 592, 1184, false), new Bunny(this.game, 48, 735, false),
+                    new Bunny(this.game, 304, 1119, false), new Bunny(this.game, 656, 928, false)],
+                    [new Door(this.game, 25, 1384, 0, 1), new Door(this.game, 25, 328, 2, 0)], [],
                     [new Position(32, 1378, 32, 1378, 1, 1), new Position(32, 323, 32, 323, 1, 1)]);
     } else {
         newStage = new Stage(new Background(this.game, AM.getAsset("./img/levels/st1lv3.png"), 24, 2310, 24, 1318, 2336, 1344),
@@ -1374,7 +1531,25 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Platform(this.game, null, 1990, 518, 146, 18), new Platform(this.game, null, 1848, 646, 160, 18), 
                     new Platform(this.game, null, 2182, 742, 128, 18), new Platform(this.game, null, 2054, 806, 82, 18), 
                     new Platform(this.game, null, 1848, 902, 160, 18), new Platform(this.game, null, 2182, 1030, 128, 18)],
-                    [], [new Door(this.game, 2304, 328, 1, 1)], [], [new Position(2305, 323, 2305, 323, 1, 1)]);
+                    [new Slime(this.game, 2032, 447, false, 'Red'), new Slime(this.game, 1007, 158, false,'Green'),
+                    new Slime(this.game, 1104, 160, false,'Green'), new Slime(this.game, 944, 161, false,'Green'),
+                    new Slime(this.game, 1232, 161, false,'Green'), new Slime(this.game, 176, 1249, false,'Green'),
+                    new Slime(this.game, 1198, 544, false,'Green'), new Slime(this.game, 753, 1024, false,'Green'),
+                    new Slime(this.game, 1072, 1248, false,'Green'), new Slime(this.game, 497, 1024, false,'Green'),
+                    new Slime(this.game, 1201, 1246, false,'Green'), new Slime(this.game, 752, 575, false,'Green'),
+                    new Slime(this.game, 1361, 1248, false,'Green'), new Slime(this.game, 172, 384, false,'Green'),
+                    new Slime(this.game, 1937, 1024, false,'Green'), new Slime(this.game, 848, 159, false,'Green'),
+                    new Slime(this.game, 2129, 1248, false,'Green'), new Bunny(this.game, 15, 64, false),
+                    new Bunny(this.game, 1040, 704, false), new Bunny(this.game, 304, 257, false),
+                    new Bunny(this.game, 1392, 704, false), new Bunny(this.game, 528, 160, false),
+                    new Bunny(this.game, 1008, 1024, false), new Bunny(this.game, 16, 608, false),
+                    new Bunny(this.game, 1425, 1024, false), new Bunny(this.game, 305, 609, false),
+                    new Bunny(this.game, 1712, 1024, false), new Bunny(this.game, 463, 576, false),
+                    new Bunny(this.game, 2224, 960, false), new Bunny(this.game, 337, 831, false),
+                    new Bunny(this.game, 1711, 1025, false), new Bunny(this.game, 47, 1025, false),
+                    new Bunny(this.game, 1872, 832, false), new Bunny(this.game, 15, 1249, false),
+                    new Bunny(this.game, 2064, 736, false), new Bunny(this.game, 1648, 575, false)],
+                    [new Door(this.game, 2304, 328, 1, 1)], [this.key2, this.power2], [new Position(2305, 323, 2305, 323, 1, 1)]);
     }
     return newStage;
 }
@@ -1388,6 +1563,7 @@ AM.queueDownload("./img/background_tiled.jpg");
 AM.queueDownload("./img/levels/st1lv1.png");
 AM.queueDownload("./img/levels/st1lv2.png");
 AM.queueDownload("./img/levels/st1lv3.png");
+AM.queueDownload("./img/sprites/backgrounds/game_over.png");
 
 // Platform image
 AM.queueDownload("./img/platforms/grass_platform.png");
@@ -1402,8 +1578,10 @@ AM.queueDownload("./img/sprites/heroes/black_mage/fireball_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/fireball_right.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/frostbolt_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/frostbolt_right.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/dmg_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/dmg_right.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/death_left.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/death_right.png");
 AM.queueDownload("./img/ice_cube.png");
 
 // Monk images
@@ -1457,6 +1635,13 @@ AM.queueDownload("./img/sprites/enemies/bunny/atk_l.png");
 AM.queueDownload("./img/sprites/enemies/bunny/atk_r.png");
 AM.queueDownload("./img/sprites/enemies/bunny/medium_rock.png");
 AM.queueDownload("./img/bunny_ice.png");
+
+// Item Sprites
+AM.queueDownload("./img/sprites/items/key_idle_spin.png");
+AM.queueDownload("./img/sprites/items/bosskey_idle_spin.png");
+AM.queueDownload("./img/sprites/items/heart_idle_spin.png");
+AM.queueDownload("./img/sprites/power-ups/blink.png");
+AM.queueDownload("./img/sprites/power-ups/double-jump.png");
 
 AM.downloadAll(function () {
     var canvas = document.getElementById("gameWorld");
