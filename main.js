@@ -164,6 +164,8 @@ function Camera(game) {
     this.emptyHeart = new Animation(AM.getAsset("./img/sprites/items/empty_heart.png"), 0, 0, 32, 32, 0.125, 1, true, false);
     this.key1 = new Animation(AM.getAsset("./img/sprites/items/key_idle.png"), 0, 0, 32, 32, 0.125, 12, true, false);
     this.key2 = new Animation(AM.getAsset("./img/sprites/items/bosskey_idle.png"), 0, 0, 36, 36, 0.125, 12, true, false);
+    this.blink = new Animation(AM.getAsset("./img/sprites/power-ups/blink.png"), 0, 0, 40, 40, .2, 17, true, false);
+    this.doubleJump = new Animation(AM.getAsset("./img/sprites/power-ups/double-jump.png"), 0, 0, 40, 40, .2, 17, true, false);
     this.blackMage = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_right.png"), 0, 0, 64, 64, .2, 1, true, false);
     this.monk = new Animation(AM.getAsset("./img/sprites/heroes/monk/idle_right.png"), 0, 0, 32, 32, .2, 1, true, false);
 }
@@ -188,31 +190,59 @@ Camera.prototype.update = function () {
         this.x = 0;
         this.y = 0;
     }
+    if (this.game.background.gameStart) {
+        if (this.game.mouse) {
+            this.game.sceneManager.newStage = true;
+        }
+    }
 }
 
 Camera.prototype.draw = function (ctx) {
     // Head-up display elements here
-    var bmOffset = 0;
-    var monkOffset = 0;
-    if (this.game.player.activeHero === 0) monkOffset = 40;
-    else bmOffset = 40;
+    if (this.game.background.gameStart) {
+        ctx.save();
+        ctx.fillStyle = 'White';
+        ctx.font = "20px Georgia";
+        ctx.fillText("CONTROLS:", 15, 500);
+        ctx.font = "15px Georgio";
+        ctx.fillText("Left Arrow Key: move left", 15, 520);
+        ctx.fillText("Right Arrow Key: move right", 15, 540);
+        ctx.fillText("Spacebar: Jump (Monk Double Jump if unlocked)", 15, 560);
+        ctx.fillText("Z key: Swap Characters", 15, 580);
+        ctx.fillText("X key: Attack - Fireball (Black Mage)", 350, 520);
+        ctx.fillText("X key: Attack - Punch/Jumpkick (Monk)", 350, 540);
+        ctx.fillText("C key: Frostbolt (Black Mage)", 350, 560);
+        ctx.fillText("D key: Blink (Black Mage if unlocked)", 350, 580);
+        ctx.fillText("D key: Use door", 650, 520);
+        ctx.font = "30px Georgio";
+        ctx.fillStyle = 'Red';
+        ctx.fillText("Click on the screen to start", 650, 560);
+        ctx.restore();
+    } else if (this.game.sceneManager.currentStage !== 3) {
+        var bmOffset = 0;
+        var monkOffset = 0;
+        if (this.game.player.activeHero === 0) monkOffset = 40;
+        else bmOffset = 40;
+        
+        // Black Mage info
+        this.blackMage.drawFrame(this.game.clockTick, ctx, 8, bmOffset + 5, 1);
+        for (var i = 0; i < this.game.player.maxHP[0]; i++) {
+            if (i < this.game.player.HP[0]) this.fullHeart.drawFrame(this.game.clockTick, ctx, 45 + 40 * i, bmOffset + 25, 1);
+            else this.emptyHeart.drawFrame(this.game.clockTick, ctx, 45 + 40 * i, bmOffset + 25, 1);
+        }
+        
+        // Monk info
+        this.monk.drawFrame(this.game.clockTick, ctx, 25, monkOffset + 25, 1);
+        for (var i = 0; i < this.game.player.maxHP[1]; i++) {
+            if (i < this.game.player.HP[1]) this.fullHeart.drawFrame(this.game.clockTick, ctx, 45 + 40 * i, monkOffset + 25, 1);
+            else this.emptyHeart.drawFrame(this.game.clockTick, ctx, 45 + 40 * i, monkOffset + 25, 1);
+        }
     
-    // Black Mage info
-    this.blackMage.drawFrame(this.game.clockTick, ctx, 8, bmOffset + 5, 1);
-    for (var i = 0; i < 3; i++) {
-        if (i < this.game.player.HP[0]) this.fullHeart.drawFrame(this.game.clockTick, ctx, 45 + 40 * i, bmOffset + 25, 1);
-        else this.emptyHeart.drawFrame(this.game.clockTick, ctx, 45 + 40 * i, bmOffset + 25, 1);
+        if(this.game.player.keys[0]) this.key1.drawFrame(this.game.clockTick, ctx, 900, 40, 0.5);
+        if(this.game.player.keys[1]) this.key2.drawFrame(this.game.clockTick, ctx, 950, 40, 0.5);
+        if(this.game.player.blinkEnabled) this.blink.drawFrame(this.game.clockTick, ctx, 165, bmOffset + 25, 0.5);
+        if(this.game.player.jumpsMax[1] === 2) this.doubleJump.drawFrame(this.game.clockTick, ctx, 285, monkOffset + 25, 0.5);
     }
-    
-    // Monk info
-    this.monk.drawFrame(this.game.clockTick, ctx, 25, monkOffset + 25, 1);
-    for (var i = 0; i < 6; i++) {
-        if (i < this.game.player.HP[1]) this.fullHeart.drawFrame(this.game.clockTick, ctx, 45 + 40 * i, monkOffset + 25, 1);
-        else this.emptyHeart.drawFrame(this.game.clockTick, ctx, 45 + 40 * i, monkOffset + 25, 1);
-    }
-
-    if(this.game.player.keys[0]) this.key1.drawFrame(this.game.clockTick, ctx, 45, 105, 1);
-    if(this.game.player.keys[1]) this.key2.drawFrame(this.game.clockTick, ctx, 85, 105, 1);
 }
 
 function Background(game, spritesheet, left, right, top, bottom, width, height) {
@@ -226,15 +256,25 @@ function Background(game, spritesheet, left, right, top, bottom, width, height) 
     this.rightWall = right;
     this.spritesheet = spritesheet;
     this.game = game;
+    this.gameStart = false;
 };
 
 Background.prototype.draw = function (ctx) {
+    if (this.gameStart) {
+        ctx.drawImage(this.spritesheet, 
+            this.left, this.right, ctx.canvas.width, ctx.canvas.height, // Only display the canvas size with camera in top left correr
+            this.left, this.top, ctx.canvas.width, ctx.canvas.height);
+    }
     ctx.drawImage(this.spritesheet, 
         this.game.camera.x, this.game.camera.y, ctx.canvas.width, ctx.canvas.height, // Only display the canvas size with camera in top left correr
         this.left, this.top, ctx.canvas.width, ctx.canvas.height); // Draw into top left corner of canvas, at canvas size
 }
 
 Background.prototype.update = function () {
+    if (this.gameStart) {
+
+    }
+
     if(this.game.player.gameOver) {
         if (this.game.space || this.game.xKey || this.game.cKey || this.game.zKey || this.game.dKey) {
             this.game.player = new Player(this.game);
@@ -1500,7 +1540,7 @@ class Stage {
 
 function SceneManager(game) {
     this.game = game;
-    this.newStage = true;
+    this.newStage = false;
     this.currentStage = 0;
     this.startNum = 0;
     this.key1 = new Key(this.game, 551, 987, 0);
@@ -1701,6 +1741,7 @@ SceneManager.prototype.createStage = function(theStageNum) {
 var AM = new AssetManager();
 
 // background image
+AM.queueDownload("./img/sprites/backgrounds/Start.png");
 AM.queueDownload("./img/sprites/backgrounds/lv1.png");
 AM.queueDownload("./img/sprites/backgrounds/lv2.png");
 AM.queueDownload("./img/sprites/backgrounds/lv3.png");
@@ -1797,14 +1838,18 @@ AM.queueDownload("./img/sprites/power-ups/double-jump.png");
 AM.downloadAll(function () {
     var canvas = document.getElementById("gameWorld");
     var ctx = canvas.getContext("2d");
-    
 
     var gameEngine = new GameEngine();
     gameEngine.init(ctx);
+
+    var startScreen = new Background(gameEngine, AM.getAsset("./img/sprites/backgrounds/Start.png"), 0, 1000, 0, 600, 1000, 600);
+    startScreen.gameStart = true;
+    gameEngine.background = startScreen;
+
     gameEngine.player = new Player(gameEngine);
     gameEngine.camera = new Camera(gameEngine);
     gameEngine.addEntity(gameEngine.player);
-
+    gameEngine.addEntity(startScreen);
     gameEngine.sceneManager = new SceneManager(gameEngine);
     gameEngine.sceneManager.update();
     gameEngine.start();
