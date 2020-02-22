@@ -52,8 +52,9 @@ Animation.prototype.isDone = function () {
     return (this.elapsedTime >= this.totalTime);
 }
 
-function getGround(rect, game) {
-    var highGround = game.background.ground;
+function verticalCheck(rect, game) {
+    var floor = game.background.ground;
+    var ceiling = game.background.ceiling;
     var leftBound = game.background.left;
     var rightBound = game.background.right;
 
@@ -62,8 +63,8 @@ function getGround(rect, game) {
             if ((rect.left >= entity.position.left && rect.right <= entity.position.right) || 
                     (rect.left <= entity.position.left && rect.right >= entity.position.left) ||
                     (rect.right >= entity.position.right && rect.left <= entity.position.right)) {
-                if (entity.position.top <= highGround) {
-                    highGround = entity.position.top;
+                if (entity.position.top <= floor) {
+                    floor = entity.position.top;
                     leftBound = entity.position.left;
                     rightBound = entity.position.right;
                 } 
@@ -72,20 +73,32 @@ function getGround(rect, game) {
     })
 
     game.walls.forEach(function(entity) {
+        if ((rect.left >= entity.position.left && rect.right <= entity.position.right) || 
+                    (rect.left <= entity.position.left && rect.right >= entity.position.left) ||
+                    (rect.right >= entity.position.right && rect.left <= entity.position.right)) {
+            if (entity.position.top >= rect.bottom && entity.position.top <= floor) {
+                floor = entity.position.top;
+                leftBound = entity.position.left;
+                rightBound = entity.position.right;
+            }
+            if (entity.position.bottom <= rect.top && entity.position.bottom >= ceiling) ceiling = entity.position.bottom;
+        }
+        /*
         if (entity.position.top >= rect.bottom) {
             if ((rect.left >= entity.position.left && rect.right <= entity.position.right) || 
                     (rect.left <= entity.position.left && rect.right >= entity.position.left) ||
                     (rect.right >= entity.position.right && rect.left <= entity.position.right)) {
-                if (entity.position.top <= highGround) {
-                    highGround = entity.position.top;
+                if () {
+                    floor = entity.position.top;
                     leftBound = entity.position.left;
                     rightBound = entity.position.right;
                 } 
             }
         }
+        */
     })
 
-    return {ground: highGround, theLeft: leftBound, theRight: rightBound};
+    return {ground: floor, theCeiling: ceiling, theLeft: leftBound, theRight: rightBound};
 }
 
 function collisionDetector(position1, position2) {
@@ -518,7 +531,7 @@ Slime.prototype.draw = function (ctx) {
 
 Slime.prototype.update = function () {
 
-    var currentPlatform = getGround(this.position, this.game);
+    var currentPlatform = verticalCheck(this.position, this.game);
     var that = this;
 
     if (this.HP <= 0) this.state = 'dead';
@@ -628,7 +641,7 @@ function Bunny(game, theX, theY, faceRight) {
 }
 
 Bunny.prototype.update = function() {
-    var currentPlatform = getGround(this.position, this.game);
+    var currentPlatform = verticalCheck(this.position, this.game);
     var that = this;
 
     if (this.HP <= 0) this.state = 'dead';
@@ -1046,7 +1059,7 @@ Player.prototype.update = function() {
     }
 
     // Falling
-    var currentPlatform = getGround(this.position, this.game);
+    var currentPlatform = verticalCheck(this.position, this.game);
 
     // Falling checks
     if (this.position.bottom === currentPlatform.ground) {
@@ -1072,22 +1085,33 @@ Player.prototype.update = function() {
     // ****************
     // Left background bound
     if (this.position.left < this.game.background.leftWall) {
+        console.log('Collided with left background edge');
         this.position.moveTo(this.game.background.leftWall, this.position.top);
     }
 
     // Right background bound
     if (this.position.right > this.game.background.rightWall) {
+        console.log('Collided with right background edge');
         this.position.moveTo(this.game.background.rightWall - this.position.width, this.position.top);
     }
-
-    // Top background bound
-    if (this.position.top < this.game.background.ceiling) {
-        this.position.moveTo(this.position.left, this.game.background.ceiling);
+    
+    // Top background/wall bound
+    if (this.position.top < currentPlatform.theCeiling) {
+        console.log('Hit my head on the ceiling');
+        this.position.moveTo(this.position.left, currentPlatform.theCeiling);
         this.velocityY = 0;
     }
-
+    
     // Wall collision
     this.game.walls.forEach(function(entity) {
+
+        if(collisionDetector(that.position, entity.position)) {
+            console.log(`Collided with wall at ${entity.position.left}, ${entity.position.top}, ${entity.position.width}, ${entity.position.height}`);
+            if (that.position.left < entity.position.left) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
+            else that.position.moveTo(entity.position.right, that.position.top);
+        }
+
+        /*
         if (collisionDetector(that.position, entity.position) && that.position.bottom > entity.position.top) {
             if (that.position.left < entity.position.left) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
             if (that.position.right > entity.position.right) that.position.moveTo(entity.position.right, that.position.top);
@@ -1095,11 +1119,13 @@ Player.prototype.update = function() {
             that.position.moveTo(that.position.left, entity.ceiling);
             that.velocityY = 0;
         }
+        */
     });
 
     // Enemy collision
     this.game.enemies.forEach(function(entity) {
         if (collisionDetector(that.position, entity.position) && entity.state !== 'dead') {
+            console.log('Collided with an enemy at ');
             entity.isHit = true;
             if (that.position.left < entity.position.left) {
                 entity.isHitRight = true;
@@ -1224,6 +1250,7 @@ SceneManager.prototype.update = function() {
         this.game.walls.length = 0;
         this.game.items.length = 0;
         this.game.doors.length = 0;
+        this.game.enemies.length = 0;
 
         // Load new entities
         // Walls
