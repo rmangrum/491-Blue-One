@@ -1195,12 +1195,14 @@ class Stage {
 }
 
 
-function SceneManager(game, stageList) {
+function SceneManager(game) {
     this.game = game;
     this.newStage = true;
-    this.stages = stageList;
     this.currentStage = 0;
     this.startNum = 0;
+
+    this.stages = [this.createStage(0), this.createStage(1), this.createStage(2)];
+    
     this.game.player.position.moveTo(this.stages[this.currentStage].getPosition(this.startNum).left, this.stages[this.currentStage].getPosition(this.startNum).top);
 }
 
@@ -1213,50 +1215,43 @@ SceneManager.prototype.update = function() {
             if (this.game.entities[i] !== this && this.game.entities[i] !== this.game.player && this.game.entities[i] !== this.game.camera) this.game.entities[i].removeFromWorld = true;
         }
         */
+        var updateStage = this.createStage(this.currentStage);
         this.game.background = this.stages[this.currentStage].background;
-        console.log(this.game.background);
 
         this.game.entities = [this.game.background, this.game.player, this.game.camera];
-        console.log(`Background: ${this.game.entities[0]}`);
-        console.log(`Player: ${this.game.entities[1]}`);
-        console.log(`Camera: ${this.game.entities[2]}`);
 
-        this.game.platforms = [];
-        this.game.walls = [];
-        this.game.items = [];
-        this.game.doors = [];
+        this.game.platforms.length = 0;
+        this.game.walls.length = 0;
+        this.game.items.length = 0;
+        this.game.doors.length = 0;
 
         // Load new entities
         // Walls
-        for (var i = 0; i < this.stages[this.currentStage].walls.length; i++) {
-            this.game.addEntity(this.stages[this.currentStage].walls[i]);
+        for (var i = 0; i < updateStage.walls.length; i++) {
+            this.game.addEntity(updateStage.walls[i]);
         }
-        console.log(`Number of Walls: ${this.game.walls.length}`);
 
         // Platforms
-        for (var i = 0; i < this.stages[this.currentStage].platforms.length; i++) {
-            this.game.addEntity(this.stages[this.currentStage].platforms[i]);
+        for (var i = 0; i < updateStage.platforms.length; i++) {
+            this.game.addEntity(updateStage.platforms[i]);
         }
-        console.log(`Number of Platforms: ${this.game.platforms.length}`);
 
         // Enemies
-        for (var i = 0; i < this.stages[this.currentStage].enemies.length; i++) {
-            this.game.addEntity(this.stages[this.currentStage].enemies[i]);
+        for (var i = 0; i < updateStage.enemies.length; i++) {
+            this.game.addEntity(updateStage.enemies[i]);
         }
-        console.log(`Number of Enemies: ${this.game.enemies.length}`);
 
         // Doors
-        for (var i = 0; i < this.stages[this.currentStage].doors.length; i++) {
-            this.game.doors.push(this.stages[this.currentStage].doors[i]);
+        for (var i = 0; i < updateStage.doors.length; i++) {
+            this.game.doors.push(updateStage.doors[i]);
         }
-        console.log(`Number of Doors: ${this.game.doors.length}`);
 
         // Items
-        for (var i = 0; i < this.stages[this.currentStage].items.length; i++) {
-            this.game.addEntity(this.stages[this.currentStage].items[i]);
+        for (var i = 0; i < updateStage.items.length; i++) {
+            this.game.addEntity(updateStage.items[i]);
         }
 
-        this.game.player.position.moveTo(this.stages[this.currentStage].getPosition(this.startNum).left, this.stages[this.currentStage].getPosition(this.startNum).top);
+        this.game.player.position.moveTo(updateStage.getPosition(this.startNum).left, updateStage.getPosition(this.startNum).top);
         this.game.camera.update();
         this.newStage = false;
     }
@@ -1264,6 +1259,80 @@ SceneManager.prototype.update = function() {
 
 SceneManager.prototype.draw = function(ctx) {
     // Loading Screen?
+}
+
+SceneManager.prototype.createStage = function(theStageNum) {
+    var newStage = null;
+    var grass = AM.getAsset("./img/platforms/grass_platform.png");
+    if (theStageNum === 0) {
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/levels/st1lv1.png"), 24, 2310, 24, 1030, 2336, 1056),
+                    [new Wall(this.game, null, 262, 664, 338, 96), new Wall(this.game, null, 262, 760, 18, 224),
+                    new Wall(this.game, null, 390, 390, 18, 256), new Wall(this.game, null,646, 870, 18, 160),
+                    new Wall(this.game, null, 1030, 234, 18, 412), new Wall(this.game, null, 1030, 646, 1280, 18), 
+                    new Wall(this.game, null, 1030, 934, 274, 96), new Wall(this.game, null, 1190, 664, 370, 128), 
+                    new Wall(this.game, null, 1798, 774, 402, 256), new Wall(this.game, null, 2182, 664, 18, 32),
+                    new Wall(this.game, null, 408, 390, 622, 18)],
+                    [new Platform(this.game, grass, 24, 646, 832, 18), new Platform(this.game, grass, 24, 134, 160, 18),
+                    new Platform(this.game, grass, 134, 262, 242, 18), new Platform(this.game, grass, 134, 518, 178, 18),
+                    new Platform(this.game, grass, 230, 422, 114, 18), new Platform(this.game, grass, 390, 870, 256, 18),
+                    new Platform(this.game, grass, 518, 582, 146, 18), new Platform(this.game, grass, 806, 774, 274, 18),
+                    new Platform(this.game, grass, 646, 518, 146, 18), new Platform(this.game, grass, 742, 902, 82, 18),
+                    new Platform(this.game, grass, 1158, 454, 274, 18), new Platform(this.game, grass, 1286, 262, 402, 18),
+                    new Platform(this.game, grass, 1414, 134, 146, 18), new Platform(this.game, grass, 1510, 902, 146, 18),
+                    new Platform(this.game, grass, 1798, 390, 274, 18), new Platform(this.game, grass, 2086, 134, 224, 18)],
+                    [new Slime(this.game, 209, 448, false, 'Red'), new Slime(this.game, 272, 576, false, 'Red'), 
+                    new Slime(this.game, 721, 576, false, 'Red'), new Slime(this.game, 1904, 320, false,'Green'),
+                    new Slime(this.game, 240, 192, false, 'Green'), new Slime(this.game, 54, 961, false, 'Green'), 
+                    new Slime(this.game, 400, 960, false, 'Green'), new Slime(this.game, 880, 703, false, 'Green'), 
+                    new Slime(this.game, 1552, 193, false, 'Green'), new Slime(this.game, 1263, 384, false, 'Green'), 
+                    new Slime(this.game, 1936, 704, false, 'Green'), 
+                    new Bunny(this.game, 431, 800, false), new Bunny(this.game, 1552, 832, false), 
+                    new Bunny(this.game, 561, 512, false), new Bunny(this.game, 880, 320, false),
+                    new Bunny(this.game, 686, 448, false), new Bunny(this.game, 1104, 575, false),
+                    new Bunny(this.game, 751, 833, false), new Bunny(this.game, 1456, 64, false),
+                    new Bunny(this.game, 1326, 191, false), new Bunny(this.game, 2128, 576, false),
+                    new Bunny(this.game, 2128, 64, false)], [new Door(this.game, 2304, 72, 1, 0)], [],
+                    [new Position(25, 575, 25, 575, 1, 1), new Position (2260, 72, 2260, 72, 1, 1), new Position(2281, 962, 2281, 962, 1, 1)]);
+    } else if (theStageNum === 1) {
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/levels/st1lv2.png"), 24, 1190, 24, 1958, 1216, 1984),
+                    [new Wall(this.game, null, 24, 24, 366, 160), new Wall(this.game, null, 390, 24, 242, 384), 
+                    new Wall(this.game, null, 24, 390, 192, 242), new Wall(this.game, null, 390, 408, 18, 320), 
+                    new Wall(this.game, null, 646, 518, 434, 274), new Wall(this.game, null, 486, 934, 18, 320), 
+                    new Wall(this.game, null, 294, 1190, 82, 64), new Wall(this.game, null, 24, 1446, 192, 512), 
+                    new Wall(this.game, null, 216, 1574, 224, 384), new Wall(this.game, null, 440, 1702, 192, 256), 
+                    new Wall(this.game, null, 632, 1830, 224, 128)], [new Platform(this.game, null, 630, 133, 162, 18), 
+                    new Platform(this.game, null, 998, 134, 192, 18), new Platform(this.game, null, 774, 230, 114, 18), 
+                    new Platform(this.game, null, 632, 294, 160, 18), new Platform(this.game, null, 632, 390, 352, 18), 
+                    new Platform(this.game, null, 408, 518, 96, 18), new Platform(this.game, null, 550, 582, 96, 18), 
+                    new Platform(this.game, null, 408, 678, 96, 18), new Platform(this.game, null, 326, 358, 64, 18), 
+                    new Platform(this.game, null, 294, 486, 96, 18), new Platform(this.game, null, 216, 582, 96, 18), 
+                    new Platform(this.game, null, 230, 710, 160, 18), new Platform(this.game, null, 646, 998, 338, 18), 
+                    new Platform(this.game, null, 134, 998, 210, 18), new Platform(this.game, null, 24, 806, 160, 18), 
+                    new Platform(this.game, null, 24, 1126, 192, 18), new Platform(this.game, null, 1030, 1126, 160, 18), 
+                    new Platform(this.game, null, 24, 1254, 704, 18), new Platform(this.game, null, 774, 1382, 210, 18), 
+                    new Platform(this.game, null, 614, 1574, 146, 18), new Platform(this.game, null, 1030, 1542, 160, 18), 
+                    new Platform(this.game, null, 1030, 1798, 160, 18)], [], [new Door(this.game, 25, 1384, 0, 1), new Door(this.game, 25, 328, 2, 0)], [],
+                    [new Position(32, 1378, 32, 1378, 1, 1), new Position(32, 323, 32, 323, 1, 1)]);
+    } else {
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/levels/st1lv3.png"), 24, 2310, 24, 1318, 2336, 1344),
+                    [new Wall(this.game, null, 262, 678, 18, 242), new Wall(this.game, null, 358, 134, 18, 562), 
+                    new Wall(this.game, null, 376, 230, 1454, 242), new Wall(this.game, null, 646, 902, 82, 192), 
+                    new Wall(this.game, null, 422, 1094, 626, 224), new Wall(this.game, null, 1062, 774, 370, 178), 
+                    new Wall(this.game, null, 1606, 902, 82, 192), new Wall(this.game, null, 1446, 1094, 562, 224), 
+                    new Wall(this.game, null, 1830, 134, 18, 786)], [new Platform(this.game, null, 24, 134, 224, 18), 
+                    new Platform(this.game, null, 166, 230, 82, 18), new Platform(this.game, null, 134, 454, 114, 18), 
+                    new Platform(this.game, null, 262, 550, 96, 18), new Platform(this.game, null, 230, 326, 128, 18), 
+                    new Platform(this.game, null, 24, 678, 96, 18), new Platform(this.game, null, 134, 902, 128, 18), 
+                    new Platform(this.game, null, 280, 902, 192, 18), new Platform(this.game, null, 280, 678, 78, 18), 
+                    new Platform(this.game, null, 24, 1094, 192, 18), new Platform(this.game, null, 1670, 646, 160, 18), 
+                    new Platform(this.game, null, 486, 646, 338, 18), new Platform(this.game, null, 1848, 134, 96, 18), 
+                    new Platform(this.game, null, 2150, 390, 160, 18), new Platform(this.game, null, 1062, 614, 370, 18), 
+                    new Platform(this.game, null, 1990, 518, 146, 18), new Platform(this.game, null, 1848, 646, 160, 18), 
+                    new Platform(this.game, null, 2182, 742, 128, 18), new Platform(this.game, null, 2054, 806, 82, 18), 
+                    new Platform(this.game, null, 1848, 902, 160, 18), new Platform(this.game, null, 2182, 1030, 128, 18)],
+                    [], [new Door(this.game, 2304, 328, 1, 1)], [], [new Position(2305, 323, 2305, 323, 1, 1)]);
+    }
+    return newStage;
 }
 
 // Start of actual game
@@ -1342,7 +1411,7 @@ AM.queueDownload("./img/bunny_ice.png");
 AM.downloadAll(function () {
     var canvas = document.getElementById("gameWorld");
     var ctx = canvas.getContext("2d");
-    var grass = AM.getAsset("./img/platforms/grass_platform.png");
+    
 
     var gameEngine = new GameEngine();
     gameEngine.init(ctx);
@@ -1351,72 +1420,7 @@ AM.downloadAll(function () {
     gameEngine.addEntity(gameEngine.player);
     gameEngine.addEntity(gameEngine.camera);
 
-    var stageList = [new Stage(new Background(gameEngine, AM.getAsset("./img/levels/st1lv1.png"), 24, 2310, 24, 1030, 2336, 1056),
-                        [new Wall(gameEngine, null, 262, 664, 338, 96), new Wall(gameEngine, null, 262, 760, 18, 224),
-                        new Wall(gameEngine, null, 390, 390, 18, 256), new Wall(gameEngine, null,646, 870, 18, 160),
-                        new Wall(gameEngine, null, 1030, 234, 18, 412), new Wall(gameEngine, null, 1030, 646, 1280, 18), 
-                        new Wall(gameEngine, null, 1030, 934, 274, 96), new Wall(gameEngine, null, 1190, 664, 370, 128), 
-                        new Wall(gameEngine, null, 1798, 774, 402, 256), new Wall(gameEngine, null, 2182, 664, 18, 32)],
-                        [new Platform(gameEngine, grass, 24, 646, 832, 18), new Platform(gameEngine, grass, 24, 134, 160, 18),
-                        new Platform(gameEngine, grass, 134, 262, 242, 18), new Platform(gameEngine, grass, 134, 518, 178, 18),
-                        new Platform(gameEngine, grass, 230, 422, 114, 18), new Platform(gameEngine, grass, 390, 870, 256, 18),
-                        new Platform(gameEngine, grass, 408, 390, 622, 18), new Platform(gameEngine, grass, 518, 582, 146, 18),
-                        new Platform(gameEngine, grass, 646, 518, 146, 18), new Platform(gameEngine, grass, 742, 902, 82, 18),
-                        new Platform(gameEngine, grass, 774, 454, 146, 18), new Platform(gameEngine, grass, 806, 774, 274, 18),
-                        new Platform(gameEngine, grass, 1158, 454, 274, 18), new Platform(gameEngine, grass, 1286, 262, 402, 18),
-                        new Platform(gameEngine, grass, 1414, 134, 146, 18), new Platform(gameEngine, grass, 1510, 902, 146, 18),
-                        new Platform(gameEngine, grass, 1798, 390, 274, 18), new Platform(gameEngine, grass, 2086, 134, 224, 18)],
-                        [new Slime(gameEngine, 209, 448, false, 'Red'), new Slime(gameEngine, 272, 576, false, 'Red'), 
-                        new Slime(gameEngine, 497, 576, false, 'Red'), new Slime(gameEngine, 721, 576, false, 'Red'),
-                        new Slime(gameEngine, 240, 192, false, 'Green'), new Slime(gameEngine, 1080, 961, false, 'Green'), 
-                        new Slime(gameEngine, 400, 960, false, 'Green'), new Slime(gameEngine, 880, 703, false, 'Green'), 
-                        new Slime(gameEngine, 1552, 193, false, 'Green'), new Slime(gameEngine, 1263, 384, false, 'Green'), 
-                        new Slime(gameEngine, 1552, 832, false, 'Green'), new Slime(gameEngine, 1936, 704, false, 'Green'), 
-                        new Slime(gameEngine, 1904, 320, false, 'Green'), new Bunny(gameEngine, 431, 800, false),
-                        new Bunny(gameEngine, 561, 512, false), new Bunny(gameEngine, 880, 320, false),
-                        new Bunny(gameEngine, 686, 448, false), new Bunny(gameEngine, 1104, 575, false),
-                        new Bunny(gameEngine, 751, 833, false), new Bunny(gameEngine, 1456, 64, false),
-                        new Bunny(gameEngine, 1326, 191, false), new Bunny(gameEngine, 2128, 576, false),
-                        new Bunny(gameEngine, 2128, 64, false)], [new Door(gameEngine, 2304, 72, 1, 0)], [],
-                        [new Position(25, 575, 25, 575, 1, 1), new Position (2260, 72, 2260, 72, 1, 1), new Position(2281, 962, 2281, 962, 1, 1)]),
-                    new Stage(new Background(gameEngine, AM.getAsset("./img/levels/st1lv2.png"), 24, 1190, 24, 1958, 1216, 1984),
-                        [new Wall(gameEngine, null, 24, 24, 366, 160), new Wall(gameEngine, null, 390, 24, 242, 384), 
-                        new Wall(gameEngine, null, 24, 390, 192, 242), new Wall(gameEngine, null, 390, 408, 18, 320), 
-                        new Wall(gameEngine, null, 646, 518, 434, 274), new Wall(gameEngine, null, 486, 934, 18, 320), 
-                        new Wall(gameEngine, null, 294, 1190, 82, 64), new Wall(gameEngine, null, 24, 1446, 192, 512), 
-                        new Wall(gameEngine, null, 216, 1574, 224, 384), new Wall(gameEngine, null, 440, 1702, 192, 256), 
-                        new Wall(gameEngine, null, 632, 1830, 224, 128)], [new Platform(gameEngine, null, 630, 133, 162, 18), 
-                        new Platform(gameEngine, null, 998, 134, 192, 18), new Platform(gameEngine, null, 774, 230, 114, 18), 
-                        new Platform(gameEngine, null, 632, 294, 160, 18), new Platform(gameEngine, null, 632, 390, 352, 18), 
-                        new Platform(gameEngine, null, 408, 518, 96, 18), new Platform(gameEngine, null, 550, 582, 96, 18), 
-                        new Platform(gameEngine, null, 408, 678, 96, 18), new Platform(gameEngine, null, 326, 358, 64, 18), 
-                        new Platform(gameEngine, null, 294, 486, 96, 18), new Platform(gameEngine, null, 216, 582, 96, 18), 
-                        new Platform(gameEngine, null, 230, 710, 160, 18), new Platform(gameEngine, null, 646, 998, 338, 18), 
-                        new Platform(gameEngine, null, 134, 998, 210, 18), new Platform(gameEngine, null, 24, 806, 160, 18), 
-                        new Platform(gameEngine, null, 24, 1126, 192, 18), new Platform(gameEngine, null, 1030, 1126, 160, 18), 
-                        new Platform(gameEngine, null, 24, 1254, 704, 18), new Platform(gameEngine, null, 774, 1382, 210, 18), 
-                        new Platform(gameEngine, null, 614, 1574, 146, 18), new Platform(gameEngine, null, 1030, 1542, 160, 18), 
-                        new Platform(gameEngine, null, 1030, 1798, 160, 18)], [], [new Door(gameEngine, 25, 1384, 0, 1), new Door(gameEngine, 25, 328, 2, 0)], [],
-                        [new Position(32, 1378, 32, 1378, 1, 1), new Position(32, 323, 32, 323, 1, 1)]),
-                    new Stage(new Background(gameEngine, AM.getAsset("./img/levels/st1lv3.png"), 24, 2310, 24, 1318, 2336, 1344),
-                        [new Wall(gameEngine, null, 262, 678, 18, 242), new Wall(gameEngine, null, 358, 134, 18, 562), 
-                        new Wall(gameEngine, null, 376, 230, 1454, 242), new Wall(gameEngine, null, 646, 902, 82, 192), 
-                        new Wall(gameEngine, null, 422, 1094, 626, 224), new Wall(gameEngine, null, 1062, 774, 370, 178), 
-                        new Wall(gameEngine, null, 1606, 902, 82, 192), new Wall(gameEngine, null, 1446, 1094, 562, 224), 
-                        new Wall(gameEngine, null, 1830, 134, 18, 786)], [new Platform(gameEngine, null, 24, 134, 224, 18), 
-                        new Platform(gameEngine, null, 166, 230, 82, 18), new Platform(gameEngine, null, 134, 454, 114, 18), 
-                        new Platform(gameEngine, null, 262, 550, 96, 18), new Platform(gameEngine, null, 230, 326, 128, 18), 
-                        new Platform(gameEngine, null, 24, 678, 96, 18), new Platform(gameEngine, null, 134, 902, 128, 18), 
-                        new Platform(gameEngine, null, 280, 902, 192, 18), new Platform(gameEngine, null, 280, 678, 78, 18), 
-                        new Platform(gameEngine, null, 24, 1094, 192, 18), new Platform(gameEngine, null, 1670, 646, 160, 18), 
-                        new Platform(gameEngine, null, 486, 646, 338, 18), new Platform(gameEngine, null, 1848, 134, 96, 18), 
-                        new Platform(gameEngine, null, 2150, 390, 160, 18), new Platform(gameEngine, null, 1062, 614, 370, 18), 
-                        new Platform(gameEngine, null, 1990, 518, 146, 18), new Platform(gameEngine, null, 1848, 646, 160, 18), 
-                        new Platform(gameEngine, null, 2182, 742, 128, 18), new Platform(gameEngine, null, 2054, 806, 82, 18), 
-                        new Platform(gameEngine, null, 1848, 902, 160, 18), new Platform(gameEngine, null, 2182, 1030, 128, 18)],
-                        [], [new Door(gameEngine, 2304, 328, 1, 1)], [], [new Position(2305, 323, 2305, 323, 1, 1)])];
-
-    gameEngine.sceneManager = new SceneManager(gameEngine, stageList);
+    gameEngine.sceneManager = new SceneManager(gameEngine);
     gameEngine.sceneManager.update();
     gameEngine.start();
     
