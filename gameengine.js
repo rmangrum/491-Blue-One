@@ -213,6 +213,8 @@ GameEngine.prototype.loop = function () {
     this.clockTick = this.timer.tick();
     this.update();
     this.draw();
+    this.camera.update();
+    this.camera.draw(this.ctx);
     // keys
     this.space = null;
     this.xKey = null;
