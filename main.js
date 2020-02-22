@@ -846,9 +846,8 @@ Rock.prototype.update = function () {
     var that = this;
 
     if (collisionDetector(this.position, this.game.player.position)) {
-        // Monk damaged sprites needed
-        // this.game.player.damaged = true;
-        // this.game.player.invulnerable = true;
+        this.game.player.damaged = true;
+        this.game.player.invulnerable = true;
         this.game.player.HP[this.game.player.activeHero] -= 1;
         collision = true;
     }
@@ -907,15 +906,28 @@ function Player(game) {
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/walk_left.png"), 0, 0, 32, 32, .125, 2, true, false)],
                         walkRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 2, true, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/walk_right.png"), 0, 0, 32, 32, .125, 2, true, false)],
-                        dmgLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_left.png"), 0, 0, 64, 64, .2, 5, false, false)],
-                        dmgRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_right.png"), 0, 0, 64, 64, .2, 5, false, false)],
-                        deathLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_left.png"), 0, 0, 64, 64, .2, 6, false, false)], 
-                        deathRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_right.png"), 0, 0, 64, 64, .2, 6, false, false)],
+                        dmgLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_left.png"), 0, 0, 64, 64, .2, 5, false, false),
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/dmg_l.png"), 0, 0, 36, 36, .2, 5, false, false)],
+                        dmgRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_right.png"), 0, 0, 64, 64, .2, 5, false, false),
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/dmg_r.png"), 0, 0, 36, 36, .2, 5, false, false)],
+                        deathLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_left.png"), 0, 0, 64, 64, .2, 6, false, false),
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/death_l.png"), 0, 0, 36, 36, .2, 10, false, false)], 
+                        deathRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_right.png"), 0, 0, 64, 64, .2, 6, false, false),
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/death_r.png"), 0, 0, 36, 36, .2, 10, false, false)],
                         blinkLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/blink_left.png"), 0, 0, 32, 32, .2, 14, false, false)],
-                        blinkRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/blink_right.png"), 0, 0, 32, 32, .2, 14, false, false)]};
+                        blinkRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/blink_right.png"), 0, 0, 32, 32, .2, 14, false, false)]};                       
+}
 
-                            
-                            
+Player.prototype.swap = function() {
+    if(this.activeHero === 1) {
+        this.activeHero = 0;
+        this.position = new Position(this.position.left + this.position.width * 0.5 - 64, this.position.bottom - 87,
+            this.position.left + this.position.width * 0.5 - 12, this.position.bottom - 40, 24, 40);
+    } else {
+        this.activeHero = 1;
+        this.position = new Position(this.position.left + this.position.width * 0.5 - 31, this.position.bottom - 64,
+            this.position.left + this.position.width * 0.5 - 11, this.position.bottom - 62, 22, 62);
+    }
 }
 
 Player.prototype.update = function() {
@@ -923,14 +935,6 @@ Player.prototype.update = function() {
     // ***********************************
     // Updates to state based on key input
     // ***********************************
-
-    if (this.HP[this.activeHero] <= 0) {
-        this.game.zKey = true;
-        if (this.HP[this.activeHero] <= 0) {
-            console.log('Game Over!');
-            this.HP[this.activeHero] = this.maxHP[this.activeHero];
-        }
-    }
 
     // Facing right when left key pressed
     if (this.game.leftKey && !this.game.rightKey && this.faceRight) {
@@ -944,16 +948,8 @@ Player.prototype.update = function() {
     (this.game.leftKey || this.game.rightKey) ? this.walking = true : this.walking = false;
 
     // Swap key 'Z' pressed
-    if (this.game.zKey) {
-        if (this.activeHero === 0) {
-            this.activeHero = 1;
-            this.position = new Position(this.position.left + this.position.width * 0.5 - 31, this.position.bottom - 64,
-                                        this.position.left + this.position.width * 0.5 - 11, this.position.bottom - 62, 22, 62);
-        } else {
-            this.activeHero = 0;
-            this.position = new Position(this.position.left + this.position.width * 0.5 - 64, this.position.bottom - 87,
-                                        this.position.left + this.position.width * 0.5 - 12, this.position.bottom - 40, 24, 40);
-        }
+    if (this.game.zKey && this.damaged === false) {
+        if ((this.activeHero === 0 && this.HP[1] > 0) || (this.activeHero === 1 && this.HP[0] > 0)) this.swap();
     }
 
     // Attack key 'X' pressed
@@ -1110,16 +1106,6 @@ Player.prototype.update = function() {
             if (that.position.left < entity.position.left) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
             else that.position.moveTo(entity.position.right, that.position.top);
         }
-
-        /*
-        if (collisionDetector(that.position, entity.position) && that.position.bottom > entity.position.top) {
-            if (that.position.left < entity.position.left) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
-            if (that.position.right > entity.position.right) that.position.moveTo(entity.position.right, that.position.top);
-        } else if (collisionDetector(that.position, entity.position) && that.position.bottom > entity.position.bottom) {
-            that.position.moveTo(that.position.left, entity.ceiling);
-            that.velocityY = 0;
-        }
-        */
     });
 
     // Enemy collision
@@ -1132,6 +1118,11 @@ Player.prototype.update = function() {
             } else {
                 that.position.moveBy(5, 0);
             }
+            if (!that.invulnerable) {
+                that.HP[that.activeHero] -= 1;
+                that.damaged = true;
+                that.invulnerable = true;
+            }
         } 
     })
 
@@ -1141,12 +1132,40 @@ Player.prototype.update = function() {
 Player.prototype.draw = function(ctx) {
     var cameraOffsetX = this.position.drawX - this.game.camera.x;
     var cameraOffsetY = this.position.drawY - this.game.camera.y;
-    
-    /* DAMAGED ANIMATIONS FOR MONK NEEDED
-    if (this.damaged) {
 
-    } else */
-    if (this.walking) {
+    if (this.HP[this.activeHero] <= 0) {
+        if(this.faceRight) {
+            if(!this.animations.deathRight[this.activeHero].isDone()) this.animations.deathRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+            else if (this.activeHero === 0 && this.HP[1] <= 0 || this.activeHero === 1 && this.HP[0] <= 0) console.log('Game Over!');
+            else {
+                this.damaged = false;
+                this.swap();
+            } 
+        } else {
+            if(!this.animations.deathLeft[this.activeHero].isDone()) this.animations.deathLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+            else if (this.activeHero === 0 && this.HP[1] <= 0 || this.activeHero === 1 && this.HP[0] <= 0) console.log('Game Over!');
+            else {
+                this.damaged = false;
+                this.swap();
+            }
+        }
+    } else if (this.damaged) {
+        if (this.faceRight) {
+            if(!this.animations.dmgRight[this.activeHero].isDone()) this.animations.dmgRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+            else {
+                this.invulnerable = false;
+                this.damaged = false;
+                this.animations.dmgRight[this.activeHero].elapsedTime = 0;
+            }
+        } else {
+            if(!this.animations.dmgLeft[this.activeHero].isDone()) this.animations.dmgLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+            else {
+                this.invulnerable = false;
+                this.damaged = false;
+                this.animations.dmgLeft[this.activeHero].elapsedTime = 0;
+            }
+        }
+    } else if (this.walking) {
         if (this.faceRight) {
             this.animations.walkRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
         } else {
@@ -1159,6 +1178,7 @@ Player.prototype.draw = function(ctx) {
             this.animations.idleLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
         }
     }
+
     if (this.blinking) {
         if (this.faceRight) {
             this.animations.blinkRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
@@ -1517,8 +1537,10 @@ AM.queueDownload("./img/sprites/heroes/black_mage/fireball_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/fireball_right.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/frostbolt_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/frostbolt_right.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/dmg_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/dmg_right.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/death_left.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/death_right.png");
 AM.queueDownload("./img/ice_cube.png");
 
 // Monk images
@@ -1528,6 +1550,10 @@ AM.queueDownload("./img/sprites/heroes/monk/walk_left.png");
 AM.queueDownload("./img/sprites/heroes/monk/walk_right.png");
 AM.queueDownload("./img/sprites/heroes/monk/jump_left.png");
 AM.queueDownload("./img/sprites/heroes/monk/jump_right.png");
+AM.queueDownload("./img/sprites/heroes/monk/death_l.png");
+AM.queueDownload("./img/sprites/heroes/monk/death_r.png");
+AM.queueDownload("./img/sprites/heroes/monk/dmg_l.png");
+AM.queueDownload("./img/sprites/heroes/monk/dmg_r.png");
 
 // Slime Sprites
 AM.queueDownload("./img/sprites/enemies/red_slime/death_left.png");
