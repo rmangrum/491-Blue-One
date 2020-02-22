@@ -208,7 +208,14 @@ Background.prototype.draw = function (ctx) {
 }
 
 Background.prototype.update = function () {
-    // Empty
+    if(this.game.player.gameOver) {
+        if (this.game.space || this.game.xKey || this.game.cKey || this.game.zKey || this.game.dKey) {
+            this.game.player = new Player(this.game);
+            this.game.sceneManager.currentStage = 0;
+            this.game.sceneManager.startNum = 0;
+            this.game.sceneManager.newStage = true;
+        }
+    }
 }
 
 // Platform Prototype
@@ -373,48 +380,53 @@ Fireball.prototype.update = function () {
     }
 }
 
-// function Punch(game, goingRight, position, player) {
-//     this.type = "Projectile";
-//     this.game = game;
-//     this.position = position;
-//     this.player = player;
-//     this.animation = null;
-//     if (!goingRight) {
-//         //this.animation = new Animation(AM.getAsset("./img/sprites/heroes/monk/.png"));
-//     } else {
-//         //this.animation = new Animation(AM.getAsset("./img/sprites/heroes/monk/.png"));
-//     }
-// }
+function Punch(game, position, player) {
+    this.type = "Projectile";
+    this.game = game;
+    this.position = position;
+    this.player = player;
+}
 
-// Punch.prototype.draw = function (ctx) {
-//     var boxOffsetX = this.position.left - this.game.camera.x;
-//     var boxOffsetY = this.position.top - this.game.camera.y;
-//     var drawOffsetX = this.position.drawX - this.game.camera.x;
-//     var drawOffsetY = this.position.drawY - this.game.camera.y;
+Punch.prototype.draw = function (ctx) {
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
 
-//     if (this.game.showOutlines) {
-//         ctx.save();
-//         ctx.strokeStyle = 'Red';
-//         ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
-//         ctx.restore();
-//     }
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();
+    }
+}
 
-//     this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
-// }
-
-// Punch.prototype.update = function () {
-//     var collision = false;
-//     var that = this;
-//     this.game.enemies.forEach(function(entity) {
-//         if (collisionDetector(that.position, entity.position)) {
-//             collision = true;
-//             entity.isHit = true;
-//             entity.HP -= 1;
-//             // if (that.velocityX > 0) entity.isHitRight = true;
-//         }
-//     });
-// }
-
+Punch.prototype.update = function () {
+    var that = this;
+    if (this.game.player.damaged) this.removeFromWorld = true;
+    else {
+        this.game.enemies.forEach(function(entity) {
+            if (collisionDetector(that.position, entity.position)) {
+                entity.isHit = true;
+                entity.HP -= 1;
+                entity.state = 'damaged';
+                if (!this.faceRight) entity.isHitRight = true;
+                this.removeFromWorld = true;
+            }
+        });
+    
+        if (this.game.player.animations.punchRight.isDone()) {
+            this.game.player.punching = false;
+            this.game.player.animations.punchRight.elapsedTime = 0;
+            this.removeFromWorld = true;    
+        } else if (this.game.player.animations.punchLeft.isDone()) {
+            this.game.player.punching = false;
+            this.game.player.animations.punchLeft.elapsedTime = 0;       
+            this.removeFromWorld = true;
+        } else {
+            this.position.moveBy(this.game.player.velocityX * this.game.clockTick, this.game.player.velocityY * this.game.clockTick);
+        } 
+    }
+    
+}
 
 // Slime test enemy
 function Slime(game, theX, theY, faceRight, theColor) {
@@ -886,13 +898,12 @@ function Player(game) {
     this.maxHP = [2,6];
     this.activeHero = 0;
     this.walking = false;
-    this.attacking = false;
     this.damaged = false;
     this.jumping = false;
     this.falling = false;
     this.blinkEnabled = false;
     this.blinking = false;
-    //this.punching = false;
+    this.punching = false;
     this.jumpsLeft = [1, 1];
     this.jumpsMax = [1, 1];
     this.invulnerable = false;
@@ -921,7 +932,9 @@ function Player(game) {
                         blinkLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/blink_left.png"), 0, 0, 32, 32, .2, 14, false, false)],
                         blinkRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/blink_right.png"), 0, 0, 32, 32, .2, 14, false, false)],
                         gameOver: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_right.png"), 64, 128, 64, 64, 1, 1, true, false),
-                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/death_r.png"), 72, 72, 36, 36, 1, 1, true, false)]};                      
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/death_r.png"), 72, 72, 36, 36, 1, 1, true, false)],
+                        punchLeft: new Animation(AM.getAsset("./img/sprites/heroes/monk/punch_l.png"), 0, 0, 36, 36.2, 0.1, 9, false, false),
+                        punchRight: new Animation(AM.getAsset("./img/sprites/heroes/monk/punch_r.png"), 0, 0, 36, 36.2, 0.1, 9, false, false)};
 }
 
 Player.prototype.swap = function() {
@@ -943,15 +956,15 @@ Player.prototype.update = function() {
     // ***********************************
 
     // Facing right when left key pressed
-    if (this.game.leftKey && !this.game.rightKey && this.faceRight) {
+    if (this.game.leftKey && !this.game.rightKey && this.faceRight && !this.punching) {
         this.faceRight = false;
     }
     // Facing left when right key pressed
-    if (this.game.rightKey && !this.game.leftKey && !this.faceRight) {
+    if (this.game.rightKey && !this.game.leftKey && !this.faceRight && !this.punching) {
         this.faceRight = true;
     }
     // If left or right key pressed, set walking; else set idle
-    (this.game.leftKey || this.game.rightKey) ? this.walking = true : this.walking = false;
+    (!this.punching && (this.game.leftKey || this.game.rightKey)) ? this.walking = true : this.walking = false;
 
     // Swap key 'Z' pressed
     if (this.game.zKey && this.damaged === false) {
@@ -968,10 +981,17 @@ Player.prototype.update = function() {
             this.game.addEntity(new Fireball(this.game, this.faceRight, new Position(this.position.left + this.position.width * 0.5 - 16, this.position.top + this.position.height * 0.5 - 16,
                                 this.position.left + this.position.width * 0.5 - 6, this.position.top + this.position.height * 0.5 - 6, 12, 12), true, true));
         }
-    } 
-    // else if (this.game.xKey && this.activeHero === 1) { // punch attack
-    //     this.punching = true;
-    // }
+    } else if (this.game.xKey && this.activeHero === 1) { // punch attack
+        this.punching = true;
+        if (this.faceRight) {
+            this.game.addEntity(new Punch(this.game, new Position(this.position.left + this.position.width * 0.5 - 16, this.position.top + this.position.height * 0.5 - 16,
+                this.position.left + this.position.width * 0.5 + 10, this.position.top + this.position.height * 0.5 - 15, 35, 40), true));
+        }
+        if (!this.faceRight) {
+            this.game.addEntity(new Punch(this.game, new Position(this.position.left + this.position.width * 0.5 + 16, this.position.top + this.position.height * 0.5 - 16,
+                this.position.left + this.position.width * 0.5 - 10, this.position.top + this.position.height * 0.5 - 15, -35, 40), true));
+        }
+    }
 
     // Action key 'C' pressed
     if (this.game.cKey && this.activeHero === 0) {
@@ -1159,6 +1179,7 @@ Player.prototype.draw = function(ctx) {
             }
         }
     } else if (this.damaged) {
+        this.punching = false;
         if (this.faceRight) {
             if(!this.animations.dmgRight[this.activeHero].isDone()) this.animations.dmgRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
             else {
@@ -1173,6 +1194,12 @@ Player.prototype.draw = function(ctx) {
                 this.damaged = false;
                 this.animations.dmgLeft[this.activeHero].elapsedTime = 0;
             }
+        }
+    } else if (this.punching) {
+        if (this.faceRight) {
+            this.animations.punchRight.drawFrame(this.game.clockTick, ctx, cameraOffsetX - 5, cameraOffsetY - 3, 2);
+        } else {
+            this.animations.punchLeft.drawFrame(this.game.clockTick, ctx, cameraOffsetX - 5, cameraOffsetY - 3, 2);
         }
     } else if (this.walking) {
         if (this.faceRight) {
@@ -1575,6 +1602,8 @@ AM.queueDownload("./img/sprites/heroes/monk/death_l.png");
 AM.queueDownload("./img/sprites/heroes/monk/death_r.png");
 AM.queueDownload("./img/sprites/heroes/monk/dmg_l.png");
 AM.queueDownload("./img/sprites/heroes/monk/dmg_r.png");
+AM.queueDownload("./img/sprites/heroes/monk/punch_l.png");
+AM.queueDownload("./img/sprites/heroes/monk/punch_r.png");
 
 // Slime Sprites
 AM.queueDownload("./img/sprites/enemies/red_slime/death_left.png");
