@@ -1085,19 +1085,16 @@ Player.prototype.update = function() {
     // ****************
     // Left background bound
     if (this.position.left < this.game.background.leftWall) {
-        console.log('Collided with left background edge');
         this.position.moveTo(this.game.background.leftWall, this.position.top);
     }
 
     // Right background bound
     if (this.position.right > this.game.background.rightWall) {
-        console.log('Collided with right background edge');
         this.position.moveTo(this.game.background.rightWall - this.position.width, this.position.top);
     }
     
     // Top background/wall bound
     if (this.position.top < currentPlatform.theCeiling) {
-        console.log('Hit my head on the ceiling');
         this.position.moveTo(this.position.left, currentPlatform.theCeiling);
         this.velocityY = 0;
     }
@@ -1106,7 +1103,6 @@ Player.prototype.update = function() {
     this.game.walls.forEach(function(entity) {
 
         if(collisionDetector(that.position, entity.position)) {
-            console.log(`Collided with wall at ${entity.position.left}, ${entity.position.top}, ${entity.position.width}, ${entity.position.height}`);
             if (that.position.left < entity.position.left) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
             else that.position.moveTo(entity.position.right, that.position.top);
         }
@@ -1125,7 +1121,6 @@ Player.prototype.update = function() {
     // Enemy collision
     this.game.enemies.forEach(function(entity) {
         if (collisionDetector(that.position, entity.position) && entity.state !== 'dead') {
-            console.log('Collided with an enemy at ');
             entity.isHit = true;
             if (that.position.left < entity.position.left) {
                 entity.isHitRight = true;
@@ -1338,7 +1333,21 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Platform(this.game, null, 24, 1126, 192, 18), new Platform(this.game, null, 1030, 1126, 160, 18), 
                     new Platform(this.game, null, 24, 1254, 704, 18), new Platform(this.game, null, 774, 1382, 210, 18), 
                     new Platform(this.game, null, 614, 1574, 146, 18), new Platform(this.game, null, 1030, 1542, 160, 18), 
-                    new Platform(this.game, null, 1030, 1798, 160, 18)], [], [new Door(this.game, 25, 1384, 0, 1), new Door(this.game, 25, 328, 2, 0)], [],
+                    new Platform(this.game, null, 1030, 1798, 160, 18)], 
+                    [new Slime(this.game, 304, 417, false, 'Red'), new Slime(this.game, 688, 224, false,'Green'),
+                    new Slime(this.game, 816, 1312, false,'Green'), new Slime(this.game, 656, 448, false,'Green'),
+                    new Slime(this.game, 272, 1504, false,'Green'), new Slime(this.game, 272, 640, false,'Green'),
+                    new Slime(this.game, 496, 1632, false,'Green'), new Slime(this.game, 208, 929, false,'Green'),
+                    new Slime(this.game, 719, 1760, false,'Green'), new Slime(this.game, 77, 1056, false,'Green'),
+                    new Slime(this.game, 1039, 1472, false,'Green'), new Slime(this.game, 912, 927, false,'Green'),
+                    new Slime(this.game, 976, 448, false,'Green'), new Bunny(this.game, 721, 64, false),
+                    new Bunny(this.game, 1008, 64, false), new Bunny(this.game, 656, 321, false),
+                    new Bunny(this.game, 1136, 1888, false), new Bunny(this.game, 336, 287, false),
+                    new Bunny(this.game, 1073, 1728, false), new Bunny(this.game, 47, 320, false),
+                    new Bunny(this.game, 656, 1503, false), new Bunny(this.game, 400, 448, false),
+                    new Bunny(this.game, 592, 1184, false), new Bunny(this.game, 48, 735, false),
+                    new Bunny(this.game, 304, 1119, false), new Bunny(this.game, 656, 928, false)],
+                    [new Door(this.game, 25, 1384, 0, 1), new Door(this.game, 25, 328, 2, 0)], [],
                     [new Position(32, 1378, 32, 1378, 1, 1), new Position(32, 323, 32, 323, 1, 1)]);
     } else {
         newStage = new Stage(new Background(this.game, AM.getAsset("./img/levels/st1lv3.png"), 24, 2310, 24, 1318, 2336, 1344),
@@ -1357,7 +1366,25 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Platform(this.game, null, 1990, 518, 146, 18), new Platform(this.game, null, 1848, 646, 160, 18), 
                     new Platform(this.game, null, 2182, 742, 128, 18), new Platform(this.game, null, 2054, 806, 82, 18), 
                     new Platform(this.game, null, 1848, 902, 160, 18), new Platform(this.game, null, 2182, 1030, 128, 18)],
-                    [], [new Door(this.game, 2304, 328, 1, 1)], [], [new Position(2305, 323, 2305, 323, 1, 1)]);
+                    [new Slime(this.game, 2032, 447, false, 'Red'), new Slime(this.game, 1007, 158, false,'Green'),
+                    new Slime(this.game, 1104, 160, false,'Green'), new Slime(this.game, 944, 161, false,'Green'),
+                    new Slime(this.game, 1232, 161, false,'Green'), new Slime(this.game, 176, 1249, false,'Green'),
+                    new Slime(this.game, 1198, 544, false,'Green'), new Slime(this.game, 753, 1024, false,'Green'),
+                    new Slime(this.game, 1072, 1248, false,'Green'), new Slime(this.game, 497, 1024, false,'Green'),
+                    new Slime(this.game, 1201, 1246, false,'Green'), new Slime(this.game, 752, 575, false,'Green'),
+                    new Slime(this.game, 1361, 1248, false,'Green'), new Slime(this.game, 172, 384, false,'Green'),
+                    new Slime(this.game, 1937, 1024, false,'Green'), new Slime(this.game, 848, 159, false,'Green'),
+                    new Slime(this.game, 2129, 1248, false,'Green'), new Bunny(this.game, 15, 64, false),
+                    new Bunny(this.game, 1040, 704, false), new Bunny(this.game, 304, 257, false),
+                    new Bunny(this.game, 1392, 704, false), new Bunny(this.game, 528, 160, false),
+                    new Bunny(this.game, 1008, 1024, false), new Bunny(this.game, 16, 608, false),
+                    new Bunny(this.game, 1425, 1024, false), new Bunny(this.game, 305, 609, false),
+                    new Bunny(this.game, 1712, 1024, false), new Bunny(this.game, 463, 576, false),
+                    new Bunny(this.game, 2224, 960, false), new Bunny(this.game, 337, 831, false),
+                    new Bunny(this.game, 1711, 1025, false), new Bunny(this.game, 47, 1025, false),
+                    new Bunny(this.game, 1872, 832, false), new Bunny(this.game, 15, 1249, false),
+                    new Bunny(this.game, 2064, 736, false), new Bunny(this.game, 1648, 575, false)],
+                    [new Door(this.game, 2304, 328, 1, 1)], [], [new Position(2305, 323, 2305, 323, 1, 1)]);
     }
     return newStage;
 }
