@@ -225,18 +225,17 @@ Platform.prototype.draw = function (ctx) {
     
     ctx.save();
     if (this.game.showOutlines) {
-        
         ctx.strokeStyle = 'Red';   
         ctx.strokeRect(cameraOffsetX, cameraOffsetY, this.position.width, this.position.height);
-        
     }
-    
-    //var pattern = ctx.createPattern(this.spritesheet, 'repeat');
-    //ctx.fillStyle = pattern;
-    //ctx.fillRect(cameraOffsetX, cameraOffsetY, this.position.width, this.position.height);
-    
+    /*
+    var img = AM.getAsset("./img/sprites/platforms/small_grass_tile.png");
+    var pattern = ctx.createPattern(img, 'repeat');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(cameraOffsetX, cameraOffsetY, this.position.width, this.position.height);
+    */
 
-    ctx.fillStyle = 'Teal';
+    ctx.fillStyle = 'DarkGreen';
     ctx.fillRect(cameraOffsetX, cameraOffsetY, this.position.width, this.position.height);
     ctx.restore();
 }
@@ -269,7 +268,7 @@ Wall.prototype.draw = function (ctx) {
     ctx.fillRect(cameraOffsetX, cameraOffsetY, this.position.width, this.position.height);
     */
 
-    ctx.fillStyle = 'LightSlateGrey';
+    ctx.fillStyle = 'SaddleBrown';
     ctx.fillRect(cameraOffsetX, cameraOffsetY, this.position.width, this.position.height);
     ctx.restore();
 }
@@ -1435,7 +1434,7 @@ SceneManager.prototype.createStage = function(theStageNum) {
     var grass = AM.getAsset("./img/platforms/grass_platform.png");
     
     if (theStageNum === 0) {
-        newStage = new Stage(new Background(this.game, AM.getAsset("./img/levels/st1lv1.png"), 24, 2310, 24, 1030, 2336, 1056),
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/lv1.png"), 24, 2310, 24, 1030, 2336, 1056),
                     [new Wall(this.game, null, 262, 664, 338, 96), new Wall(this.game, null, 262, 760, 18, 224),
                     new Wall(this.game, null, 390, 390, 18, 256), new Wall(this.game, null,646, 870, 18, 160),
                     new Wall(this.game, null, 1030, 234, 18, 412), new Wall(this.game, null, 1030, 646, 1280, 18), 
@@ -1464,7 +1463,7 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Bunny(this.game, 2128, 64, false)], [new Door(this.game, 2304, 72, 1, 0)], [this.key1, this.power1, this.power3],
                     [new Position(25, 575, 25, 575, 1, 1), new Position (2260, 72, 2260, 72, 1, 1), new Position(2281, 962, 2281, 962, 1, 1)]);
     } else if (theStageNum === 1) {
-        newStage = new Stage(new Background(this.game, AM.getAsset("./img/levels/st1lv2.png"), 24, 1190, 24, 1958, 1216, 1984),
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/lv2.png"), 24, 1190, 24, 1958, 1216, 1984),
                     [new Wall(this.game, null, 24, 24, 366, 160), new Wall(this.game, null, 390, 24, 242, 384), 
                     new Wall(this.game, null, 24, 390, 192, 242), new Wall(this.game, null, 390, 408, 18, 320), 
                     new Wall(this.game, null, 646, 518, 434, 274), new Wall(this.game, null, 486, 934, 18, 320), 
@@ -1498,7 +1497,7 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     [new Door(this.game, 25, 1384, 0, 1), new Door(this.game, 25, 328, 2, 0)], [],
                     [new Position(32, 1378, 32, 1378, 1, 1), new Position(32, 323, 32, 323, 1, 1)]);
     } else {
-        newStage = new Stage(new Background(this.game, AM.getAsset("./img/levels/st1lv3.png"), 24, 2310, 24, 1318, 2336, 1344),
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/lv3.png"), 24, 2310, 24, 1318, 2336, 1344),
                     [new Wall(this.game, null, 262, 678, 18, 242), new Wall(this.game, null, 358, 134, 18, 562), 
                     new Wall(this.game, null, 376, 230, 1454, 242), new Wall(this.game, null, 646, 902, 82, 192), 
                     new Wall(this.game, null, 422, 1094, 626, 224), new Wall(this.game, null, 1062, 774, 370, 178), 
@@ -1541,15 +1540,13 @@ SceneManager.prototype.createStage = function(theStageNum) {
 var AM = new AssetManager();
 
 // background image
-AM.queueDownload("./img/background.jpg");
-AM.queueDownload("./img/background_tiled.jpg");
-AM.queueDownload("./img/levels/st1lv1.png");
-AM.queueDownload("./img/levels/st1lv2.png");
-AM.queueDownload("./img/levels/st1lv3.png");
+AM.queueDownload("./img/sprites/backgrounds/lv1.png");
+AM.queueDownload("./img/sprites/backgrounds/lv2.png");
+AM.queueDownload("./img/sprites/backgrounds/lv3.png");
 AM.queueDownload("./img/sprites/backgrounds/game_over.png");
 
 // Platform image
-AM.queueDownload("./img/platforms/grass_platform.png");
+AM.queueDownload("./img/sprites/platforms/small_grass_tile.png");
 
 // BlackMage images
 AM.queueDownload("./img/sprites/heroes/black_mage/idle_right.png");

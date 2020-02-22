@@ -41,7 +41,7 @@ function GameEngine() {
     this.items = [];
     this.doors = [];
 
-    this.showOutlines = true;
+    this.showOutlines = false;
     this.ctx = null;
     this.click = null;
     this.mouse = null;
