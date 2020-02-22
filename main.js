@@ -178,6 +178,10 @@ Camera.prototype.update = function () {
     } else if (this.game.background.bottom < this.y + this.game.ctx.canvas.height) { // Check if below the background minus canvas height
         this.y = this.game.background.bottom - this.game.ctx.canvas.height;
     }
+    if (this.game.player.gameOver) {
+        this.x = 0;
+        this.y = 0;
+    }
 }
 
 Camera.prototype.draw = function (ctx) {
@@ -893,6 +897,7 @@ function Player(game) {
     this.jumpsLeft = [1, 1];
     this.jumpsMax = [1, 1];
     this.invulnerable = false;
+    this.gameOver = false;
     this.position = new Position(0, 320, 52, 367, 24, 40);
     this.faceRight = true;
     this.velocityX = 0;
@@ -915,7 +920,9 @@ function Player(game) {
                         deathRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_right.png"), 0, 0, 64, 64, .2, 6, false, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/death_r.png"), 0, 0, 36, 36, .2, 10, false, false)],
                         blinkLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/blink_left.png"), 0, 0, 32, 32, .2, 14, false, false)],
-                        blinkRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/blink_right.png"), 0, 0, 32, 32, .2, 14, false, false)]};                       
+                        blinkRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/blink_right.png"), 0, 0, 32, 32, .2, 14, false, false)],
+                        gameOver: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_right.png"), 64, 128, 64, 64, 1, 1, true, false),
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/death_r.png"), 72, 72, 36, 36, 1, 1, true, false)]};                      
 }
 
 Player.prototype.swap = function() {
@@ -1133,17 +1140,20 @@ Player.prototype.draw = function(ctx) {
     var cameraOffsetX = this.position.drawX - this.game.camera.x;
     var cameraOffsetY = this.position.drawY - this.game.camera.y;
 
-    if (this.HP[this.activeHero] <= 0) {
+    if (this.gameOver) {
+        this.animations.gameOver[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+    }
+    else if (this.HP[this.activeHero] <= 0) {
         if(this.faceRight) {
             if(!this.animations.deathRight[this.activeHero].isDone()) this.animations.deathRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
-            else if (this.activeHero === 0 && this.HP[1] <= 0 || this.activeHero === 1 && this.HP[0] <= 0) console.log('Game Over!');
+            else if (this.activeHero === 0 && this.HP[1] <= 0 || this.activeHero === 1 && this.HP[0] <= 0) this.game.sceneManager.gameOver();
             else {
                 this.damaged = false;
                 this.swap();
             } 
         } else {
             if(!this.animations.deathLeft[this.activeHero].isDone()) this.animations.deathLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
-            else if (this.activeHero === 0 && this.HP[1] <= 0 || this.activeHero === 1 && this.HP[0] <= 0) console.log('Game Over!');
+            else if (this.activeHero === 0 && this.HP[1] <= 0 || this.activeHero === 1 && this.HP[0] <= 0) this.game.sceneManager.gameOver();
             else {
                 this.damaged = false;
                 this.swap();
@@ -1351,6 +1361,20 @@ function SceneManager(game) {
     this.game.player.position.moveTo(this.stages[this.currentStage].getPosition(this.startNum).left, this.stages[this.currentStage].getPosition(this.startNum).top);
 }
 
+SceneManager.prototype.gameOver = function() {
+    this.game.background = new Background(this.game, AM.getAsset("./img/sprites/backgrounds/game_over.png"), 0, 1000, 0, 452, 1000, 452);
+    this.game.entities[0] = this.game.background;
+    this.game.entities.length = 3;
+    this.game.player.position.moveTo(500 - this.game.player.position.width * 0.5, 452 - this.game.player.height);
+    this.game.camera.update();
+    this.game.platforms.length = 0;
+    this.game.walls.length = 0;
+    this.game.items.length = 0;
+    this.game.doors.length = 0;
+    this.game.enemies.length = 0;
+    this.game.player.gameOver = true;
+}
+
 SceneManager.prototype.update = function() {
     if (this.newStage) {
         // Remove all entities from the gameManager
@@ -1364,7 +1388,6 @@ SceneManager.prototype.update = function() {
         this.game.background = this.stages[this.currentStage].background;
 
         this.game.entities = [this.game.background, this.game.player, this.game.camera];
-
         this.game.platforms.length = 0;
         this.game.walls.length = 0;
         this.game.items.length = 0;
@@ -1523,6 +1546,7 @@ AM.queueDownload("./img/background_tiled.jpg");
 AM.queueDownload("./img/levels/st1lv1.png");
 AM.queueDownload("./img/levels/st1lv2.png");
 AM.queueDownload("./img/levels/st1lv3.png");
+AM.queueDownload("./img/sprites/backgrounds/game_over.png");
 
 // Platform image
 AM.queueDownload("./img/platforms/grass_platform.png");
