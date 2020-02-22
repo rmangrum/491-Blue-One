@@ -30,12 +30,16 @@ Timer.prototype.tick = function () {
 
 function GameEngine() {
     this.entities = [];
+    this.sceneManager = null;
     this.player = null;
     this.background = null;
     this.camera = null;
     this.enemies = [];
     this.platforms = [];
+    this.walls = [];
     this.projectiles = [];
+    this.items = [];
+    this.doors = [];
 
     this.showOutlines = true;
     this.ctx = null;
@@ -45,7 +49,7 @@ function GameEngine() {
     this.surfaceWidth = null;
     this.surfaceHeight = null;
     this.gravity = 80;
-    this.terminalVelocity = 800;
+    this.terminalVelocity = 400;
 }
 
 GameEngine.prototype.init = function (ctx) {
@@ -102,6 +106,10 @@ GameEngine.prototype.startInput = function () {
             // interact/action
             that.cKey = true;
         }
+        if (e.keyCode === 68) { // d key
+            // interact/action
+            that.dKey = true;
+        }
         e.preventDefault();
     }, false);
 
@@ -133,11 +141,11 @@ GameEngine.prototype.startInput = function () {
             that.xKey = false;
         }
         if (e.keyCode === 67) { // c key
-            // interact/action
+            // action2
             that.cKey = false;
         }
         if (e.keyCode === 68) { // d key
-            // interact2/action2
+            // interact
             that.dKey = false;
         }
         e.preventDefault();
@@ -150,7 +158,9 @@ GameEngine.prototype.addEntity = function (entity) {
     this.entities.push(entity);
     if (entity.type === 'Enemy') this.enemies.push(entity);
     if (entity.type === 'Platform') this.platforms.push(entity);
+    if (entity.type === 'Wall') this.walls.push(entity);
     if (entity.type === 'Projectile') this.projectiles.push(entity);
+    if (entity.type === 'Item') this.items.push(entity);
 }
 
 GameEngine.prototype.draw = function () {
@@ -191,7 +201,12 @@ GameEngine.prototype.update = function () {
         }
     }
 
-
+    for (var i = this.items.length - 1; i >= 0; --i) {
+        if (this.items[i].removeFromWorld) {
+            this.items.splice(i, 1);
+        }
+    }
+    this.sceneManager.update();
 }
 
 GameEngine.prototype.loop = function () {
@@ -201,14 +216,15 @@ GameEngine.prototype.loop = function () {
     // keys
     this.space = null;
     this.xKey = null;
+    this.cKey = null;
+    this.zKey = null;
+    this.dKey = null; 
+
     /*
     this.upKey = null;
     this.leftKey = null;
     this.downKey = null;
     this.rightKey = null;
-    this.zKey = null;
-    this.cKey = null; 
-    this.dKey = null; 
     */
 }
 
