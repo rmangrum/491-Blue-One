@@ -412,34 +412,34 @@ function Slime(game, theX, theY, faceRight, theColor) {
     this.velocityY = 0;
     this.animations = {};
     if (theColor === 'Red') {
-        this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_left.png"), 0, 0, 32, 32, 0.2, 10, true, false),
-                            idleRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_right.png"), 0, 0, 32, 32, 0.2, 10, true, false),
-                            walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/rolling_left.png"), 0, 0, 32, 32, 0.2, 8, true, false),
-                            walkRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/rolling_right.png"), 0, 0, 32, 32, 0.2, 8, true, false),
-                            deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/death_left.png"), 0, 0, 32, 32, 0.125, 12, false, false),
-                            deathRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/death_right.png"), 0, 0, 32, 32, 0.125, 12, false, false),
-                            dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/dmg_left.png"), 0, 0, 32, 32, 0.125, 8, false, false),
-                            dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/dmg_right.png"), 0, 0, 32, 32, 0.125, 8, false, false),
+        this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_left.png"), 0, 0, 32, 32.2, 0.2, 10, true, false),
+                            idleRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_right.png"), 0, 0, 32, 32.2, 0.2, 10, true, false),
+                            walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/rolling_left.png"), 0, 0, 32, 32.2, 0.2, 8, true, false),
+                            walkRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/rolling_right.png"), 0, 0, 32, 32.2, 0.2, 8, true, false),
+                            deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/death_left.png"), 0, 0, 32, 32.2, 0.125, 12, false, false),
+                            deathRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/death_right.png"), 0, 0, 32, 32.2, 0.125, 12, false, false),
+                            dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/dmg_left.png"), 0, 0, 32, 32.2, 0.125, 8, false, false),
+                            dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/dmg_right.png"), 0, 0, 32, 32.2, 0.125, 8, false, false),
                             frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};
     } else if (theColor === 'Green') {
-        this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/idle_left.png"), 0, 0, 32, 32, 0.2, 10, true, false),
-                            idleRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/idle_right.png"), 0, 0, 32, 32, 0.2, 10, true, false),
-                            walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/rolling_left.png"), 0, 0, 32, 32, 0.2, 8, true, false),
-                            walkRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/rolling_right.png"), 0, 0, 32, 32, 0.2, 8, true, false),
-                            deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/death_left.png"), 0, 0, 32, 32, 0.125, 12, false, false),
-                            deathRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/death_right.png"), 0, 0, 32, 32, 0.125, 12, false, false),
-                            dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/dmg_left.png"), 0, 0, 32, 32, 0.125, 8, false, false),
-                            dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/dmg_right.png"), 0, 0, 32, 32, 0.125, 8, false, false),
+        this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/idle_left.png"), 0, 0, 32, 32.2, 0.2, 10, true, false),
+                            idleRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/idle_right.png"), 0, 0, 32, 32.2, 0.2, 10, true, false),
+                            walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/rolling_left.png"), 0, 0, 32, 32.2, 0.2, 8, true, false),
+                            walkRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/rolling_right.png"), 0, 0, 32, 32.2, 0.2, 8, true, false),
+                            deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/death_left.png"), 0, 0, 32, 32.2, 0.125, 12, false, false),
+                            deathRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/death_right.png"), 0, 0, 32, 32.2, 0.125, 12, false, false),
+                            dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/dmg_left.png"), 0, 0, 32, 32.2, 0.125, 8, false, false),
+                            dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/dmg_right.png"), 0, 0, 32, 32.2, 0.125, 8, false, false),
                             frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};
     } else {
-        this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/idle_left.png"), 0, 0, 32, 32, 0.2, 10, true, false),
-                            idleRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/idle_right.png"), 0, 0, 32, 32, 0.2, 10, true, false),
-                            walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/rolling_left.png"), 0, 0, 32, 32, 0.2, 8, true, false),
-                            walkRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/rolling_right.png"), 0, 0, 32, 32, 0.2, 8, true, false),
-                            deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/death_left.png"), 0, 0, 32, 32, 0.125, 12, false, false),
-                            deathRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/death_right.png"), 0, 0, 32, 32, 0.125, 12, false, false),
-                            dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/dmg_left.png"), 0, 0, 32, 32, 0.125, 8, false, false),
-                            dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/dmg_right.png"), 0, 0, 32, 32, 0.125, 8, false, false),
+        this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/idle_left.png"), 0, 0, 32, 32.2, 0.2, 10, true, false),
+                            idleRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/idle_right.png"), 0, 0, 32, 32.2, 0.2, 10, true, false),
+                            walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/rolling_left.png"), 0, 0, 32, 32.2, 0.2, 8, true, false),
+                            walkRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/rolling_right.png"), 0, 0, 32, 32.2, 0.2, 8, true, false),
+                            deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/death_left.png"), 0, 0, 32, 32.2, 0.125, 12, false, false),
+                            deathRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/death_right.png"), 0, 0, 32, 32.2, 0.125, 12, false, false),
+                            dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/dmg_left.png"), 0, 0, 32, 32.2, 0.125, 8, false, false),
+                            dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/dmg_right.png"), 0, 0, 32, 32.2, 0.125, 8, false, false),
                             frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};
     }
     
@@ -547,15 +547,14 @@ Slime.prototype.update = function () {
     }
 
     if (this.state === 'walk') {
-        if (this.faceRight && this.position.right < currentPlatform.theRight) {
-            this.velocityX = 50;
+        if (this.faceRight) {
+            if (this.position.right < currentPlatform.theRight - 50 * this.game.clockTick) {
+                this.velocityX = 50;
+            } else this.faceRight = false;
         } else {
-            this.faceRight = false;
-        }
-        if (!this.faceRight && this.position.left > currentPlatform.theLeft) {
-            this.velocityX = -50;
-        } else {
-            this.faceRight = true;
+            if (this.position.left > currentPlatform.theLeft + 50 * this.game.clockTick) {
+                this.velocityX = -50;
+            } else this.faceRight = true;   
         }
     }
 
@@ -583,19 +582,12 @@ Slime.prototype.update = function () {
         this.isHit = false;
     }
 
-    if (this.isChasing && this.state !== 'dead' && this.state !== 'damaged') {
+    if (this.isChasing && this.state !== 'dead' && this.state !== 'damaged' && this.state !== 'frozen') {
         this.state = 'walk';
-        // move right
-        if (playerDistance > -200 && playerDistance < -32) {
-            this.faceRight = true;
-            this.velocityX = 60;
-        } 
-        // move left
-        if (playerDistance < 200 && playerDistance > 32) {
-            this.faceRight = false;
-            this.velocityX = -60;
-        }
+        (this.position.left < this.game.player.position.left) ? this.faceRight = true : this.faceRight = false;
     }
+
+    
     
     // Wall collision
     this.game.walls.forEach(function(entity) {
@@ -624,15 +616,15 @@ function Bunny(game, theX, theY, faceRight) {
     this.shot = false;
     this.velocityX = 0;
     this.velocityY = 0;
-    this.animations = {deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/bunny/death_l.png"), 0, 0, 40, 32, 8, 0.125, false, false),
-                        deathRight: new Animation(AM.getAsset("./img/sprites/enemies/bunny/death_r.png"), 0, 0, 40, 32, 8, 0.125, false, false),
-                        dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/bunny/death_l.png"), 0, 0, 40, 32, 2, 0.25, false, false),
-                        dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/bunny/death_r.png"), 0, 0, 40, 32, 2, 0.25, false, false),
-                        idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/bunny/idle_l.png"), 0, 0, 32, 32, 4, 0.2, true, false),
-                        idleRight: new Animation(AM.getAsset("./img/sprites/enemies/bunny/idle_r.png"), 0, 0, 32, 32, 4, 0.2, true, false),
-                        atkLeft: new Animation(AM.getAsset("./img/sprites/enemies/bunny/atk_l.png"), 0, 0, 32, 32, 6, 0.2, false, false),
-                        atkRight: new Animation(AM.getAsset("./img/sprites/enemies/bunny/atk_r.png"), 0, 0, 32, 32, 6, 0.2, false, false),
-                        frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};
+    this.animations = {deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/bunny/death_l.png"), 0, 0, 40, 32.2, 0.125, 8, false, false),
+                        deathRight: new Animation(AM.getAsset("./img/sprites/enemies/bunny/death_r.png"), 0, 0, 40, 32.2, 0.125, 8, false, false),
+                        dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/bunny/death_l.png"), 0, 0, 40, 32.2, 0.25, 1, false, false),
+                        dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/bunny/death_r.png"), 0, 0, 40, 32.2, 0.25, 1, false, false),
+                        idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/bunny/idle_l.png"), 0, 0, 32, 32.3, 0.2, 4, true, false),
+                        idleRight: new Animation(AM.getAsset("./img/sprites/enemies/bunny/idle_r.png"), 0, 0, 32, 32.3, 0.2, 4, true, false),
+                        atkLeft: new Animation(AM.getAsset("./img/sprites/enemies/bunny/atk_l.png"), 0, 0, 32, 32.2, 0.2, 6, false, false),
+                        atkRight: new Animation(AM.getAsset("./img/sprites/enemies/bunny/atk_r.png"), 0, 0, 32, 32.2, 0.2, 6, false, false),
+                        frozen: new Animation(AM.getAsset("./img/bunny_ice.png"), 0, 0, 32, 32, 2, 1, false, false)};
 }
 
 Bunny.prototype.update = function() {
@@ -734,7 +726,7 @@ Bunny.prototype.draw = function (ctx) {
                             this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
     }
 
-    if (this.state === 'frozen') this.animations.frozen.drawFrame(this.game.clockTick, ctx, drawOffsetX + 16, drawOffsetY + 30, 1);
+    if (this.state === 'frozen') this.animations.frozen.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
     
     if (this.state === 'damaged') {
         if (this.HP <= 0) this.state = 'dead';
@@ -1345,6 +1337,7 @@ AM.queueDownload("./img/sprites/enemies/bunny/idle_r.png");
 AM.queueDownload("./img/sprites/enemies/bunny/atk_l.png");
 AM.queueDownload("./img/sprites/enemies/bunny/atk_r.png");
 AM.queueDownload("./img/sprites/enemies/bunny/medium_rock.png");
+AM.queueDownload("./img/bunny_ice.png");
 
 AM.downloadAll(function () {
     var canvas = document.getElementById("gameWorld");
