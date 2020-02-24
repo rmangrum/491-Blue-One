@@ -1288,9 +1288,11 @@ Player.prototype.update = function() {
             if (that.jumpkick) {
                 entity.HP -=2;
             } else if (!that.invulnerable) {
-                that.HP[that.activeHero] -= 1;
-                that.damaged = true;
-                that.invulnerable = true;
+                if (entity.state !== "frozen") {
+                    that.HP[that.activeHero] -= 1;
+                    that.damaged = true;
+                    that.invulnerable = true;
+                }
             }
         } 
     })
