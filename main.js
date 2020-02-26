@@ -160,6 +160,14 @@ function Camera(game) {
     this.game = game;
     this.x = this.game.player.position.left - (this.game.ctx.canvas.width * 0.5) + 32;
     this.y = this.game.player.position.bottom - (this.game.ctx.canvas.height * 0.75) + 32;
+    this.fullHeart = new Animation(AM.getAsset("./img/sprites/items/full_heart.png"), 0, 0, 33, 32, 0.125, 1, true, false);
+    this.emptyHeart = new Animation(AM.getAsset("./img/sprites/items/empty_heart.png"), 0, 0, 32, 32, 0.125, 1, true, false);
+    this.key1 = new Animation(AM.getAsset("./img/sprites/items/key_idle.png"), 0, 0, 32, 32, 0.125, 12, true, false);
+    this.key2 = new Animation(AM.getAsset("./img/sprites/items/bosskey_idle.png"), 0, 0, 36, 36, 0.125, 12, true, false);
+    this.blink = new Animation(AM.getAsset("./img/sprites/power-ups/blink.png"), 0, 0, 40, 40, .2, 17, true, false);
+    this.doubleJump = new Animation(AM.getAsset("./img/sprites/power-ups/double-jump.png"), 0, 0, 40, 40, .2, 17, true, false);
+    this.blackMage = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_right.png"), 0, 0, 64, 64, .2, 1, true, false);
+    this.monk = new Animation(AM.getAsset("./img/sprites/heroes/monk/idle_right.png"), 0, 0, 32, 32, .2, 1, true, false);
 }
 
 Camera.prototype.update = function () {
@@ -182,10 +190,59 @@ Camera.prototype.update = function () {
         this.x = 0;
         this.y = 0;
     }
+    if (this.game.background.gameStart) {
+        if (this.game.mouse) {
+            this.game.sceneManager.newStage = true;
+        }
+    }
 }
 
 Camera.prototype.draw = function (ctx) {
     // Head-up display elements here
+    if (this.game.background.gameStart) {
+        ctx.save();
+        ctx.fillStyle = 'White';
+        ctx.font = "20px Georgia";
+        ctx.fillText("CONTROLS:", 15, 500);
+        ctx.font = "15px Georgio";
+        ctx.fillText("Left Arrow Key: move left", 15, 520);
+        ctx.fillText("Right Arrow Key: move right", 15, 540);
+        ctx.fillText("Spacebar: Jump (Monk Double Jump if unlocked)", 15, 560);
+        ctx.fillText("Z key: Swap Characters", 15, 580);
+        ctx.fillText("X key: Attack - Fireball (Black Mage)", 350, 520);
+        ctx.fillText("X key: Attack - Punch/Jumpkick (Monk)", 350, 540);
+        ctx.fillText("C key: Frostbolt (Black Mage)", 350, 560);
+        ctx.fillText("D key: Blink (Black Mage if unlocked)", 350, 580);
+        ctx.fillText("D key: Use door", 650, 520);
+        ctx.font = "30px Georgio";
+        ctx.fillStyle = 'Red';
+        ctx.fillText("Click on the screen to start", 650, 560);
+        ctx.restore();
+    } else if (this.game.sceneManager.currentStage !== 3) {
+        var bmOffset = 0;
+        var monkOffset = 0;
+        if (this.game.player.activeHero === 0) monkOffset = 40;
+        else bmOffset = 40;
+        
+        // Black Mage info
+        this.blackMage.drawFrame(this.game.clockTick, ctx, 8, bmOffset + 5, 1);
+        for (var i = 0; i < this.game.player.maxHP[0]; i++) {
+            if (i < this.game.player.HP[0]) this.fullHeart.drawFrame(this.game.clockTick, ctx, 45 + 40 * i, bmOffset + 25, 1);
+            else this.emptyHeart.drawFrame(this.game.clockTick, ctx, 45 + 40 * i, bmOffset + 25, 1);
+        }
+        
+        // Monk info
+        this.monk.drawFrame(this.game.clockTick, ctx, 25, monkOffset + 25, 1);
+        for (var i = 0; i < this.game.player.maxHP[1]; i++) {
+            if (i < this.game.player.HP[1]) this.fullHeart.drawFrame(this.game.clockTick, ctx, 45 + 40 * i, monkOffset + 25, 1);
+            else this.emptyHeart.drawFrame(this.game.clockTick, ctx, 45 + 40 * i, monkOffset + 25, 1);
+        }
+    
+        if(this.game.player.keys[0]) this.key1.drawFrame(this.game.clockTick, ctx, 900, 40, 0.5);
+        if(this.game.player.keys[1]) this.key2.drawFrame(this.game.clockTick, ctx, 950, 40, 0.5);
+        if(this.game.player.blinkEnabled) this.blink.drawFrame(this.game.clockTick, ctx, 165, bmOffset + 25, 0.5);
+        if(this.game.player.jumpsMax[1] === 2) this.doubleJump.drawFrame(this.game.clockTick, ctx, 285, monkOffset + 25, 0.5);
+    }
 }
 
 function Background(game, spritesheet, left, right, top, bottom, width, height) {
@@ -199,21 +256,36 @@ function Background(game, spritesheet, left, right, top, bottom, width, height) 
     this.rightWall = right;
     this.spritesheet = spritesheet;
     this.game = game;
+    this.gameStart = false;
 };
 
 Background.prototype.draw = function (ctx) {
+    if (this.gameStart) {
+        ctx.drawImage(this.spritesheet, 
+            this.left, this.right, ctx.canvas.width, ctx.canvas.height, // Only display the canvas size with camera in top left correr
+            this.left, this.top, ctx.canvas.width, ctx.canvas.height);
+    }
     ctx.drawImage(this.spritesheet, 
         this.game.camera.x, this.game.camera.y, ctx.canvas.width, ctx.canvas.height, // Only display the canvas size with camera in top left correr
         this.left, this.top, ctx.canvas.width, ctx.canvas.height); // Draw into top left corner of canvas, at canvas size
 }
 
 Background.prototype.update = function () {
+    if (this.gameStart) {
+
+    }
+
     if(this.game.player.gameOver) {
         if (this.game.space || this.game.xKey || this.game.cKey || this.game.zKey || this.game.dKey) {
             this.game.player = new Player(this.game);
             this.game.sceneManager.currentStage = 0;
             this.game.sceneManager.startNum = 0;
             this.game.sceneManager.newStage = true;
+            this.game.sceneManager.key1 = new Key(this.game, 551, 987, 0);
+            this.game.sceneManager.key2 = new Key(this.game, 1880, 90, 1);
+            this.game.sceneManager.power1 = new PowerUp(this.game, 55, 95);
+            this.game.sceneManager.power2 = new PowerUp(this.game, 90, 90);
+            this.game.sceneManager.power3 = new PowerUp(this.game, 32, 992);
         }
     }
 }
@@ -380,11 +452,12 @@ Fireball.prototype.update = function () {
     }
 }
 
-function Punch(game, position, player) {
+function Punch(game, position, player, right) {
     this.type = "Projectile";
     this.game = game;
     this.position = position;
     this.player = player;
+    this.right = right;
 }
 
 Punch.prototype.draw = function (ctx) {
@@ -401,43 +474,56 @@ Punch.prototype.draw = function (ctx) {
 
 Punch.prototype.update = function () {
     var that = this;
-    if (this.game.player.damaged) this.removeFromWorld = true;
+    if (this.game.player.damaged) this.endPunch();
     else {
         this.game.enemies.forEach(function(entity) {
-            if (collisionDetector(that.position, entity.position)) {
+            if (collisionDetector(that.position, entity.position) && entity.state !== 'dead') {
                 entity.isHit = true;
                 entity.HP -= 1;
                 entity.state = 'damaged';
-                if (!this.faceRight) entity.isHitRight = true;
-                this.removeFromWorld = true;
+                if(entity.shotTimer) entity.shotTimer += 1;
+                if(entity.aggroCooldown) entity.aggroCooldown += 1.5;
+                if (that.game.player.faceRight) {
+                    entity.position.moveTo(that.position.right + 25, entity.position.top);
+                    if(entity.aggroCooldown) entity.faceRight = true;
+                }
+                else {
+                    entity.position.moveTo(that.position.left - entity.position.width - 5, entity.position.top);
+                    if(entity.aggroCooldown) entity.faceRight = false;
+                }
             }
         });
     
         if (this.game.player.animations.punchRight.isDone()) {
-            this.game.player.punching = false;
-            this.game.player.animations.punchRight.elapsedTime = 0;
-            this.removeFromWorld = true;    
+            this.endPunch();
         } else if (this.game.player.animations.punchLeft.isDone()) {
-            this.game.player.punching = false;
-            this.game.player.animations.punchLeft.elapsedTime = 0;       
-            this.removeFromWorld = true;
+            this.endPunch();
         } else {
             this.position.moveBy(this.game.player.velocityX * this.game.clockTick, this.game.player.velocityY * this.game.clockTick);
         } 
     }
-    
+}
+
+Punch.prototype.endPunch = function () {
+    this.removeFromWorld = true;
+    this.game.player.punching = false;
+    this.game.player.punch = null;
+    this.position = null;
+    this.game.player.animations.punchRight.elapsedTime = 0;
+    this.game.player.animations.punchLeft.elapsedTime = 0;
 }
 
 // Slime test enemy
 function Slime(game, theX, theY, faceRight, theColor) {
     this.type = "Enemy";
     this.color = theColor;
-    this.HP = 4;
+    this.HP = 2;
     this.state = 'idle';
     this.position = new Position(theX, theY, theX + 20, theY + 45, 24, 20);
     this.faceRight = faceRight;
     this.velocityX = 0;
     this.velocityY = 0;
+    this.aggroCooldown = 0;
     this.animations = {};
     if (theColor === 'Red') {
         this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_left.png"), 0, 0, 32, 32.2, 0.2, 10, true, false),
@@ -555,7 +641,8 @@ Slime.prototype.update = function () {
     // Check for player within a certain distance
     // if within set distance enemy aggros
     var playerDistance = distance(this.position, this.game.player.position);
-    if ((playerDistance > -200 && playerDistance < 0) || (playerDistance < 200 && playerDistance > 0)) {
+    if ((playerDistance > -200 && playerDistance < 0) || (playerDistance < 200 && playerDistance > 0) && this.aggroCooldown === 0 &&
+            this.state !== 'damaged' && !this.game.player.invulnerable) {
         this.isChasing = true;
     } else {
         this.isChasing = false;
@@ -595,7 +682,7 @@ Slime.prototype.update = function () {
         }
     }
 
-    if (this.state === 'dead') {
+    if (this.state === 'dead' || this.state === 'damaged') {
         this.velocityX = 0;
     }
 
@@ -629,12 +716,15 @@ Slime.prototype.update = function () {
     // Stay on background
     if (this.position.left < this.game.background.leftWall) this.position.moveTo(this.game.background.leftWall, this.position.top);
     if (this.position.right > this.game.background.rightWall) this.position.moveTo(this.game.background.rightWall - this.position.width, this.position.top);
+
+    if (this.aggroCooldown > 0) this.aggroCooldown -= this.game.clockTick;
+    else if (this.aggroCooldown < 0) this.aggroCooldown = 0;
 };
 
 function Bunny(game, theX, theY, faceRight) {
     this.game = game;
     this.type = "Enemy";
-    this.HP = 4;
+    this.HP = 3;
     this.state = 'idle';
     this.position = new Position(theX, theY, theX + 19, theY + 15, 28, 48);
     this.faceRight = faceRight;
@@ -894,16 +984,19 @@ Rock.prototype.update = function () {
 
 function Player(game) {
     this.game = game;
-    this.HP = [2,6];
-    this.maxHP = [2,6];
+    this.HP = [3,6];
+    this.maxHP = [3,6];
     this.activeHero = 0;
     this.walking = false;
     this.damaged = false;
     this.jumping = false;
     this.falling = false;
+    this.jumpkick = false;
     this.blinkEnabled = false;
     this.blinking = false;
     this.punching = false;
+    this.punch = null;
+    this.startJump = false;
     this.jumpsLeft = [1, 1];
     this.jumpsMax = [1, 1];
     this.invulnerable = false;
@@ -933,13 +1026,28 @@ function Player(game) {
                         blinkRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/blink_right.png"), 0, 0, 32, 32, .2, 14, false, false)],
                         gameOver: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_right.png"), 64, 128, 64, 64, 1, 1, true, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/death_r.png"), 72, 72, 36, 36, 1, 1, true, false)],
-                        punchLeft: new Animation(AM.getAsset("./img/sprites/heroes/monk/punch_l.png"), 0, 0, 36, 36.2, 0.1, 9, false, false),
-                        punchRight: new Animation(AM.getAsset("./img/sprites/heroes/monk/punch_r.png"), 0, 0, 36, 36.2, 0.1, 9, false, false)};
+                        punchLeft: new Animation(AM.getAsset("./img/sprites/heroes/monk/punch_l.png"), 0, 0, 36, 36.2, 0.05, 9, false, false),
+                        punchRight: new Animation(AM.getAsset("./img/sprites/heroes/monk/punch_r.png"), 0, 0, 36, 36.2, 0.05, 9, false, false),
+                        jumpLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/jump_left.png"), 0, 0, 64, 64, 0.05, 5, false, false), 
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/jump_left.png"), 0, 0, 36, 36, .05, 7, false, false)],
+                        jumpRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/jump_right.png"), 0, 0, 64, 64, 0.05, 5, false, false),
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/jump_right.png"), 0, 0, 36, 36, .05, 7, false, false)],
+                        fallLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/jump_left.png"), 64, 64, 64, 64, 0.1, 1, true, false), 
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/jump_left.png"), 0, 72, 36, 36, .1, 1, true, false)],
+                        fallRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/jump_right.png"), 64, 64, 64, 64, 0.1, 1, true, false),
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/jump_right.png"), 0, 72, 36, 36, .1, 1, true, false)],
+                        jumpkickLeft: new Animation(AM.getAsset("./img/sprites/heroes/monk/jump-kick_l.png"), 0, 72, 36, 36, 0.05, 1, true, false),
+                        jumpkickRight: new Animation(AM.getAsset("./img/sprites/heroes/monk/jump-kick_r.png"), 0, 72, 36, 36, 0.05, 1, true, false)};
 }
 
 Player.prototype.swap = function() {
     if(this.activeHero === 1) {
         this.activeHero = 0;
+        if (this.jumpkick) {
+            this.jumpkick = false;
+            this.position.width = 22;
+            if (!this.faceRight) this.position.left += 15;
+        }
         this.position = new Position(this.position.left + this.position.width * 0.5 - 64, this.position.bottom - 87,
             this.position.left + this.position.width * 0.5 - 12, this.position.bottom - 40, 24, 40);
     } else {
@@ -956,15 +1064,25 @@ Player.prototype.update = function() {
     // ***********************************
 
     // Facing right when left key pressed
-    if (this.game.leftKey && !this.game.rightKey && this.faceRight && !this.punching) {
-        this.faceRight = false;
+    if (this.game.leftKey && !this.game.rightKey && this.faceRight) {
+        if(this.punching) {
+            if (!this.punch.right) this.faceRight = false;
+        } else {
+            this.faceRight = false;
+            if(this.jumpkick) this.position.left -= 15;
+        }
     }
     // Facing left when right key pressed
-    if (this.game.rightKey && !this.game.leftKey && !this.faceRight && !this.punching) {
-        this.faceRight = true;
+    if (this.game.rightKey && !this.game.leftKey && !this.faceRight) {
+        if(this.punching) {
+            if (this.punch.right) this.faceRight = true;
+        } else {
+            this.faceRight = true;
+            if(this.jumpkick) this.positionleft += 15;
+        } 
     }
     // If left or right key pressed, set walking; else set idle
-    (!this.punching && (this.game.leftKey || this.game.rightKey)) ? this.walking = true : this.walking = false;
+    ((this.game.leftKey && !this.faceRight ) || (this.game.rightKey && this.faceRight)) ? this.walking = true : this.walking = false;
 
     // Swap key 'Z' pressed
     if (this.game.zKey && this.damaged === false) {
@@ -981,16 +1099,22 @@ Player.prototype.update = function() {
             this.game.addEntity(new Fireball(this.game, this.faceRight, new Position(this.position.left + this.position.width * 0.5 - 16, this.position.top + this.position.height * 0.5 - 16,
                                 this.position.left + this.position.width * 0.5 - 6, this.position.top + this.position.height * 0.5 - 6, 12, 12), true, true));
         }
-    } else if (this.game.xKey && this.activeHero === 1) { // punch attack
+    } else if (this.game.xKey && this.activeHero === 1 && !this.falling && !this.jumping && !this.punching) { // punch attack
         this.punching = true;
         if (this.faceRight) {
-            this.game.addEntity(new Punch(this.game, new Position(this.position.left + this.position.width * 0.5 - 16, this.position.top + this.position.height * 0.5 - 16,
-                this.position.left + this.position.width * 0.5 + 10, this.position.top + this.position.height * 0.5 - 15, 35, 40), true));
+            this.punch = new Punch(this.game, 
+                new Position(this.position.right - 5, this.position.top, this.position.right - 5, this.position.top, 30, this.position.height), true, this.faceRight);
+            this.game.addEntity(this.punch);
         }
         if (!this.faceRight) {
-            this.game.addEntity(new Punch(this.game, new Position(this.position.left + this.position.width * 0.5 + 16, this.position.top + this.position.height * 0.5 - 16,
-                this.position.left + this.position.width * 0.5 - 10, this.position.top + this.position.height * 0.5 - 15, -35, 40), true));
+            this.punch = new Punch(this.game,
+                new Position(this.position.left -25, this.position.top, this.position.left -25, this.position.top, 30, this.position.height), true, this.faceRight);
+            this.game.addEntity(this.punch);
         }
+    } else if (this.game.xKey && this.activeHero === 1 && (this.falling || !this.jumping)) {
+        this.jumpkick = true;
+        this.position.width += 15;
+        if(!this.faceRight) this.position.left -= 15;
     }
 
     // Action key 'C' pressed
@@ -1011,10 +1135,13 @@ Player.prototype.update = function() {
         var onDoor = false;
         this.game.doors.forEach(function(entity) {
             if (collisionDetector(that.position, entity.position)) {
-                that.game.sceneManager.currentStage = entity.destination.level;
-                that.game.sceneManager.startNum = entity.destination.door;
-                that.game.sceneManager.newStage = true;
-                onDoor = true;
+                if (entity.destination.level !== 3 || (entity.destination.level === 3 && that.keys[0] && that.keys[1])) {
+                    that.game.sceneManager.currentStage = entity.destination.level;
+                    that.game.sceneManager.startNum = entity.destination.door;
+                    that.game.sceneManager.newStage = true;
+                    onDoor = true;
+                }
+                
             } 
         })
         if (!onDoor && this.activeHero === 0 && this.blinkEnabled) { // Blink
@@ -1063,7 +1190,11 @@ Player.prototype.update = function() {
     }
 
     // Spacebar pressed
-    if (this.game.space && this.jumpsLeft[this.activeHero] > 0) this.jumping = true;
+    if (this.game.space && this.jumpsLeft[this.activeHero] > 0) {
+        //this.startJump = true;
+        this.jumping = true;
+        if (this.punching) this.punch.endPunch();
+    }
 
     // ****************
     // Position updates
@@ -1091,12 +1222,22 @@ Player.prototype.update = function() {
     if (this.position.bottom === currentPlatform.ground) {
         this.velocityY = 0;
         this.falling = false;
+        this.jumpkick = false;
+        if (this.position.width > 22) {
+            this.position.width = 22;
+            if (!this.faceRight) this.position.left += 15;
+        }
         this.jumpsLeft[this.activeHero] = this.jumpsMax[this.activeHero];
     } else if (this.position.bottom + (this.velocityY + this.game.gravity) * this.game.clockTick >= currentPlatform.ground &&
                 this.velocityY > 0) {
         this.position.moveTo(this.position.left, currentPlatform.ground - this.position.height);
         this.velocityY = 0;
         this.falling = false;
+        this.jumpkick = false;
+        if (this.position.width > 22) {
+            this.position.width = 22;
+            if (!this.faceRight) this.position.left += 15;
+        }
         this.jumpsLeft[this.activeHero] = this.jumpsMax[this.activeHero];
     } else {
         this.falling = true;
@@ -1144,7 +1285,9 @@ Player.prototype.update = function() {
             } else {
                 that.position.moveBy(5, 0);
             }
-            if (!that.invulnerable) {
+            if (that.jumpkick) {
+                entity.HP -=2;
+            } else if (!that.invulnerable) {
                 that.HP[that.activeHero] -= 1;
                 that.damaged = true;
                 that.invulnerable = true;
@@ -1201,6 +1344,20 @@ Player.prototype.draw = function(ctx) {
         } else {
             this.animations.punchLeft.drawFrame(this.game.clockTick, ctx, cameraOffsetX - 5, cameraOffsetY - 3, 2);
         }
+    } else if (this.startJump) {
+        if (this.animations.jumpRight[this.activeHero].isDone() || this.animations.jumpLeft[this.activeHero].isDone()) {
+            this.animations.jumpRight.elapsedTime = 0;
+            this.animations.jumpLeft.elapsedTime = 0;
+            this.startJump = false;
+        } else if (this.faceRight) {
+            this.animations.jumpRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+        } else this.animations.jumpLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+    } else if (this.jumpkick) {
+        if (this.faceRight) this.animations.jumpkickRight.drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+        else this.animations.jumpkickLeft.drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+    } else if (this.jumping || this.falling) {
+        if (this.faceRight) this.animations.fallRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+        else this.animations.fallLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
     } else if (this.walking) {
         if (this.faceRight) {
             this.animations.walkRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
@@ -1309,8 +1466,16 @@ function Heart(game, theX, theY) {
 
 Heart.prototype.update = function() {
     if (collisionDetector(this.position, this.game.player.position)) {
+        if (this.game.player.HP[0] === 0) this.game.player.HP[0]++;
+        else if (this.game.player.HP[1] === 0) this.game.player.HP[1]++;
         if (this.game.player.HP[this.game.player.activeHero] < this.game.player.maxHP[this.game.player.activeHero]) {
             this.game.player.HP[this.game.player.activeHero]++;
+            this.removeFromWorld = true;
+        } else if (this.game.player.HP[0] < this.game.player.maxHP[0]) {
+            this.game.player.HP[0]++;
+            this.removeFromWorld = true;
+        } else if (this.game.player.HP[1] < this.game.player.maxHP[1]) {
+            this.game.player.HP[1]++;
             this.removeFromWorld = true;
         }
     }
@@ -1330,6 +1495,7 @@ Heart.prototype.draw = function(ctx) {
     }
     this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
 }
+
 // an entity to display controls in text form
 function ControlsText(game, theX, theY) {
     this.x = theX;
@@ -1374,7 +1540,7 @@ class Stage {
 
 function SceneManager(game) {
     this.game = game;
-    this.newStage = true;
+    this.newStage = false;
     this.currentStage = 0;
     this.startNum = 0;
     this.key1 = new Key(this.game, 551, 987, 0);
@@ -1390,7 +1556,7 @@ function SceneManager(game) {
 SceneManager.prototype.gameOver = function() {
     this.game.background = new Background(this.game, AM.getAsset("./img/sprites/backgrounds/game_over.png"), 0, 1000, 0, 452, 1000, 452);
     this.game.entities[0] = this.game.background;
-    this.game.entities.length = 3;
+    this.game.entities.length = 2;
     this.game.player.position.moveTo(500 - this.game.player.position.width * 0.5, 452 - this.game.player.height);
     this.game.camera.update();
     this.game.platforms.length = 0;
@@ -1401,19 +1567,26 @@ SceneManager.prototype.gameOver = function() {
     this.game.player.gameOver = true;
 }
 
+SceneManager.prototype.youWin = function() {
+    this.game.background = new Background(this.game, AM.getAsset("./img/sprites/backgrounds/Win.png"), 0, 1000, 0, 600, 1000, 600);
+    this.game.entities[0] = this.game.background;
+    this.game.entities.length = 2;
+    this.game.platforms.length = 0;
+    this.game.walls.length = 0;
+    this.game.items.length = 0;
+    this.game.doors.length = 0;
+    this.game.enemies.length = 0;
+}
+
 SceneManager.prototype.update = function() {
-    if (this.newStage) {
-        // Remove all entities from the gameManager
-        /*
-        var entityCount = this.game.entities.length;
-        for (var i = 0; i < entityCount; i++) {
-            if (this.game.entities[i] !== this && this.game.entities[i] !== this.game.player && this.game.entities[i] !== this.game.camera) this.game.entities[i].removeFromWorld = true;
-        }
-        */
+    if (this.newStage && this.currentStage === 3) {
+        this.youWin();
+    } else if (this.newStage) {
+        
         var updateStage = this.createStage(this.currentStage);
         this.game.background = this.stages[this.currentStage].background;
 
-        this.game.entities = [this.game.background, this.game.player, this.game.camera];
+        this.game.entities = [this.game.background, this.game.player];
         this.game.platforms.length = 0;
         this.game.walls.length = 0;
         this.game.items.length = 0;
@@ -1487,7 +1660,7 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Bunny(this.game, 686, 448, false), new Bunny(this.game, 1104, 575, false),
                     new Bunny(this.game, 751, 833, false), new Bunny(this.game, 1456, 64, false),
                     new Bunny(this.game, 1326, 191, false), new Bunny(this.game, 2128, 576, false),
-                    new Bunny(this.game, 2128, 64, false)], [new Door(this.game, 2304, 72, 1, 0)], [this.key1, this.power1, this.power3],
+                    new Bunny(this.game, 2128, 64, false)], [new Door(this.game, 2304, 72, 1, 0), new Door(this.game, 2297, 958, 3, 0)], [this.key1, this.power1, this.power3],
                     [new Position(25, 575, 25, 575, 1, 1), new Position (2260, 72, 2260, 72, 1, 1), new Position(2281, 962, 2281, 962, 1, 1)]);
     } else if (theStageNum === 1) {
         newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/lv2.png"), 24, 1190, 24, 1958, 1216, 1984),
@@ -1558,7 +1731,8 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Bunny(this.game, 1711, 1025, false), new Bunny(this.game, 47, 1025, false),
                     new Bunny(this.game, 1872, 832, false), new Bunny(this.game, 15, 1249, false),
                     new Bunny(this.game, 2064, 736, false), new Bunny(this.game, 1648, 575, false)],
-                    [new Door(this.game, 2304, 328, 1, 1)], [this.key2, this.power2], [new Position(2305, 323, 2305, 323, 1, 1)]);
+                    [new Door(this.game, 2304, 328, 1, 1)], [this.key2, this.power2, new Heart(this.game, 45, 1279),
+                    new Heart(this.game, 1237, 1271), new Heart(this.game, 2257, 1273)], [new Position(2305, 323, 2305, 323, 1, 1)]);
     }
     return newStage;
 }
@@ -1567,10 +1741,18 @@ SceneManager.prototype.createStage = function(theStageNum) {
 var AM = new AssetManager();
 
 // background image
+AM.queueDownload("./img/sprites/backgrounds/Start.png");
 AM.queueDownload("./img/sprites/backgrounds/lv1.png");
 AM.queueDownload("./img/sprites/backgrounds/lv2.png");
 AM.queueDownload("./img/sprites/backgrounds/lv3.png");
+AM.queueDownload("./img/sprites/backgrounds/Win.png");
 AM.queueDownload("./img/sprites/backgrounds/game_over.png");
+
+// HUD image
+AM.queueDownload("./img/sprites/items/key_idle.png");
+AM.queueDownload("./img/sprites/items/bosskey_idle.png");
+AM.queueDownload("./img/sprites/items/full_heart.png");
+AM.queueDownload("./img/sprites/items/empty_heart.png");
 
 // Platform image
 AM.queueDownload("./img/sprites/platforms/small_grass_tile.png");
@@ -1580,7 +1762,8 @@ AM.queueDownload("./img/sprites/heroes/black_mage/idle_right.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/walk_right.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/idle_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/walk_left.png");
-AM.queueDownload("./img/sprites/heroes/black_mage/jump.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/jump_left.png");
+AM.queueDownload("./img/sprites/heroes/black_mage/jump_right.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/fireball_left.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/fireball_right.png");
 AM.queueDownload("./img/sprites/heroes/black_mage/frostbolt_left.png");
@@ -1604,6 +1787,8 @@ AM.queueDownload("./img/sprites/heroes/monk/dmg_l.png");
 AM.queueDownload("./img/sprites/heroes/monk/dmg_r.png");
 AM.queueDownload("./img/sprites/heroes/monk/punch_l.png");
 AM.queueDownload("./img/sprites/heroes/monk/punch_r.png");
+AM.queueDownload("./img/sprites/heroes/monk/jump-kick_l.png");
+AM.queueDownload("./img/sprites/heroes/monk/jump-kick_r.png");
 
 // Slime Sprites
 AM.queueDownload("./img/sprites/enemies/red_slime/death_left.png");
@@ -1653,37 +1838,19 @@ AM.queueDownload("./img/sprites/power-ups/double-jump.png");
 AM.downloadAll(function () {
     var canvas = document.getElementById("gameWorld");
     var ctx = canvas.getContext("2d");
-    
 
     var gameEngine = new GameEngine();
     gameEngine.init(ctx);
+
+    var startScreen = new Background(gameEngine, AM.getAsset("./img/sprites/backgrounds/Start.png"), 0, 1000, 0, 600, 1000, 600);
+    startScreen.gameStart = true;
+    gameEngine.background = startScreen;
+
     gameEngine.player = new Player(gameEngine);
     gameEngine.camera = new Camera(gameEngine);
     gameEngine.addEntity(gameEngine.player);
-    gameEngine.addEntity(gameEngine.camera);
-
+    gameEngine.addEntity(startScreen);
     gameEngine.sceneManager = new SceneManager(gameEngine);
     gameEngine.sceneManager.update();
     gameEngine.start();
-    
-
-    /*
-    gameEngine.addEntity(gameEngine.background);
-    gameEngine.addEntity(gameEngine.player);
-    gameEngine.addEntity(gameEngine.camera);
-
-    // example animation entities
-    gameEngine.addEntity(new BMDamage(gameEngine));
-    gameEngine.addEntity(new BMDeath(gameEngine));
-    gameEngine.addEntity(new BMJump(gameEngine));
-    gameEngine.addEntity(new ControlsText(gameEngine));
-    gameEngine.addEntity(new EnemyDamage(gameEngine));
-    gameEngine.addEntity(new EnemyIdle(gameEngine));
-    gameEngine.addEntity(new EnemyRoll(gameEngine));
-
-    // collision temporaries
-    gameEngine.addEntity(new Platform(gameEngine, AM.getAsset("./img/grass_platform.png"), 450, 310, 200, 25));
-    gameEngine.addEntity(new RedSlime(gameEngine, 450, 100, false));
-    gameEngine.addEntity(new RedSlime(gameEngine, 800, 100, false));
-    */
 })

@@ -41,7 +41,7 @@ function GameEngine() {
     this.items = [];
     this.doors = [];
 
-    this.showOutlines = true;
+    this.showOutlines = false;
     this.ctx = null;
     this.click = null;
     this.mouse = null;
@@ -74,6 +74,18 @@ GameEngine.prototype.start = function () {
 GameEngine.prototype.startInput = function () {
     console.log('Starting input');
     var that = this;
+
+    this.ctx.canvas.addEventListener("click", function (e) {
+        that.click = getXandY(e);
+        that.mouse = true;
+    }, false);
+
+    var getXandY = function (e) {
+        var x = e.clientX - that.ctx.canvas.getBoundingClientRect().left;
+        var y = e.clientY - that.ctx.canvas.getBoundingClientRect().top;
+
+        return { x: x, y: y };
+    }
 
     this.ctx.canvas.addEventListener("keydown", function (e) {
         if (e.keyCode === 32) { // spacebar
@@ -110,6 +122,13 @@ GameEngine.prototype.startInput = function () {
             // interact/action
             that.dKey = true;
         }
+
+        if (e.keyCode === 79) { // d key
+            // interact/action
+            if (that.showOutlines) that.showOutlines = false;
+            else that.showOutlines = true;
+        }
+
         e.preventDefault();
     }, false);
 
@@ -213,6 +232,8 @@ GameEngine.prototype.loop = function () {
     this.clockTick = this.timer.tick();
     this.update();
     this.draw();
+    this.camera.update();
+    this.camera.draw(this.ctx);
     // keys
     this.space = null;
     this.xKey = null;
