@@ -363,156 +363,6 @@ function Door(game, theX, theY, theLevel, theDoor) {
     this.destination = {level: theLevel, door: theDoor};
 }
 
-// Projectile Entity
-function Fireball(game, goingRight, position, player, fireball) {
-    this.type = "Projectile";
-    this.game = game;
-    this.position = position;
-    this.player = player;
-    this.fireball = fireball;
-    this.velocityX = 750;
-    this.animation = null;
-    if (!goingRight) {
-        this.velocityX *= -1;
-        if (fireball) {
-            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/fireball_left.png"), 0, 0, 32, 32, 0.125, 4, true, false);
-        } else {
-            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/frostbolt_left.png"), 0, 0, 32, 32, 0.125, 4, true, false);
-        }
-    } else {
-        if (fireball) {
-            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/fireball_right.png"), 0, 0, 32, 32, 0.125, 4, true, false);
-        } else {
-            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/frostbolt_right.png"), 0, 0, 32, 32, 0.125, 4, true, false);
-        }
-    }
-}
-
-Fireball.prototype.draw = function (ctx) {
-    var boxOffsetX = this.position.left - this.game.camera.x;
-    var boxOffsetY = this.position.top - this.game.camera.y;
-    var drawOffsetX = this.position.drawX - this.game.camera.x;
-    var drawOffsetY = this.position.drawY - this.game.camera.y;
-
-    if (this.game.showOutlines) {
-        ctx.save();
-        ctx.strokeStyle = 'Red';
-        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
-        ctx.restore();
-    }
-
-    if (this.fireball){
-        this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
-    } else {
-        this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
-    }
-    
-}
-
-Fireball.prototype.update = function () {
-    var collision = false;
-    var that = this;
-    this.game.enemies.forEach(function(entity) {
-        if (collisionDetector(that.position, entity.position) && entity.state !== 'dead') {
-            if (that.fireball) {
-                collision = true;
-                entity.isHit = true;
-                entity.HP -= 2;
-                entity.state = 'damaged';
-                if (that.velocityX > 0) entity.isHitRight = true;
-            } else {
-                collision = true;
-                entity.state = 'frozen';
-            }           
-        }
-    });
-
-    this.game.platforms.forEach(function(entity) {
-        if (collisionDetector(that.position, entity.position)) {
-            collision = true;
-        } 
-    });
-
-    this.game.walls.forEach(function(entity) {
-        if (collisionDetector(that.position, entity.position)) {
-            collision = true;
-        } 
-    });
-
-    if (this.position.left < this.game.background.leftWall) collision = true;
-    if (this.position.right > this.game.background.rightWall) collision = true;
-    
-    if (collision || this.position.right > this.game.background.right
-                || this.position.left < this.game.background.left 
-                || this.position.right > this.game.camera.x + this.game.ctx.width * 1.5 
-                || this.position.left < this.game.camera.x - this.game.ctx.width * 0.5) {
-        this.removeFromWorld = true;
-    } else {
-        this.position.moveBy(this.velocityX * this.game.clockTick, 0);
-    }
-}
-
-function Punch(game, position, player, right) {
-    this.type = "Projectile";
-    this.game = game;
-    this.position = position;
-    this.player = player;
-    this.right = right;
-}
-
-Punch.prototype.draw = function (ctx) {
-    var boxOffsetX = this.position.left - this.game.camera.x;
-    var boxOffsetY = this.position.top - this.game.camera.y;
-
-    if (this.game.showOutlines) {
-        ctx.save();
-        ctx.strokeStyle = 'Red';
-        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
-        ctx.restore();
-    }
-}
-
-Punch.prototype.update = function () {
-    var that = this;
-    if (this.game.player.damaged) this.endPunch();
-    else {
-        this.game.enemies.forEach(function(entity) {
-            if (collisionDetector(that.position, entity.position) && entity.state !== 'dead') {
-                entity.isHit = true;
-                entity.HP -= 1;
-                entity.state = 'damaged';
-                if(entity.shotTimer) entity.shotTimer += 1;
-                if(entity.aggroCooldown) entity.aggroCooldown += 1.5;
-                if (that.game.player.faceRight) {
-                    entity.position.moveTo(that.position.right + 25, entity.position.top);
-                    if(entity.aggroCooldown) entity.faceRight = true;
-                }
-                else {
-                    entity.position.moveTo(that.position.left - entity.position.width - 5, entity.position.top);
-                    if(entity.aggroCooldown) entity.faceRight = false;
-                }
-            }
-        });
-    
-        if (this.game.player.animations.punchRight.isDone()) {
-            this.endPunch();
-        } else if (this.game.player.animations.punchLeft.isDone()) {
-            this.endPunch();
-        } else {
-            this.position.moveBy(this.game.player.velocityX * this.game.clockTick, this.game.player.velocityY * this.game.clockTick);
-        } 
-    }
-}
-
-Punch.prototype.endPunch = function () {
-    this.removeFromWorld = true;
-    this.game.player.punching = false;
-    this.game.player.punch = null;
-    this.position = null;
-    this.game.player.animations.punchRight.elapsedTime = 0;
-    this.game.player.animations.punchLeft.elapsedTime = 0;
-}
-
 // Slime test enemy
 function Slime(game, theX, theY, faceRight, theColor) {
     this.type = "Enemy";
@@ -1048,8 +898,14 @@ Player.prototype.swap = function() {
             this.position.width = 22;
             if (!this.faceRight) this.position.left += 15;
         }
-        this.position = new Position(this.position.left + this.position.width * 0.5 - 64, this.position.bottom - 87,
-            this.position.left + this.position.width * 0.5 - 12, this.position.bottom - 40, 24, 40);
+        if (this.faceRight) {
+            this.position = new Position(this.position.left + this.position.width * 0.5 - 64, this.position.bottom - 87,
+                this.position.left + this.position.width * 0.5 - 11, this.position.bottom - 40, 24, 40);
+        } else if (!this.faceRight) {
+            this.position = new Position(this.position.left + this.position.width * 0.5 - 64, this.position.bottom - 87,
+                this.position.left + this.position.width * 0.5 - 26, this.position.bottom - 40, 24, 40);
+        }
+        
     } else {
         this.activeHero = 1;
         this.position = new Position(this.position.left + this.position.width * 0.5 - 31, this.position.bottom - 64,
@@ -1076,7 +932,7 @@ Player.prototype.update = function() {
     if (this.game.rightKey && !this.game.leftKey && !this.faceRight) {
         if(this.punching) {
             if (this.punch.right) this.faceRight = true;
-        } else {
+        } else { 
             this.faceRight = true;
             if(this.jumpkick) this.positionleft += 15;
         } 
@@ -1085,7 +941,7 @@ Player.prototype.update = function() {
     ((this.game.leftKey && !this.faceRight ) || (this.game.rightKey && this.faceRight)) ? this.walking = true : this.walking = false;
 
     // Swap key 'Z' pressed
-    if (this.game.zKey && this.damaged === false) {
+    if (this.game.zKey && !this.damaged && !this.punching) {
         if ((this.activeHero === 0 && this.HP[1] > 0) || (this.activeHero === 1 && this.HP[0] > 0)) this.swap();
     }
 
@@ -1397,175 +1253,231 @@ Player.prototype.draw = function(ctx) {
         ctx.restore();
     }
 }
-/*
-// The initial prototype character:
-// Created some boolean variables associated to movement that will change depending on the key pressed
-//      a good example of this can be seen with the "jump" that Marriott has in his code,
-//      I've put it in BlackMage as a placeholder/reference for now.
-function BlackMage(game) {
-    this.idle_right_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_right.png"), 0, 0, 64,  64, .2, 1, true, false);
-    this.walk_right_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 2, true, false);
-    this.idle_left_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_left.png"), 0, 0, 64, 64, .2, 1, true, false);
-    this.walk_left_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_left.png"), 0, 0, 64, 64, .2, 2, true, false);
-    this.jump_animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/jump.png"), 200, 325, 64, 64, .2, 6, false, true);
-    this.type = 'Player';
-    this.faceRight = true;
-    this.walking = false;
-    this.jumping = false;
-    this.falling = false;
-    this.game = game;
 
-    this.velocityX = 0;
-    this.velocityY = 0;
-    
-    Entity.call(this, game, 0, 320);
-    this.rect = {x: this.x + 52, y: this.y + 47, width: 24, height: 40};
+// Projectile Entity
+function Fireball(game, goingRight, position, player, fireball) {
+    this.type = "Projectile";
+    this.game = game;
+    this.position = position;
+    this.player = player;
+    this.fireball = fireball;
+    this.velocityX = 750;
+    this.animation = null;
+    if (!goingRight) {
+        this.velocityX *= -1;
+        if (fireball) {
+            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/fireball_left.png"), 0, 0, 32, 32, 0.125, 4, true, false);
+        } else {
+            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/frostbolt_left.png"), 0, 0, 32, 32, 0.125, 4, true, false);
+        }
+    } else {
+        if (fireball) {
+            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/fireball_right.png"), 0, 0, 32, 32, 0.125, 4, true, false);
+        } else {
+            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/frostbolt_right.png"), 0, 0, 32, 32, 0.125, 4, true, false);
+        }
+    }
 }
 
-BlackMage.prototype = new Entity();
-BlackMage.prototype.constructor = BlackMage;
+Fireball.prototype.draw = function (ctx) {
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
 
-BlackMage.prototype.update = function () {
-    // if blackmage is facing right when the left key is pressed
-    if (this.game.leftKey && !this.game.rightKey && this.faceRight) {
-        this.faceRight = false;
-    }
-    // if blackmage is facing left when the right key is pressed
-    if (this.game.rightKey && !this.game.leftKey && !this.faceRight) {
-        this.faceRight = true;
-    }
-    // if left/right is pressed blackmage is walking
-    if (this.game.leftKey || this.game.rightKey) {
-        this.walking = true;
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();
     }
 
-    // test for idle
-    if (!this.game.leftKey && !this.game.rightKey) {
-        this.walking = false;
-        this.velocityX = 0;
-    }
-
-    if (this.game.xKey) {
-        var isFireball = false;
-        var that = this;
-        this.game.entities.forEach(function(entity) {
-            if (entity.type === 'Projectile') isFireball = true;
-        })
-        if (!isFireball) this.game.addEntity(new Fireball(this.game, AM.getAsset("./img/sprites/heroes/black_mage/growing_fireball.png"), this.rect.x + this.rect.width / 2, this.rect.y + this.rect.height / 2, this.faceRight, true));
-    }
-
-    // if spacebar blackmage is jumping
-    if (this.game.space && !this.falling) this.jumping = true;
-
-    // Walking
-    if (this.walking) {
-        // walking and facing right 
-        if (this.faceRight) {
-            this.velocityX = 3;
-        // walking and facing left
-        } else {
-            this.velocityX = -3;
-        }
-    }
-
-    // Activate jump
-    if (this.jumping && !this.falling) {
-        this.y--;
-        this.rect.y--;
-        this.velocityY = -11;
-        this.jumping = false;
-        this.falling = true;
-    }
-
-    // Check which platform entity will hit first
-    var currentPlatform = getGround(this.rect, this.game);
-
-    // Falling checks
-    if (this.rect.y + this.rect.height >= currentPlatform[0]) {
-        this.velocityY = 0;
-        this.falling = false;
-    } else if (this.rect.y + this.rect.height + this.velocityY + this.game.gravity >= currentPlatform[0]) {
-        this.rect.y = currentPlatform[0] - this.rect.height;
-        this.y = this.rect.y - 47;
-        this.velocityY = 0;
-        this.falling = false;
+    if (this.fireball){
+        this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
     } else {
-        if (this.velocityY + this.game.gravity >= this.game.terminalVelocity) {
-            this.velocityY = this.game.terminalVelocity;
-            this.falling = true;
-        } else {
-            this.velocityY += this.game.gravity;
-            this.falling = true;
-        }
+        this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
     }
+    
+}
 
-    Entity.prototype.update.call(this);
-
-    // Update position
-    this.x += this.velocityX;
-    this.rect.x += this.velocityX;
-    this.y += this.velocityY;
-    this.rect.y += this.velocityY;
-
-    if (this.rect.x < 0) {
-        this.rect.x = 0;
-        this.x = -52;
-    }
-
-    if (this.rect.x + this.rect.width > 900) {
-        this.rect.x = 900 - this.rect.width;
-        this.x = 824;
-    }
-
+Fireball.prototype.update = function () {
     var collision = false;
     var that = this;
-    this.game.entities.forEach(function(entity) {
-        if (entity.type === 'Enemy') {
-            if (collisionDetector(that.rect, entity.rect)) {
+    this.game.enemies.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position) && entity.state !== 'dead') {
+            if (that.fireball) {
                 collision = true;
                 entity.isHit = true;
-                if (that.rect.x < entity.rect.x) {
-                    entity.isHitRight = true;
-                    entity.faceRight = true;
-                    that.x -= 5;
-                    that.rect.x -= 5;
-                } else {
-                    that.x += 5;
-                    that.rect.x += 5;
-                    entity.faceRight = false;
-                }
-            } 
+                entity.HP -= 2;
+                entity.state = 'damaged';
+                if (that.velocityX > 0) entity.isHitRight = true;
+            } else {
+                collision = true;
+                entity.state = 'frozen';
+            }           
         }
-    })
-}
+    });
 
-// The draw function that checks what the entity is doing and drawing the appropriate animation
-BlackMage.prototype.draw = function (ctx) {
-    if (this.jumping) {
-        this.jump_animation.drawFrame(this.game.clockTick, ctx, this.x + 17, this.y - 34, 2);
-    }
-    if (this.walking) {
-        if (this.faceRight) {
-            this.walk_right_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
-        } else {
-            this.walk_left_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
-        }
+    this.game.platforms.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position)) {
+            collision = true;
+        } 
+    });
+
+    this.game.walls.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position)) {
+            collision = true;
+        } 
+    });
+
+    if (this.position.left < this.game.background.leftWall) collision = true;
+    if (this.position.right > this.game.background.rightWall) collision = true;
+    
+    if (collision || this.position.right > this.game.background.right
+                || this.position.left < this.game.background.left 
+                || this.position.right > this.game.camera.x + this.game.ctx.width * 1.5 
+                || this.position.left < this.game.camera.x - this.game.ctx.width * 0.5) {
+        this.removeFromWorld = true;
     } else {
-        if (this.faceRight) {
-            this.idle_right_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
-        } else {
-            this.idle_left_animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, 2);
-        }
+        this.position.moveBy(this.velocityX * this.game.clockTick, 0);
     }
-    Entity.prototype.draw.call(this);
-
-    // Bounding Box draw
-    ctx.save();
-    ctx.strokeStyle = 'Red';
-    ctx.strokeRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
-    ctx.restore();
 }
-*/
+
+function Punch(game, position, player, right) {
+    this.type = "Projectile";
+    this.game = game;
+    this.position = position;
+    this.player = player;
+    this.right = right;
+}
+
+Punch.prototype.draw = function (ctx) {
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();
+    }
+}
+
+Punch.prototype.update = function () {
+    var that = this;
+    if (this.game.player.damaged) this.endPunch();
+    else {
+        this.game.enemies.forEach(function(entity) {
+            if (collisionDetector(that.position, entity.position) && entity.state !== 'dead') {
+                entity.isHit = true;
+                entity.HP -= 1;
+                entity.state = 'damaged';
+                if(entity.shotTimer) entity.shotTimer += 1;
+                if(entity.aggroCooldown) entity.aggroCooldown += 1.5;
+                if (that.game.player.faceRight) {
+                    entity.position.moveTo(that.position.right + 25, entity.position.top);
+                    if(entity.aggroCooldown) entity.faceRight = true;
+                }
+                else {
+                    entity.position.moveTo(that.position.left - entity.position.width - 5, entity.position.top);
+                    if(entity.aggroCooldown) entity.faceRight = false;
+                }
+            }
+        });
+
+        this.game.walls.forEach(function(entity) {
+            if (collisionDetector(that.position, entity.position)) {
+                if (that.position.left < entity.position.left && that.game.player.faceRight) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
+                else if (that.position.right > entity.position.right && !that.game.player.faceRight) that.position.moveTo(entity.position.right, that.position.top);
+            }
+        });
+    
+        if (this.game.player.animations.punchRight.isDone()) {
+            this.endPunch();
+        } else if (this.game.player.animations.punchLeft.isDone()) {
+            this.endPunch();
+        } else {
+            this.position.moveBy(this.game.player.velocityX * this.game.clockTick, this.game.player.velocityY * this.game.clockTick);
+        } 
+    }
+}
+
+Punch.prototype.endPunch = function () {
+    this.removeFromWorld = true;
+    this.game.player.punching = false;
+    this.game.player.punch = null;
+    this.position = null;
+    this.game.player.animations.punchRight.elapsedTime = 0;
+    this.game.player.animations.punchLeft.elapsedTime = 0;
+}
+
+function Kick(game, position, player, right) {
+    this.type = "Projectile";
+    this.game = game;
+    this.position = position;
+    this.player = player;
+    this.right = right;
+}
+
+Kick.prototype.draw = function (ctx) {
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();
+    }
+}
+
+Kick.prototype.update = function () {
+    var that = this;
+    if (this.game.player.damaged) this.endKick();
+    else {
+        this.game.enemies.forEach(function(entity) {
+            if (collisionDetector(that.position, entity.position) && entity.state !== 'dead') {
+                entity.isHit = true;
+                entity.HP -= 2;
+                entity.state = 'damaged';
+                if(entity.shotTimer) entity.shotTimer += 1;
+                if(entity.aggroCooldown) entity.aggroCooldown += 1.5;
+                if (that.game.player.faceRight) {
+                    entity.position.moveTo(that.position.right + 25, entity.position.top);
+                    if(entity.aggroCooldown) entity.faceRight = true;
+                }
+                else {
+                    entity.position.moveTo(that.position.left - entity.position.width - 5, entity.position.top);
+                    if(entity.aggroCooldown) entity.faceRight = false;
+                }
+            }
+        });
+
+        this.game.walls.forEach(function(entity) {
+            if (collisionDetector(that.position, entity.position)) {
+                if (that.position.left < entity.position.left && that.game.player.faceRight) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
+                else if (that.position.right > entity.position.right && !that.game.player.faceRight) that.position.moveTo(entity.position.right, that.position.top);
+            }
+        });
+    
+        if (this.game.player.animations.jumpkickRight.isDone()) {
+            this.endKick();
+        } else if (this.game.player.animations.jumpkickLeft.isDone()) {
+            this.endKick();
+        } else {
+            this.position.moveBy(this.game.player.velocityX * this.game.clockTick, this.game.player.velocityY * this.game.clockTick);
+        } 
+    }
+}
+
+Kick.prototype.endKick = function () {
+    this.removeFromWorld = true;
+    this.game.player.kicking = false;
+    this.game.player.jumpKick = null;
+    this.position = null;
+    this.game.player.animations.jumpkickRight.elapsedTime = 0;
+    this.game.player.animations.jumpkickLeft.elapsedTime = 0;
+}
 
 function Key(game, theX, theY, number) {
     this.game = game;
@@ -1919,7 +1831,9 @@ var AM = new AssetManager();
 // background image
 AM.queueDownload("./img/sprites/backgrounds/Start.png");
 AM.queueDownload("./img/sprites/backgrounds/lv1.png");
+AM.queueDownload("./img/sprites/backgrounds/level1.png");
 AM.queueDownload("./img/sprites/backgrounds/lv2.png");
+AM.queueDownload("./img/sprites/backgrounds/level2.png");
 AM.queueDownload("./img/sprites/backgrounds/lv3.png");
 AM.queueDownload("./img/sprites/backgrounds/Win.png");
 AM.queueDownload("./img/sprites/backgrounds/game_over.png");
