@@ -968,10 +968,10 @@ Player.prototype.update = function() {
     } else if (this.game.xKey && this.activeHero === 1 && (this.falling || !this.jumping)) {
         this.kicking = true
         if (this.faceRight) {
-            this.jumpkick = new JumpKick(this.game, new Position(this.position.right - 5, this.position.top, this.position.right - 3, this.position.top - 7, 25, this.position.height), true, this.faceRight);
+            this.jumpkick = new JumpKick(this.game, new Position(this.position.right - 5, this.position.top, this.position.right, this.position.top - 7, 25, this.position.height), true, this.faceRight);
             this.game.addEntity(this.jumpkick);
         } else if (!this.faceRight) {
-            this.jumpkick = new JumpKick(this.game, new Position(this.position.left - 25, this.position.top, this.position.left - 13, this.position.top - 7, 25, this.position.height), true, this.faceRight);
+            this.jumpkick = new JumpKick(this.game, new Position(this.position.left - 25, this.position.top, this.position.left - 20, this.position.top - 7, 25, this.position.height), true, this.faceRight);
             this.game.addEntity(this.jumpkick);
         }
     }
