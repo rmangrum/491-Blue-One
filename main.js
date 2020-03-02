@@ -926,7 +926,6 @@ Player.prototype.update = function() {
             if (!this.punch.right) this.faceRight = false;
         } else {
             this.faceRight = false;
-            if(this.kicking) this.position.left -= 15;
         }
     }
     // Facing left when right key pressed
