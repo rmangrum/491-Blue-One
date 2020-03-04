@@ -1709,7 +1709,7 @@ SceneManager.prototype.createStage = function(theStageNum) {
     
     if (theStageNum === 0) {
         newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/lv1.png"), 24, 2310, 24, 1030, 2336, 1056),
-                    [new Wall(this.game, null, 262, 664, 338, 96), new Wall(this.game, null, 262, 760, 18, 224),
+                    [new Wall(this.game, null, 262, 664, 338, 96), new Wall(this.game, null, 262, 760, 18, 200),
                     new Wall(this.game, null, 390, 390, 18, 256), new Wall(this.game, null,646, 870, 18, 160),
                     new Wall(this.game, null, 1030, 234, 18, 412), new Wall(this.game, null, 1030, 646, 1280, 18), 
                     new Wall(this.game, null, 1030, 934, 274, 96), new Wall(this.game, null, 1190, 664, 370, 128), 
@@ -1764,7 +1764,7 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Slime(this.game, 976, 448, false,'Green'), new Bunny(this.game, 721, 64, false),
                     new Bunny(this.game, 1008, 64, false), new Bunny(this.game, 656, 321, false),
                     new Bunny(this.game, 1136, 1888, false), new Bunny(this.game, 336, 287, false),
-                    new Bunny(this.game, 1073, 1728, false), new Bunny(this.game, 47, 320, false),
+                    new Bunny(this.game, 1073, 1728, false), new Bunny(this.game, 125, 320, false),
                     new Bunny(this.game, 656, 1503, false), new Bunny(this.game, 400, 448, false),
                     new Bunny(this.game, 592, 1184, false), new Bunny(this.game, 48, 735, false),
                     new Bunny(this.game, 304, 1119, false), new Bunny(this.game, 656, 928, false)],
