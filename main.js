@@ -166,7 +166,7 @@ function Camera(game) {
     this.key2 = new Animation(AM.getAsset("./img/sprites/items/bosskey_idle.png"), 0, 0, 36, 36, 0.125, 12, true, false);
     this.blink = new Animation(AM.getAsset("./img/sprites/power-ups/blink.png"), 0, 0, 40, 40, .2, 17, true, false);
     this.doubleJump = new Animation(AM.getAsset("./img/sprites/power-ups/double-jump.png"), 0, 0, 40, 40, .2, 17, true, false);
-    this.blackMage = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_right.png"), 0, 0, 64, 64, .2, 1, true, false);
+    this.blackMage = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_right.png"), 0, 0, 32, 32, .2, 1, true, false);
     this.monk = new Animation(AM.getAsset("./img/sprites/heroes/monk/idle_right.png"), 0, 0, 32, 32, .2, 1, true, false);
 }
 
@@ -1006,35 +1006,35 @@ function Player(game) {
     this.velocityX = 0;
     this.velocityY = 0;
     this.keys = [false, false];
-    this.animations = {idleLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_left.png"), 0, 0, 64, 64, .2, 1, true, false),
+    this.animations = {idleLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_left.png"), 0, 0, 32, 32, .2, 1, true, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/idle_left.png"), 0, 0, 32, 32, .2, 1, true, false)],
-                        idleRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_right.png"), 0, 0, 64, 64, .2, 1, true, false),
+                        idleRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/idle_right.png"), 0, 0, 32, 32, .2, 1, true, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/idle_right.png"), 0, 0, 32, 32, .2, 1, true, false)],
-                        walkLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_left.png"), 0, 0, 64, 64, .2, 2, true, false),
+                        walkLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_left.png"), 0, 0, 32, 32, .2, 2, true, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/walk_left.png"), 0, 0, 32, 32, .125, 2, true, false)],
-                        walkRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 2, true, false),
+                        walkRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_right.png"), 0, 0, 32, 32, .2, 2, true, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/walk_right.png"), 0, 0, 32, 32, .125, 2, true, false)],
-                        dmgLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_left.png"), 0, 0, 64, 64, .2, 5, false, false),
+                        dmgLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_left.png"), 0, 0, 32, 32, .2, 5, false, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/dmg_l.png"), 0, 0, 36, 36, .2, 5, false, false)],
-                        dmgRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_right.png"), 0, 0, 64, 64, .2, 5, false, false),
+                        dmgRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_right.png"), 0, 0, 32, 32, .2, 5, false, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/dmg_r.png"), 0, 0, 36, 36, .2, 5, false, false)],
-                        deathLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_left.png"), 0, 0, 64, 64, .2, 6, false, false),
+                        deathLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_left.png"), 0, 0, 32, 32, .2, 6, false, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/death_l.png"), 0, 0, 36, 36, .2, 10, false, false)], 
-                        deathRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_right.png"), 0, 0, 64, 64, .2, 6, false, false),
+                        deathRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_right.png"), 0, 0, 32, 32, .2, 6, false, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/death_r.png"), 0, 0, 36, 36, .2, 10, false, false)],
                         blinkLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/blink_left.png"), 0, 0, 32, 32, .2, 14, false, false)],
                         blinkRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/blink_right.png"), 0, 0, 32, 32, .2, 14, false, false)],
-                        gameOver: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_right.png"), 64, 128, 64, 64, 1, 1, true, false),
+                        gameOver: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_right.png"), 64, 128, 32, 32, 1, 1, true, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/death_r.png"), 72, 72, 36, 36, 1, 1, true, false)],
                         punchLeft: new Animation(AM.getAsset("./img/sprites/heroes/monk/punch_l.png"), 0, 0, 36, 36.2, 0.05, 9, false, false),
                         punchRight: new Animation(AM.getAsset("./img/sprites/heroes/monk/punch_r.png"), 0, 0, 36, 36.2, 0.05, 9, false, false),
-                        jumpLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/jump_left.png"), 0, 0, 64, 64, 0.05, 5, false, false), 
+                        jumpLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/jump_left.png"), 0, 0, 32, 32, 0.05, 5, false, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/jump_left.png"), 0, 0, 36, 36, .05, 7, false, false)],
-                        jumpRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/jump_right.png"), 0, 0, 64, 64, 0.05, 5, false, false),
+                        jumpRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/jump_right.png"), 0, 0, 32, 32, 0.05, 5, false, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/jump_right.png"), 0, 0, 36, 36, .05, 7, false, false)],
-                        fallLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/jump_left.png"), 64, 64, 64, 64, 0.1, 1, true, false), 
+                        fallLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/jump_left.png"), 64, 64, 32, 32, 0.1, 1, true, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/jump_left.png"), 0, 72, 36, 36, .1, 1, true, false)],
-                        fallRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/jump_right.png"), 64, 64, 64, 64, 0.1, 1, true, false),
+                        fallRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/jump_right.png"), 64, 64, 32, 32, 0.1, 1, true, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/jump_right.png"), 0, 72, 36, 36, .1, 1, true, false)],
                         jumpkickLeft: new Animation(AM.getAsset("./img/sprites/heroes/monk/jump-kick_l.png"), 0, 72, 36, 36, 0.05, 1, true, false),
                         jumpkickRight: new Animation(AM.getAsset("./img/sprites/heroes/monk/jump-kick_r.png"), 0, 72, 36, 36, 0.05, 1, true, false)};
