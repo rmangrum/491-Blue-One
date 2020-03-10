@@ -1634,7 +1634,7 @@ SceneManager.prototype.createStage = function(theStageNum) {
     var grass = AM.getAsset("./img/platforms/grass_platform.png");
     
     if (theStageNum === 0) {
-        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/level1.png"), 24, 2310, 24, 1030, 2336, 1056),
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/level3.png"), 24, 2310, 24, 1030, 2336, 1056),
                     [new Wall(this.game, null, 262, 664, 338, 96), new Wall(this.game, null, 262, 760, 18, 224),
                     new Wall(this.game, null, 390, 390, 18, 256), new Wall(this.game, null,646, 870, 18, 160),
                     new Wall(this.game, null, 1030, 234, 18, 412), new Wall(this.game, null, 1030, 646, 1280, 18), 
@@ -1697,7 +1697,7 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     [new Door(this.game, 25, 1384, 0, 1), new Door(this.game, 25, 328, 2, 0)], [],
                     [new Position(32, 1378, 32, 1378, 1, 1), new Position(32, 323, 32, 323, 1, 1)]);
     } else {
-        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/lv3.png"), 24, 2310, 24, 1318, 2336, 1344),
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/level3.png"), 24, 2310, 24, 1318, 2336, 1344),
                     [new Wall(this.game, null, 262, 678, 18, 242), new Wall(this.game, null, 358, 134, 18, 562), 
                     new Wall(this.game, null, 376, 230, 1454, 242), new Wall(this.game, null, 646, 902, 82, 192), 
                     new Wall(this.game, null, 422, 1094, 626, 224), new Wall(this.game, null, 1062, 774, 370, 178), 
@@ -1744,7 +1744,7 @@ var AM = new AssetManager();
 AM.queueDownload("./img/sprites/backgrounds/Start.png");
 AM.queueDownload("./img/sprites/backgrounds/level1.png");
 AM.queueDownload("./img/sprites/backgrounds/level2.png");
-AM.queueDownload("./img/sprites/backgrounds/lv3.png");
+AM.queueDownload("./img/sprites/backgrounds/level3.png");
 AM.queueDownload("./img/sprites/backgrounds/Win.png");
 AM.queueDownload("./img/sprites/backgrounds/game_over.png");
 
