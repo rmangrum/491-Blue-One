@@ -1061,6 +1061,7 @@ Bunny.prototype.draw = function (ctx) {
                 if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
                 this.removeFromWorld = true;
             } else {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
                 this.animations.deathLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
             }
         }
@@ -1162,6 +1163,490 @@ Rock.prototype.update = function () {
     } else {
         this.position.moveBy(this.velocityX * this.game.clockTick, 0);
     }
+}
+
+function Jaws(game, theX, theY, faceRight) {
+    this.type = "Enemy";
+    this.HP = 2;
+    this.state = 'idle';
+    this.position = new Position(theX, theY, theX + 19, theY + 19, 40, 42);
+    this.faceRight = faceRight;
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/jaws/idle_left.png"), 0, 0, 50, 50, 0.4, 2, true, false),
+                        idleRight: new Animation(AM.getAsset("./img/sprites/enemies/jaws/idle_right.png"), 0, 0, 50, 50, 0.4, 2, true, false), 
+                        walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/jaws/walk_left.png"), 0, 0, 50, 50, 0.2, 5, true, false),
+                        walkRight: new Animation(AM.getAsset("./img/sprites/enemies/jaws/walk_right.png"), 0, 0, 50, 50, 0.2, 5, true, false),
+                        deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/jaws/death_left.png"), 0, 0, 50, 50, 0.15, 11, false, false),
+                        deathRight: new Animation(AM.getAsset("./img/sprites/enemies/jaws/death_right.png"), 0, 0, 50, 50, 0.15, 11, false, false),
+                        frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};
+    
+    this.game = game;
+    this.aggroCooldown = 0;
+    this.isHit = false;
+    this.isHitRight = false;
+    this.isChasing = false;
+    this.hitPlayer = false;
+}
+
+Jaws.prototype.draw = function (ctx) {
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();  
+    }
+
+    if (this.state === 'idle') {
+        (this.faceRight) ? this.animations.idleRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1.5) : 
+                            this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1.5);
+    }
+    
+    if (this.state === 'walk') {
+        (this.faceRight) ? this.animations.walkRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1.5) : 
+                            this.animations.walkLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1.5);
+    }
+    if (this.state === 'frozen') this.animations.frozen.drawFrame(this.game.clockTick, ctx, drawOffsetX + 16, drawOffsetY + 16, 1.5);
+    if (this.state === 'dead') {
+        if(this.faceRight) {
+            if (this.animations.deathRight.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1.5);
+            }
+        } else {
+            if (this.animations.deathLeft.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1.5);
+            }
+        }
+    }
+}
+
+Jaws.prototype.update = function () {
+    var currentPlatform = verticalCheck(this.position, this.game);
+    var that = this;
+
+    if (this.HP <= 0) this.state = 'dead';
+
+    // Check for player within a certain distance
+    // if within set distance enemy aggros
+    var playerDistance = distance(this.position, this.game.player.position);
+    if ((playerDistance > -200 && playerDistance < 0) || (playerDistance < 200 && playerDistance > 0) && this.aggroCooldown === 0 &&
+            !this.game.player.invulnerable) {
+        this.isChasing = true;
+    } else {
+        this.isChasing = false;
+    }
+
+    // Falling checks
+    if (this.position.bottom === currentPlatform.ground) {
+        this.velocityY = 0;
+        this.falling = false;
+    } else if (this.position.bottom + (this.velocityY + this.game.gravity) * this.game.clockTick >= currentPlatform.ground &&
+                this.velocityY > 0) {
+        this.position.moveTo(this.position.left, currentPlatform.ground - this.position.height);
+        this.velocityY = 0;
+        this.falling = false;
+    } else {
+        this.falling = true;
+        (this.velocityY + this.game.gravity >= this.game.terminalVelocity) ? this.velocityY = this.game.terminalVelocity : this.velocityY += this.game.gravity;
+    }
+
+    if (this.state === 'walk') {
+        if (this.faceRight) {
+            if (this.position.right < currentPlatform.theRight - 50 * this.game.clockTick) {
+                this.velocityX = 150;
+            } else this.faceRight = false;
+        } else {
+            if (this.position.left > currentPlatform.theLeft + 50 * this.game.clockTick) {
+                this.velocityX = -150;
+            } else this.faceRight = true;   
+        }
+    }
+
+    if (this.state === 'frozen') {
+        this.velocityX = 0;
+        if (this.animations.frozen.isDone()) {
+            this.animations.frozen.elapsedTime = 0;
+            this.state = 'walk';
+        }
+    }
+
+    if (this.state === 'dead') {
+        this.velocityX = 0;
+    }
+
+    if (this.hitPlayer) {
+        this.hitPlayer = false;
+        this.game.player.HP[this.game.player.activeHero] -= 1;
+    }
+
+    this.position.moveBy(this.velocityX * this.game.clockTick, this.velocityY * this.game.clockTick);
+
+    if (this.isHit) {
+        this.state = 'dead';
+        if (this.isHitRight) {
+            this.position.moveBy(5, 0);
+            this.isHitRight = false;
+        } else {
+            this.position.moveBy(-5, 0);
+        }
+        this.isHit = false;
+    }
+
+    if (this.isChasing && this.state !== 'dead' && this.state !== 'frozen') {
+        this.state = 'walk';
+        (this.position.left < this.game.player.position.left) ? this.faceRight = true : this.faceRight = false;
+    }   
+    
+    // Wall collision
+    this.game.walls.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position) && that.position.bottom > entity.position.top) {
+            if (that.position.left < entity.position.left) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
+            if (that.position.right > entity.position.right) that.position.moveTo(entity.position.right, that.position.top);
+        }
+    });
+
+    // Stay on background
+    if (this.position.left < this.game.background.leftWall) this.position.moveTo(this.game.background.leftWall, this.position.top);
+    if (this.position.right > this.game.background.rightWall) this.position.moveTo(this.game.background.rightWall - this.position.width, this.position.top);
+
+    if (this.aggroCooldown > 0) this.aggroCooldown -= this.game.clockTick;
+    else if (this.aggroCooldown < 0) this.aggroCooldown = 0;
+}
+
+function Licky(game, theX, theY, faceRight) {
+    this.type = "Enemy";
+    this.HP = 4;
+    this.state = 'idle';
+    this.position = new Position(theX, theY, theX + 18, theY + 20, 30, 30);
+    this.faceRight = faceRight;
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/licky/idle_left.png"), 0, 0, 64, 64, 0.2, 5, true, false),
+                        idleRight: new Animation(AM.getAsset("./img/sprites/enemies/licky/idle_right.png"), 0, 0, 64, 64, 0.2, 5, true, false),
+                        dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/licky/dmg_left.png"), 0, 0, 64, 64, 0.2, 5, false, false),
+                        dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/licky/dmg.png"), 0, 0, 64, 64, 0.2, 5, false, false),
+                        deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/licky/death_left.png"), 0, 0, 64, 64, 0.2, 10, false, false),
+                        deathRight: new Animation(AM.getAsset("./img/sprites/enemies/licky/death_right.png"), 0, 0, 64, 64, 0.2, 10, false, false),
+                        frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};    
+    this.game = game;
+    this.isHit = false;
+    this.isHitRight = false;
+    this.hitPlayer = false;
+}
+
+Licky.prototype.draw = function (ctx) {
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();  
+    }
+
+    if (this.state === 'idle') {
+        (this.faceRight) ? this.animations.idleRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1) : 
+                            this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+    }
+
+    if (this.state === 'frozen') this.animations.frozen.drawFrame(this.game.clockTick, ctx, drawOffsetX + 17, drawOffsetY + 18, 1);
+    
+    if (this.state === 'damaged') {
+        if(this.faceRight) {
+            if (this.animations.dmgRight.isDone()) {
+                this.state = 'idle';
+                this.animations.dmgRight.elapsedTime = 0;
+            } else {
+                this.animations.dmgRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+            }
+        } else {
+            if (this.animations.dmgLeft.isDone()) {
+                this.state = 'idle';
+                this.animations.dmgLeft.elapsedTime = 0;
+            } else {
+                this.animations.dmgLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+            }
+        }
+    }
+
+    if (this.state === 'dead') {
+        if(this.faceRight) {
+            if (this.animations.deathRight.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+            }
+        } else {
+            if (this.animations.deathLeft.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+            }
+        }
+    }
+}
+
+Licky.prototype.update = function () {
+    var that = this;
+
+    if (this.HP <= 0) this.state = 'dead';
+
+    if (this.state === 'idle') {
+        if (this.faceRight) {
+            this.velocityX = 75;
+        } else {
+            this.velocityX = -75;
+        }
+    }
+
+    if (this.state === 'frozen') {
+        this.velocityX = 0;
+        if (this.animations.frozen.isDone()) {
+            this.animations.frozen.elapsedTime = 0;
+            this.state = 'idle';
+        }
+    }
+
+    if (this.state === 'dead' || this.state === 'damaged') {
+        this.velocityX = 0;
+    }
+
+    this.position.moveBy(this.velocityX * this.game.clockTick, this.velocityY * this.game.clockTick);
+
+    if (this.isHit) {
+        if (this.isHitRight) {
+            this.position.moveBy(5, 0);
+            this.isHitRight = false;
+        } else {
+            this.position.moveBy(-5, 0);
+        }
+        this.isHit = false;
+    }
+
+    if (this.hitPlayer) {
+        this.hitPlayer = false;
+        if (this.faceRight) {
+            this.faceRight = false;
+        } else {
+            this.faceRight = true;
+        }
+    }
+    
+    // Wall collision
+    this.game.walls.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position)) {
+            if (that.position.left < entity.position.left) {
+                that.faceRight = false;
+            }
+            if (that.position.right > entity.position.right) {
+                that.faceRight = true;
+            } 
+        }
+    });
+
+    this.game.platforms.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position)) {
+            if (that.position.left < entity.position.left) {
+                that.faceRight = false;
+            }
+            if (that.position.right > entity.position.right) {
+                that.faceRight = true;
+            }
+        }
+    })
+
+    // Stay on background
+    if (this.position.left < this.game.background.leftWall) this.position.moveTo(this.game.background.leftWall, this.position.top);
+    if (this.position.right > this.game.background.rightWall) this.position.moveTo(this.game.background.rightWall - this.position.width, this.position.top);
+}
+
+function Mummy(game, theX, theY, faceRight) {
+    this.type = "Enemy";
+    this.HP = 50;
+    this.state = 'idle';
+    this.position = new Position(theX, theY, theX + 30, theY + 10, 35, 60);
+    this.faceRight = faceRight;
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.aggroCooldown = 0;
+    this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/mummy/idle_left.png"), 0, 0, 64, 64, 0.2, 4, true, false),
+                        idleRight: new Animation(AM.getAsset("./img/sprites/enemies/mummy/idle_right.png"), 0, 0, 64, 64, 0.2, 4, true, false),
+                        walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/mummy/walk_left.png"), 0, 0, 64, 64, 0.2, 4, true, false),
+                        walkRight: new Animation(AM.getAsset("./img/sprites/enemies/mummy/walk_right.png"), 0, 0, 64, 64, 0.2, 4, true, false),
+                        dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/mummy/dmg_left.png"), 0, 0, 64, 64, 0.2, 5, false, false),
+                        dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/mummy/dmg_right.png"), 0, 0, 64, 64, 0.2, 5, false, false),
+                        deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/mummy/death_left.png"), 0, 0, 64, 64, 0.2, 10, false, false),
+                        deathRight: new Animation(AM.getAsset("./img/sprites/enemies/mummy/death_right.png"), 0, 0, 64, 64, 0.2, 10, false, false),
+                        frozen: new Animation(AM.getAsset("./img/bunny_ice.png"), 0, 0, 32, 32, 2, 1, false, false)};
+    this.game = game;
+    this.isHit = false;
+    this.isHitRight = false;
+    this.isChasing = false;
+}
+
+Mummy.prototype.draw = function (ctx) {
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();  
+    }
+
+    if (this.state === 'idle') {
+        (this.faceRight) ? this.animations.idleRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5) : 
+                            this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5);
+    }
+    
+    if (this.state === 'walk') {
+        (this.faceRight) ? this.animations.walkRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5) : 
+                            this.animations.walkLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5);
+    }
+
+    if (this.state === 'frozen') this.animations.frozen.drawFrame(this.game.clockTick, ctx, drawOffsetX + 14, drawOffsetY + 5, 2);
+    
+    if (this.state === 'damaged') {
+        if(this.faceRight) {
+            if (this.animations.dmgRight.isDone()) {
+                this.state = 'idle';
+                this.animations.dmgRight.elapsedTime = 0;
+            } else {
+                this.animations.dmgRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5);
+            }
+        } else {
+            if (this.animations.dmgLeft.isDone()) {
+                this.state = 'idle';
+                this.animations.dmgLeft.elapsedTime = 0;
+            } else {
+                this.animations.dmgLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5);
+            }
+        }
+    }
+
+    if (this.state === 'dead') {
+        if(this.faceRight) {
+            if (this.animations.deathRight.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5);
+            }
+        } else {
+            if (this.animations.deathLeft.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5);
+            }
+        }
+    }
+}
+
+Mummy.prototype.update = function () {
+    var currentPlatform = verticalCheck(this.position, this.game);
+    var that = this;
+
+    if (this.HP <= 0) this.state = 'dead';
+
+    // Check for player within a certain distance
+    // if within set distance enemy aggros
+    var playerDistance = distance(this.position, this.game.player.position);
+    if ((playerDistance > -200 && playerDistance < 0) || (playerDistance < 200 && playerDistance > 0) && this.aggroCooldown === 0 &&
+            this.state !== 'damaged' && !this.game.player.invulnerable) {
+        this.isChasing = true;
+    } else {
+        this.isChasing = false;
+    }
+
+    // Falling checks
+    if (this.position.bottom === currentPlatform.ground) {
+        this.velocityY = 0;
+        this.falling = false;
+    } else if (this.position.bottom + (this.velocityY + this.game.gravity) * this.game.clockTick >= currentPlatform.ground &&
+                this.velocityY > 0) {
+        this.position.moveTo(this.position.left, currentPlatform.ground - this.position.height);
+        this.velocityY = 0;
+        this.falling = false;
+    } else {
+        this.falling = true;
+        (this.velocityY + this.game.gravity >= this.game.terminalVelocity) ? this.velocityY = this.game.terminalVelocity : this.velocityY += this.game.gravity;
+    }
+
+    if (this.state === 'walk') {
+        if (this.faceRight) {
+            if (this.position.right < currentPlatform.theRight - 50 * this.game.clockTick) {
+                this.velocityX = 25;
+            } else this.faceRight = false;
+        } else {
+            if (this.position.left > currentPlatform.theLeft + 50 * this.game.clockTick) {
+                this.velocityX = -25;
+            } else this.faceRight = true;   
+        }
+    }
+
+    if (this.state === 'frozen') {
+        this.velocityX = 0;
+        if (this.animations.frozen.isDone()) {
+            this.animations.frozen.elapsedTime = 0;
+            this.state = 'walk';
+        }
+    }
+
+    if (this.state === 'dead' || this.state === 'damaged') {
+        this.velocityX = 0;
+    }
+
+    this.position.moveBy(this.velocityX * this.game.clockTick, this.velocityY * this.game.clockTick);
+
+    if (this.isHit) {
+        if (this.isHitRight) {
+            this.position.moveBy(5, 0);
+            this.isHitRight = false;
+        } else {
+            this.position.moveBy(-5, 0);
+        }
+        this.isHit = false;
+    }
+
+    if (this.isChasing && this.state !== 'dead' && this.state !== 'damaged' && this.state !== 'frozen') {
+        this.state = 'walk';
+        (this.position.left < this.game.player.position.left) ? this.faceRight = true : this.faceRight = false;
+    }
+   
+    // Wall collision
+    this.game.walls.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position) && that.position.bottom > entity.position.top) {
+            if (that.position.left < entity.position.left) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
+            if (that.position.right > entity.position.right) that.position.moveTo(entity.position.right, that.position.top);
+        }
+    });
+
+    // Stay on background
+    if (this.position.left < this.game.background.leftWall) this.position.moveTo(this.game.background.leftWall, this.position.top);
+    if (this.position.right > this.game.background.rightWall) this.position.moveTo(this.game.background.rightWall - this.position.width, this.position.top);
+
+    if (this.aggroCooldown > 0) this.aggroCooldown -= this.game.clockTick;
+    else if (this.aggroCooldown < 0) this.aggroCooldown = 0;
 }
 
 function Player(game) {
@@ -1277,7 +1762,6 @@ Player.prototype.update = function() {
             if (this.punch.right) this.faceRight = true;
         } else { 
             this.faceRight = true;
-            if(this.kicking) this.positionleft += 15;
         } 
     }
     // If left or right key pressed, set walking; else set idle
@@ -1489,6 +1973,7 @@ Player.prototype.update = function() {
                 that.damaged = true;
                 that.invulnerable = true;
                 that.invulTimer = 2;
+                entity.hitPlayer = true;
             }
         } 
     })
@@ -1965,7 +2450,7 @@ class Stage {
 function SceneManager(game) {
     this.game = game;
     this.newStage = false;
-    this.currentStage = 4;
+    this.currentStage = 0;
     this.startNum = 0;
     this.key1 = new Key(this.game, 551, 987, 0);
     this.key2 = new Key(this.game, 1880, 90, 1);
@@ -2082,7 +2567,7 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Platform(this.game, grass, 1158, 454, 274, 18), new Platform(this.game, grass, 1286, 262, 402, 18),
                     new Platform(this.game, grass, 1414, 134, 146, 18), new Platform(this.game, grass, 1510, 902, 146, 18),
                     new Platform(this.game, grass, 1798, 390, 274, 18), new Platform(this.game, grass, 2086, 134, 224, 18)],
-                    [new Slime(this.game, 209, 448, false, 'Red'), new Slime(this.game, 272, 576, false, 'Red'), 
+                    [new Mummy(this.game, 209, 448, false, 'Red'), new Slime(this.game, 272, 576, false, 'Red'), 
                     new Slime(this.game, 721, 576, false, 'Red'), new Slime(this.game, 1904, 320, false,'Green'),
                     new Slime(this.game, 240, 192, false, 'Green'), new Slime(this.game, 54, 961, false, 'Green'), 
                     new Slime(this.game, 400, 960, false, 'Green'), new Slime(this.game, 880, 703, false, 'Green'), 
@@ -2422,6 +2907,34 @@ AM.queueDownload("./img/sprites/enemies/bunny/atk_l.png");
 AM.queueDownload("./img/sprites/enemies/bunny/atk_r.png");
 AM.queueDownload("./img/sprites/enemies/bunny/medium_rock.png");
 AM.queueDownload("./img/bunny_ice.png");
+
+// Jaws Sprites
+AM.queueDownload("./img/sprites/enemies/jaws/death_left.png");
+AM.queueDownload("./img/sprites/enemies/jaws/death_right.png");
+AM.queueDownload("./img/sprites/enemies/jaws/idle_left.png");
+AM.queueDownload("./img/sprites/enemies/jaws/idle_right.png");
+AM.queueDownload("./img/sprites/enemies/jaws/walk_left.png");
+AM.queueDownload("./img/sprites/enemies/jaws/walk_right.png");
+
+// Licky Sprites
+AM.queueDownload("./img/sprites/enemies/licky/attack_left.png");
+AM.queueDownload("./img/sprites/enemies/licky/attack_right.png");
+AM.queueDownload("./img/sprites/enemies/licky/death_left.png");
+AM.queueDownload("./img/sprites/enemies/licky/death_right.png");
+AM.queueDownload("./img/sprites/enemies/licky/dmg_left.png");
+AM.queueDownload("./img/sprites/enemies/licky/dmg_right.png");
+AM.queueDownload("./img/sprites/enemies/licky/idle_left.png");
+AM.queueDownload("./img/sprites/enemies/licky/idle_right.png");
+
+// Mummy Sprites
+AM.queueDownload("./img/sprites/enemies/mummy/idle_left.png");
+AM.queueDownload("./img/sprites/enemies/mummy/idle_right.png");
+AM.queueDownload("./img/sprites/enemies/mummy/walk_left.png");
+AM.queueDownload("./img/sprites/enemies/mummy/walk_right.png");
+AM.queueDownload("./img/sprites/enemies/mummy/dmg_left.png");
+AM.queueDownload("./img/sprites/enemies/mummy/dmg_right.png");
+AM.queueDownload("./img/sprites/enemies/mummy/death_left.png");
+AM.queueDownload("./img/sprites/enemies/mummy/death_right.png");
 
 // Item Sprites
 AM.queueDownload("./img/sprites/items/key_idle_spin.png");
