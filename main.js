@@ -218,7 +218,7 @@ Camera.prototype.draw = function (ctx) {
         ctx.fillStyle = 'Red';
         ctx.fillText("Click on the screen to start", 650, 560);
         ctx.restore();
-    } else if (this.game.sceneManager.currentStage !== 3) {
+    } else if (this.game.sceneManager.currentStage < 11) {
         var bmOffset = 0;
         var monkOffset = 0;
         if (this.game.player.activeHero === 0) monkOffset = 40;
@@ -324,10 +324,10 @@ Platform.prototype.update = function () {
 };
 
 // Wall Prototype
-function Wall(game, spritesheet, theX, theY, theWidth, theHeight) {
+function Wall(game, color, theX, theY, theWidth, theHeight) {
     this.type = 'Wall';
     this.position = new Position(theX, theY, theX, theY, theWidth, theHeight);
-    this.spritesheet = spritesheet;
+    this.color = color;
     this.game = game;
 }
 
@@ -347,7 +347,9 @@ Wall.prototype.draw = function (ctx) {
     ctx.fillRect(cameraOffsetX, cameraOffsetY, this.position.width, this.position.height);
     */
 
-    ctx.fillStyle = 'SaddleBrown';
+    //if (this.color !== null) ctx.fillStyle = this.color;
+    //else 
+    ctx.fillStyle = "#532C18";
     ctx.fillRect(cameraOffsetX, cameraOffsetY, this.position.width, this.position.height);
     ctx.restore();
 }
@@ -356,168 +358,23 @@ Wall.prototype.update = function () {
     // Empty
 };
 
-function Door(game, theX, theY, theLevel, theDoor) {
+function Door(game, theX, theY, theLevel, theDoor, isLocked) {
     this.type = 'Door';
     this.game = game;
     this.position = new Position(theX, theY, theX, theY, 5, 60);
     this.destination = {level: theLevel, door: theDoor};
+    this.locked = isLocked;
 }
 
-// Projectile Entity
-function Fireball(game, goingRight, position, player, fireball) {
-    this.type = "Projectile";
-    this.game = game;
-    this.position = position;
-    this.player = player;
-    this.fireball = fireball;
-    this.velocityX = 750;
-    this.animation = null;
-    if (!goingRight) {
-        this.velocityX *= -1;
-        if (fireball) {
-            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/fireball_left.png"), 0, 0, 32, 32, 0.125, 4, true, false);
-        } else {
-            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/frostbolt_left.png"), 0, 0, 32, 32, 0.125, 4, true, false);
-        }
-    } else {
-        if (fireball) {
-            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/fireball_right.png"), 0, 0, 32, 32, 0.125, 4, true, false);
-        } else {
-            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/frostbolt_right.png"), 0, 0, 32, 32, 0.125, 4, true, false);
-        }
-    }
+Door.prototype.unlock = function() {
+    this.locked = false;
 }
 
-Fireball.prototype.draw = function (ctx) {
-    var boxOffsetX = this.position.left - this.game.camera.x;
-    var boxOffsetY = this.position.top - this.game.camera.y;
-    var drawOffsetX = this.position.drawX - this.game.camera.x;
-    var drawOffsetY = this.position.drawY - this.game.camera.y;
-
-    if (this.game.showOutlines) {
-        ctx.save();
-        ctx.strokeStyle = 'Red';
-        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
-        ctx.restore();
-    }
-
-    if (this.fireball){
-        this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
-    } else {
-        this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
-    }
-    
-}
-
-Fireball.prototype.update = function () {
-    var collision = false;
-    var that = this;
-    this.game.enemies.forEach(function(entity) {
-        if (collisionDetector(that.position, entity.position) && entity.state !== 'dead') {
-            if (that.fireball) {
-                collision = true;
-                entity.isHit = true;
-                entity.HP -= 2;
-                entity.state = 'damaged';
-                if (that.velocityX > 0) entity.isHitRight = true;
-            } else {
-                collision = true;
-                entity.state = 'frozen';
-            }           
-        }
-    });
-
-    this.game.platforms.forEach(function(entity) {
-        if (collisionDetector(that.position, entity.position)) {
-            collision = true;
-        } 
-    });
-
-    this.game.walls.forEach(function(entity) {
-        if (collisionDetector(that.position, entity.position)) {
-            collision = true;
-        } 
-    });
-
-    if (this.position.left < this.game.background.leftWall) collision = true;
-    if (this.position.right > this.game.background.rightWall) collision = true;
-    
-    if (collision || this.position.right > this.game.background.right
-                || this.position.left < this.game.background.left 
-                || this.position.right > this.game.camera.x + this.game.ctx.width * 1.5 
-                || this.position.left < this.game.camera.x - this.game.ctx.width * 0.5) {
-        this.removeFromWorld = true;
-    } else {
-        this.position.moveBy(this.velocityX * this.game.clockTick, 0);
-    }
-}
-
-function Punch(game, position, player, right) {
-    this.type = "Projectile";
-    this.game = game;
-    this.position = position;
-    this.player = player;
-    this.right = right;
-}
-
-Punch.prototype.draw = function (ctx) {
-    var boxOffsetX = this.position.left - this.game.camera.x;
-    var boxOffsetY = this.position.top - this.game.camera.y;
-
-    if (this.game.showOutlines) {
-        ctx.save();
-        ctx.strokeStyle = 'Red';
-        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
-        ctx.restore();
-    }
-}
-
-Punch.prototype.update = function () {
-    var that = this;
-    if (this.game.player.damaged) this.endPunch();
-    else {
-        this.game.enemies.forEach(function(entity) {
-            if (collisionDetector(that.position, entity.position) && entity.state !== 'dead') {
-                entity.isHit = true;
-                entity.HP -= 1;
-                entity.state = 'damaged';
-                if(entity.shotTimer) entity.shotTimer += 1;
-                if(entity.aggroCooldown) entity.aggroCooldown += 1.5;
-                if (that.game.player.faceRight) {
-                    entity.position.moveTo(that.position.right + 25, entity.position.top);
-                    if(entity.aggroCooldown) entity.faceRight = true;
-                }
-                else {
-                    entity.position.moveTo(that.position.left - entity.position.width - 5, entity.position.top);
-                    if(entity.aggroCooldown) entity.faceRight = false;
-                }
-            }
-        });
-    
-        if (this.game.player.animations.punchRight.isDone()) {
-            this.endPunch();
-        } else if (this.game.player.animations.punchLeft.isDone()) {
-            this.endPunch();
-        } else {
-            this.position.moveBy(this.game.player.velocityX * this.game.clockTick, this.game.player.velocityY * this.game.clockTick);
-        } 
-    }
-}
-
-Punch.prototype.endPunch = function () {
-    this.removeFromWorld = true;
-    this.game.player.punching = false;
-    this.game.player.punch = null;
-    this.position = null;
-    this.game.player.animations.punchRight.elapsedTime = 0;
-    this.game.player.animations.punchLeft.elapsedTime = 0;
-}
-
-// Slime test enemy
+// Slime enemy
 function Slime(game, theX, theY, faceRight, theColor) {
     this.type = "Enemy";
     this.color = theColor;
-    this.HP = 2;
+    this.HP = 3;
     this.state = 'idle';
     this.position = new Position(theX, theY, theX + 20, theY + 45, 24, 20);
     this.faceRight = faceRight;
@@ -526,34 +383,34 @@ function Slime(game, theX, theY, faceRight, theColor) {
     this.aggroCooldown = 0;
     this.animations = {};
     if (theColor === 'Red') {
-        this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_left.png"), 0, 0, 32, 32.2, 0.2, 10, true, false),
-                            idleRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_right.png"), 0, 0, 32, 32.2, 0.2, 10, true, false),
-                            walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/rolling_left.png"), 0, 0, 32, 32.2, 0.2, 8, true, false),
-                            walkRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/rolling_right.png"), 0, 0, 32, 32.2, 0.2, 8, true, false),
-                            deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/death_left.png"), 0, 0, 32, 32.2, 0.125, 12, false, false),
-                            deathRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/death_right.png"), 0, 0, 32, 32.2, 0.125, 12, false, false),
-                            dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/dmg_left.png"), 0, 0, 32, 32.2, 0.125, 8, false, false),
-                            dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/dmg_right.png"), 0, 0, 32, 32.2, 0.125, 8, false, false),
-                            frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};
+        this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_left.png"), 0, 1, 32, 32, 0.2, 10, true, false),
+                            idleRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/idle_right.png"), 0, 1, 32, 32, 0.2, 10, true, false),
+                            walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/rolling_left.png"), 0, 1, 32, 32, 0.2, 8, true, false),
+                            walkRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/rolling_right.png"), 0, 1, 32, 32, 0.2, 8, true, false),
+                            deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/death_left.png"), 0, 1, 32, 32, 0.125, 12, false, false),
+                            deathRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/death_right.png"), 0, 1, 32, 32, 0.125, 12, false, false),
+                            dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/dmg_left.png"), 0, 1, 32, 32, 0.125, 8, false, false),
+                            dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/red_slime/dmg_right.png"), 0, 1, 32, 32, 0.125, 8, false, false),
+                            frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 1, 32, 32, 2, 1, false, false)};
     } else if (theColor === 'Green') {
-        this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/idle_left.png"), 0, 0, 32, 32.2, 0.2, 10, true, false),
-                            idleRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/idle_right.png"), 0, 0, 32, 32.2, 0.2, 10, true, false),
-                            walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/rolling_left.png"), 0, 0, 32, 32.2, 0.2, 8, true, false),
-                            walkRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/rolling_right.png"), 0, 0, 32, 32.2, 0.2, 8, true, false),
-                            deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/death_left.png"), 0, 0, 32, 32.2, 0.125, 12, false, false),
-                            deathRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/death_right.png"), 0, 0, 32, 32.2, 0.125, 12, false, false),
-                            dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/dmg_left.png"), 0, 0, 32, 32.2, 0.125, 8, false, false),
-                            dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/dmg_right.png"), 0, 0, 32, 32.2, 0.125, 8, false, false),
-                            frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};
+        this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/idle_left.png"), 0, 1, 32, 32, 0.2, 10, true, false),
+                            idleRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/idle_right.png"), 0, 1, 32, 32, 0.2, 10, true, false),
+                            walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/rolling_left.png"), 0, 1, 32, 32, 0.2, 8, true, false),
+                            walkRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/rolling_right.png"), 0, 1, 32, 32, 0.2, 8, true, false),
+                            deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/death_left.png"), 0, 1, 32, 32, 0.125, 12, false, false),
+                            deathRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/death_right.png"), 0, 1, 32, 32, 0.125, 12, false, false),
+                            dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/dmg_left.png"), 0, 1, 32, 32, 0.125, 8, false, false),
+                            dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/green_slime/dmg_right.png"), 0, 1, 32, 32, 0.125, 8, false, false),
+                            frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 1, 32, 32, 2, 1, false, false)};
     } else {
-        this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/idle_left.png"), 0, 0, 32, 32.2, 0.2, 10, true, false),
-                            idleRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/idle_right.png"), 0, 0, 32, 32.2, 0.2, 10, true, false),
-                            walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/rolling_left.png"), 0, 0, 32, 32.2, 0.2, 8, true, false),
-                            walkRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/rolling_right.png"), 0, 0, 32, 32.2, 0.2, 8, true, false),
-                            deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/death_left.png"), 0, 0, 32, 32.2, 0.125, 12, false, false),
-                            deathRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/death_right.png"), 0, 0, 32, 32.2, 0.125, 12, false, false),
-                            dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/dmg_left.png"), 0, 0, 32, 32.2, 0.125, 8, false, false),
-                            dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/dmg_right.png"), 0, 0, 32, 32.2, 0.125, 8, false, false),
+        this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/idle_left.png"), 0, 1, 32, 32, 0.2, 10, true, false),
+                            idleRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/idle_right.png"), 0, 1, 32, 32, 0.2, 10, true, false),
+                            walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/rolling_left.png"), 0, 1, 32, 32, 0.2, 8, true, false),
+                            walkRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/rolling_right.png"), 0, 1, 32, 32, 0.2, 8, true, false),
+                            deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/death_left.png"), 0, 1, 32, 32, 0.125, 12, false, false),
+                            deathRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/death_right.png"), 0, 1, 32, 32, 0.125, 12, false, false),
+                            dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/dmg_left.png"), 0, 1, 32, 32, 0.125, 8, false, false),
+                            dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/dmg_right.png"), 0, 1, 32, 32, 0.125, 8, false, false),
                             frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};
     }
     
@@ -623,6 +480,7 @@ Slime.prototype.draw = function (ctx) {
         } else {
             if (this.animations.deathLeft.isDone()) {
                 if (this.color === 'Green') this.split();
+                else if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
                 this.removeFromWorld = true;
             } else {
                 this.animations.deathLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
@@ -721,10 +579,337 @@ Slime.prototype.update = function () {
     else if (this.aggroCooldown < 0) this.aggroCooldown = 0;
 };
 
+function SlimeBoss(game) {
+    this.type = "Enemy";
+    this.boss = true;
+    this.HP = 100;
+    this.state = 'idle';
+    this.next = 'spit';
+    this.turning = false;
+    this.hasSpit = false;
+    this.jumps = 0;
+    this.position = new Position(583, 150, 643, 282, 72, 60);
+    this.faceRight = false;
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/idle_left.png"), 0, 0, 192, 192, 0.07, 10, false, false),
+                        idleRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/idle_right.png"), 0, 0, 192, 192, 0.07, 10, false, false),
+                        walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/rolling_left.png"), 0, 0, 192, 192, 0.1, 8, false, false),
+                        walkRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/rolling_right.png"), 0, 0, 192, 192, 0.1, 8, false, false),
+                        deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/death_left.png"), 0, 0, 192, 192, 0.125, 12, false, false),
+                        deathRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/death_right.png"), 0, 0, 192, 192, 0.125, 12, false, false),
+                        dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/dmg_left.png"), 0, 0, 192, 192, 0.125, 8, false, false),
+                        dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/dmg_right.png"), 0, 0, 192, 192, 0.125, 8, false, false),
+                        jumpLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/jump_left.png"), 0, 0, 192, 192, 0.2, 4, false, false),
+                        fallLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/jump_left.png"), 192, 192, 192, 192, 1, 1, true, false),
+                        landLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/jump_left.png"), 384, 192, 192, 192, 0.2, 6, false, false),
+                        jumpRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/jump_right.png"), 0, 0, 192, 192, 0.2, 4, false, false),
+                        fallRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/jump_right.png"), 192, 192, 192, 192, 1, 1, true, false),
+                        landRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/jump_right.png"), 384, 192, 192, 192, 0.2, 6, false, false),
+                        spitLeft: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/spit_left.png"), 0, 0, 192, 192, 0.07, 10, false, false),
+                        spitRight: new Animation(AM.getAsset("./img/sprites/enemies/blue_slime/spit_right.png"), 0, 0, 192, 192, 0.07, 10, false, false)};
+    this.game = game;
+    this.isHit = false;
+}
+
+SlimeBoss.prototype.draw = function (ctx) {
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();  
+    }
+
+    if (this.state === 'idle') {
+        if (this.faceRight) {
+            if (this.animations.idleRight.isDone()) {
+                this.state = this.next;
+                this.animations.idleRight.elapsedTime = 0;
+            } else this.animations.idleRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+        } else {
+            if (this.animations.idleLeft.isDone()) {
+                this.state = this.next;
+                this.animations.idleLeft.elapsedTime = 0;
+            } else this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+        }
+    }
+    
+    if (this.state === 'walk') {
+        if (this.faceRight) {
+            if (this.animations.walkRight.isDone()) {
+                this.velocityX = 0;
+                this.state = 'idle';
+                if (this.turning) {
+                    console.log("Turning");
+                    this.faceRight = !this.faceRight;
+                    this.turning = false;
+                } else this.next = 'jump';
+                this.animations.walkRight.elapsedTime = 0;
+            } else this.animations.walkRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+        } else {
+            if (this.animations.walkLeft.isDone()) {
+                this.state = 'idle';
+                if (this.turning) {
+                    console.log("Turning");
+                    this.faceRight = !this.faceRight;
+                    this.turning = false;
+                } else this.next = 'jump';
+                this.animations.walkLeft.elapsedTime = 0;
+            } else this.animations.walkLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+        }
+    }
+    
+    if (this.state === 'jump') {
+        if (this.faceRight) {
+            if (this.animations.jumpRight.isDone()) {
+                this.jumps++;
+                console.log(`Jumps: ${this.jumps}`);
+                this.state = 'idle';
+                this.next = 'spit';
+                this.animations.jumpRight.elapsedTime = 0;
+                if (this.jumps > 1) {
+                    console.log("Turn incoming");
+                    this.jumps = 0;
+                    this.turning = true; 
+                }
+            } else this.animations.jumpRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+        } else {
+            if (this.animations.jumpLeft.isDone()) {
+                this.jumps++;
+                console.log(`Jumps: ${this.jumps}`);
+                this.state = 'idle';
+                this.next = 'spit';
+                this.animations.jumpLeft.elapsedTime = 0;
+                if (this.jumps > 1) {
+                    console.log("Turn incoming");
+                    this.jumps = 0;
+                    this.turning = true;
+                }
+            } else this.animations.jumpLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+        }
+    }
+
+    if (this.state === 'fall') {
+        (this.faceRight) ? this.animations.fallRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1) : 
+                            this.animations.fallLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+    }
+
+    if (this.state === 'land') {
+        if (this.faceRight) {
+            if (this.animations.landRight.isDone()) {
+                this.state = 'idle';
+                this.animations.landRight.elapsedTime = 0;
+            } else this.animations.landRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+        } else {
+            if (this.animations.landLeft.isDone()) {
+                this.state = 'idle';
+                this.animations.landLeft.elapsedTime = 0;
+            } else this.animations.landLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+        }
+    }
+
+    if (this.state === 'spit') {
+        if (!this.hasSpit && ((this.animations.spitRight.elapsedTime / this.animations.spitRight.totalTime > 0.5) ||
+                            (this.animations.spitLeft.elapsedTime / this.animations.spitLeft.totalTime > 0.5))) {
+            this.game.addEntity(new Spit(this.game, this.faceRight, this.position));
+            this.hasSpit = true;
+        }
+
+        if (this.faceRight) {
+            if (this.animations.spitRight.isDone()) {
+                this.state = 'idle';
+                this.next = 'walk';
+                this.animations.spitRight.elapsedTime = 0;
+                this.hasSpit = false;
+            } else this.animations.spitRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+        } else {
+            if (this.animations.spitLeft.isDone()) {
+                this.state = 'idle';
+                this.next = 'walk';
+                this.animations.spitLeft.elapsedTime = 0;
+                this.hasSpit = false;
+            } else this.animations.spitLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+        }              
+    }
+
+    if (this.state === 'damaged') {
+        if(this.faceRight) {
+            if (this.animations.dmgRight.isDone()) {
+                this.state = 'idle';
+                this.animations.dmgRight.elapsedTime = 0;
+            } else {
+                this.animations.dmgRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+            }
+        } else {
+            if (this.animations.dmgLeft.isDone()) {
+                this.state = 'idle';
+                this.animations.dmgLeft.elapsedTime = 0;
+            } else {
+                this.animations.dmgLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+            }
+        }
+    }
+
+    if (this.state === 'dead') {
+        if (this.animations.deathRight.isDone() || this.animations.deathLeft.isDone()){
+            this.game.addEntity(new Heart(this.game, this.position.left, this.position.top + 30));
+            this.game.addEntity(new Heart(this.game, this.position.left + 20, this.position.top + 30));
+            this.game.addEntity(new Heart(this.game, this.position.left - 20, this.position.top + 30));
+            this.game.addEntity(new Heart(this.game, this.position.left + 10, this.position.top + 30));
+            this.game.addEntity(new Heart(this.game, this.position.left - 10, this.position.top + 30));
+            this.game.doors.forEach(function(entity) {
+                entity.unlock();
+            });
+            this.game.boss1Alive = false;
+            this.removeFromWorld = true;
+        } else if(this.faceRight) this.animations.deathRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+        else this.animations.deathLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+    }
+}
+
+SlimeBoss.prototype.update = function () {
+
+    var currentPlatform = verticalCheck(this.position, this.game);
+
+    if (this.HP <= 0) this.state = 'dead';
+
+    // Falling checks
+    if (this.position.bottom === currentPlatform.ground) {
+        this.velocityX = 0;
+        this.velocityY = 0;
+        if (this.state === 'fall') this.state = 'land';
+    } else if (this.position.bottom + (this.velocityY + this.game.gravity) * this.game.clockTick >= currentPlatform.ground &&
+                this.velocityY > 0) {
+        this.position.moveTo(this.position.left, currentPlatform.ground - this.position.height);
+        this.velocityX = 0;
+        this.velocityY = 0;
+        this.state = 'land';
+    } else {
+        this.state = 'fall';
+        (this.velocityY + this.game.gravity >= this.game.terminalVelocity) ? this.velocityY = this.game.terminalVelocity : this.velocityY += this.game.gravity;
+    }
+
+    if (this.state === 'jump') {
+        if (this.faceRight && this.animations.jumpRight.isDone()) {
+            this.velocityX = 150;
+            this.velocityY = -1200;
+        }
+        if (!this.faceRight && this.animations.jumpLeft.isDone()) {
+            this.velocityX = -150;
+            this.velocityY = -1200;
+        }
+    }
+
+    if (this.state === 'walk') {
+        if (this.faceRight && this.position.right < currentPlatform.theRight - 50 * this.game.clockTick + this.position.width * 0.5) {
+            this.velocityX = 125;
+        } else if (!this.faceRight && this.position.left > currentPlatform.theLeft + 50 * this.game.clockTick - this.position.width * 0.5) {
+            this.velocityX = -125;
+        }
+    }
+
+    if (this.state === 'dead' || this.state === 'damaged' || this.state === 'idle') {
+        this.velocityX = 0;
+    }
+
+    this.position.moveBy(this.velocityX * this.game.clockTick, this.velocityY * this.game.clockTick);
+
+    /*
+    if (this.isHit) {
+        if (this.isHitRight) {
+            this.position.moveBy(5, 0);
+            this.isHitRight = false;
+        } else {
+            this.position.moveBy(-5, 0);
+        }
+        this.isHit = false;
+    }
+    */
+
+    // Stay on background
+    if (this.position.left < this.game.background.leftWall) this.position.moveTo(this.game.background.leftWall, this.position.top);
+    if (this.position.right > this.game.background.rightWall) this.position.moveTo(this.game.background.rightWall - this.position.width, this.position.top);
+};
+
+function Spit(game, goingRight, position) {
+    this.type = "Projectile";
+    this.game = game;
+    this.position = new Position(position.left + 4, position.top - 45, position.left + 24, position.top, 24, 20);
+    this.faceRight = goingRight;
+    this.velocityX = 300;
+    this.velocityY = -1000
+    this.animation = new Animation(AM.getAsset("./img/sprites/enemies/green_slime/idle_right.png"), 0, 1, 32, 32, 0.2, 10, true, false);
+    if (!goingRight) {
+        this.velocityX *= -1;
+        this.animation = new Animation(AM.getAsset("./img/sprites/enemies/green_slime/idle_left.png"), 0, 1, 32, 32, 0.2, 10, true, false);
+    }
+}
+
+Spit.prototype.draw = function (ctx) {
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();
+    }
+
+    this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+}
+
+Spit.prototype.update = function () {
+    var collision = false;
+    var that = this;
+
+    if (this.velocityY > this.game.terminalVelocity - this.game.gravity) this.velocityY = this.game.terminalVelocity;
+    else this.velocityY += this.game.gravity;
+
+    if (this.position.bottom > this.game.background.bottom - this.velocityY * this.game.clockTick) collision = true;
+
+    if (collisionDetector(this.position, this.game.player.position)) {
+        this.game.player.damaged = true;
+        this.game.player.invulnerable = true;
+        this.game.player.HP[this.game.player.activeHero] -= 1;
+        collision = true;
+    }
+
+    this.game.platforms.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position)) {
+            collision = true;
+        } 
+    });
+
+    this.game.walls.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position)) {
+            collision = true;
+        } 
+    });
+
+    if (this.position.left < this.game.background.leftWall) collision = true;
+    if (this.position.right > this.game.background.rightWall) collision = true;
+    
+    if (collision || this.position.right > this.game.background.right || this.position.left < this.game.background.left ||
+                    this.position.top < this.game.background.top) {
+        this.removeFromWorld = true;
+        this.game.addEntity(new Slime(this.game, this.position.drawX, this.position.drawY - this.velocityY * this.game.clockTick - 1, this.faceRight, 'Green'));
+    } else {
+        this.position.moveBy(this.velocityX * this.game.clockTick, this.velocityY * this.game.clockTick);
+    }
+}
+
 function Bunny(game, theX, theY, faceRight) {
     this.game = game;
     this.type = "Enemy";
-    this.HP = 3;
+    this.HP = 5;
     this.state = 'idle';
     this.position = new Position(theX, theY, theX + 19, theY + 15, 28, 48);
     this.faceRight = faceRight;
@@ -870,6 +1055,7 @@ Bunny.prototype.draw = function (ctx) {
     if (this.state === 'dead') {
         if(this.faceRight) {
             if (this.animations.deathRight.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
                 this.removeFromWorld = true;
             } else {
                 this.animations.deathRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
@@ -982,6 +1168,497 @@ Rock.prototype.update = function () {
     }
 }
 
+function Jaws(game, theX, theY, faceRight) {
+    this.type = "Enemy";
+    this.HP = 2;
+    this.state = 'idle';
+    this.position = new Position(theX, theY, theX + 19, theY + 19, 40, 42);
+    this.faceRight = faceRight;
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/jaws/idle_left.png"), 0, 0, 50, 50, 0.4, 2, true, false),
+                        idleRight: new Animation(AM.getAsset("./img/sprites/enemies/jaws/idle_right.png"), 0, 0, 50, 50, 0.4, 2, true, false), 
+                        walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/jaws/walk_left.png"), 0, 0, 50, 50, 0.2, 5, true, false),
+                        walkRight: new Animation(AM.getAsset("./img/sprites/enemies/jaws/walk_right.png"), 0, 0, 50, 50, 0.2, 5, true, false),
+                        deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/jaws/death_left.png"), 0, 0, 50, 50, 0.15, 11, false, false),
+                        deathRight: new Animation(AM.getAsset("./img/sprites/enemies/jaws/death_right.png"), 0, 0, 50, 50, 0.15, 11, false, false),
+                        frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};
+    
+    this.game = game;
+    this.aggroCooldown = 0;
+    this.isHit = false;
+    this.isHitRight = false;
+    this.isChasing = false;
+    this.hitPlayer = false;
+}
+
+Jaws.prototype.draw = function (ctx) {
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();  
+    }
+
+    if (this.state === 'idle') {
+        (this.faceRight) ? this.animations.idleRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1.5) : 
+                            this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1.5);
+    }
+    
+    if (this.state === 'walk') {
+        (this.faceRight) ? this.animations.walkRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1.5) : 
+                            this.animations.walkLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1.5);
+    }
+    if (this.state === 'frozen') this.animations.frozen.drawFrame(this.game.clockTick, ctx, drawOffsetX + 16, drawOffsetY + 16, 1.5);
+    if (this.state === 'dead') {
+        if(this.faceRight) {
+            if (this.animations.deathRight.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1.5);
+            }
+        } else {
+            if (this.animations.deathLeft.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1.5);
+            }
+        }
+    }
+}
+
+Jaws.prototype.update = function () {
+    var currentPlatform = verticalCheck(this.position, this.game);
+    var that = this;
+
+    if (this.HP <= 0) this.state = 'dead';
+
+    // Check for player within a certain distance
+    // if within set distance enemy aggros
+    var playerDistance = distance(this.position, this.game.player.position);
+    if ((playerDistance > -200 && playerDistance < 0) || (playerDistance < 200 && playerDistance > 0) && this.aggroCooldown === 0 &&
+            !this.game.player.invulnerable) {
+        this.isChasing = true;
+    } else {
+        this.isChasing = false;
+    }
+
+    // Falling checks
+    if (this.position.bottom === currentPlatform.ground) {
+        this.velocityY = 0;
+        this.falling = false;
+    } else if (this.position.bottom + (this.velocityY + this.game.gravity) * this.game.clockTick >= currentPlatform.ground &&
+                this.velocityY > 0) {
+        this.position.moveTo(this.position.left, currentPlatform.ground - this.position.height);
+        this.velocityY = 0;
+        this.falling = false;
+    } else {
+        this.falling = true;
+        (this.velocityY + this.game.gravity >= this.game.terminalVelocity) ? this.velocityY = this.game.terminalVelocity : this.velocityY += this.game.gravity;
+    }
+
+    if (this.state === 'walk') {
+        if (this.faceRight) {
+            if (this.position.right < currentPlatform.theRight - 50 * this.game.clockTick) {
+                this.velocityX = 150;
+            } else this.faceRight = false;
+        } else {
+            if (this.position.left > currentPlatform.theLeft + 50 * this.game.clockTick) {
+                this.velocityX = -150;
+            } else this.faceRight = true;   
+        }
+    }
+
+    if (this.state === 'frozen') {
+        this.velocityX = 0;
+        if (this.animations.frozen.isDone()) {
+            this.animations.frozen.elapsedTime = 0;
+            this.state = 'walk';
+        }
+    }
+
+    if (this.state === 'dead') {
+        this.velocityX = 0;
+    }
+
+    if (this.hitPlayer) {
+        this.hitPlayer = false;
+        this.game.player.HP[this.game.player.activeHero] -= 1;
+    }
+
+    this.position.moveBy(this.velocityX * this.game.clockTick, this.velocityY * this.game.clockTick);
+
+    if (this.isHit) {
+        this.state = 'dead';
+        if (this.isHitRight) {
+            this.position.moveBy(5, 0);
+            this.isHitRight = false;
+        } else {
+            this.position.moveBy(-5, 0);
+        }
+        this.isHit = false;
+    }
+
+    if (this.isChasing && this.state !== 'dead' && this.state !== 'frozen') {
+        this.state = 'walk';
+        (this.position.left < this.game.player.position.left) ? this.faceRight = true : this.faceRight = false;
+    }   
+    
+    // Wall collision
+    this.game.walls.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position) && that.position.bottom > entity.position.top) {
+            if (that.position.left < entity.position.left) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
+            if (that.position.right > entity.position.right) that.position.moveTo(entity.position.right, that.position.top);
+        }
+    });
+
+    // Stay on background
+    if (this.position.left < this.game.background.leftWall) this.position.moveTo(this.game.background.leftWall, this.position.top);
+    if (this.position.right > this.game.background.rightWall) this.position.moveTo(this.game.background.rightWall - this.position.width, this.position.top);
+
+    if (this.aggroCooldown > 0) this.aggroCooldown -= this.game.clockTick;
+    else if (this.aggroCooldown < 0) this.aggroCooldown = 0;
+}
+
+function Licky(game, theX, theY, faceRight) {
+    this.type = "Enemy";
+    this.HP = 4;
+    this.state = 'idle';
+    this.position = new Position(theX, theY, theX + 18, theY + 20, 30, 30);
+    this.faceRight = faceRight;
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/licky/idle_left.png"), 0, 0, 64, 64, 0.2, 5, true, false),
+                        idleRight: new Animation(AM.getAsset("./img/sprites/enemies/licky/idle_right.png"), 0, 0, 64, 64, 0.2, 5, true, false),
+                        dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/licky/dmg_left.png"), 0, 0, 64, 64, 0.2, 5, false, false),
+                        dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/licky/dmg_right.png"), 0, 0, 64, 64, 0.2, 5, false, false),
+                        deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/licky/death_left.png"), 0, 0, 64, 64, 0.2, 10, false, false),
+                        deathRight: new Animation(AM.getAsset("./img/sprites/enemies/licky/death_right.png"), 0, 0, 64, 64, 0.2, 10, false, false),
+                        frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};    
+    this.game = game;
+    this.isHit = false;
+    this.isHitRight = false;
+    this.hitPlayer = false;
+}
+
+Licky.prototype.draw = function (ctx) {
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();  
+    }
+
+    if (this.state === 'idle') {
+        (this.faceRight) ? this.animations.idleRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1) : 
+                            this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+    }
+
+    if (this.state === 'frozen') this.animations.frozen.drawFrame(this.game.clockTick, ctx, drawOffsetX + 17, drawOffsetY + 18, 1);
+    
+    if (this.state === 'damaged') {
+        if(this.faceRight) {
+            if (this.animations.dmgRight.isDone()) {
+                this.state = 'idle';
+                this.animations.dmgRight.elapsedTime = 0;
+            } else {
+                this.animations.dmgRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+            }
+        } else {
+            if (this.animations.dmgLeft.isDone()) {
+                this.state = 'idle';
+                this.animations.dmgLeft.elapsedTime = 0;
+            } else {
+                this.animations.dmgLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+            }
+        }
+    }
+
+    if (this.state === 'dead') {
+        if(this.faceRight) {
+            if (this.animations.deathRight.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+            }
+        } else {
+            if (this.animations.deathLeft.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+            }
+        }
+    }
+}
+
+Licky.prototype.update = function () {
+    var that = this;
+
+    if (this.HP <= 0) this.state = 'dead';
+
+    if (this.state === 'idle') {
+        if (this.faceRight) {
+            this.velocityX = 75;
+        } else {
+            this.velocityX = -75;
+        }
+    }
+
+    if (this.state === 'frozen') {
+        this.velocityX = 0;
+        if (this.animations.frozen.isDone()) {
+            this.animations.frozen.elapsedTime = 0;
+            this.state = 'idle';
+        }
+    }
+
+    if (this.state === 'dead' || this.state === 'damaged') {
+        this.velocityX = 0;
+    }
+
+    this.position.moveBy(this.velocityX * this.game.clockTick, this.velocityY * this.game.clockTick);
+
+    if (this.isHit) {
+        if (this.isHitRight) {
+            this.position.moveBy(5, 0);
+            this.isHitRight = false;
+        } else {
+            this.position.moveBy(-5, 0);
+        }
+        this.isHit = false;
+    }
+
+    if (this.hitPlayer) {
+        this.hitPlayer = false;
+        if (this.faceRight) {
+            this.faceRight = false;
+        } else {
+            this.faceRight = true;
+        }
+    }
+    
+    // Wall collision
+    this.game.walls.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position)) {
+            if (that.position.left < entity.position.left) {
+                that.faceRight = false;
+            }
+            if (that.position.right > entity.position.right) {
+                that.faceRight = true;
+            } 
+        }
+    });
+
+    this.game.platforms.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position)) {
+            if (that.position.left < entity.position.left) {
+                that.faceRight = false;
+            }
+            if (that.position.right > entity.position.right) {
+                that.faceRight = true;
+            }
+        }
+    })
+
+    // Stay on background
+    if (this.position.left < this.game.background.leftWall) {
+        this.position.moveTo(this.game.background.leftWall, this.position.top);
+        this.faceRight = true;
+    } 
+    if (this.position.right > this.game.background.rightWall) {
+        this.position.moveTo(this.game.background.rightWall - this.position.width, this.position.top);
+        this.faceRight = false;
+    }
+    
+}
+
+function Mummy(game, theX, theY, faceRight) {
+    this.type = "Enemy";
+    this.HP = 50;
+    this.state = 'idle';
+    this.position = new Position(theX, theY, theX + 30, theY + 10, 35, 60);
+    this.faceRight = faceRight;
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.aggroCooldown = 0;
+    this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/mummy/idle_left.png"), 0, 0, 64, 64, 0.2, 4, true, false),
+                        idleRight: new Animation(AM.getAsset("./img/sprites/enemies/mummy/idle_right.png"), 0, 0, 64, 64, 0.2, 4, true, false),
+                        walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/mummy/walk_left.png"), 0, 0, 64, 64, 0.2, 4, true, false),
+                        walkRight: new Animation(AM.getAsset("./img/sprites/enemies/mummy/walk_right.png"), 0, 0, 64, 64, 0.2, 4, true, false),
+                        dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/mummy/dmg_left.png"), 0, 0, 64, 64, 0.2, 5, false, false),
+                        dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/mummy/dmg_right.png"), 0, 0, 64, 64, 0.2, 5, false, false),
+                        deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/mummy/death_left.png"), 0, 0, 64, 64, 0.2, 10, false, false),
+                        deathRight: new Animation(AM.getAsset("./img/sprites/enemies/mummy/death_right.png"), 0, 0, 64, 64, 0.2, 10, false, false),
+                        frozen: new Animation(AM.getAsset("./img/bunny_ice.png"), 0, 0, 32, 32, 2, 1, false, false)};
+    this.game = game;
+    this.isHit = false;
+    this.isHitRight = false;
+    this.isChasing = false;
+}
+
+Mummy.prototype.draw = function (ctx) {
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();  
+    }
+
+    if (this.state === 'idle') {
+        (this.faceRight) ? this.animations.idleRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5) : 
+                            this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5);
+    }
+    
+    if (this.state === 'walk') {
+        (this.faceRight) ? this.animations.walkRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5) : 
+                            this.animations.walkLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5);
+    }
+
+    if (this.state === 'frozen') this.animations.frozen.drawFrame(this.game.clockTick, ctx, drawOffsetX + 14, drawOffsetY + 5, 2);
+    
+    if (this.state === 'damaged') {
+        if(this.faceRight) {
+            if (this.animations.dmgRight.isDone()) {
+                this.state = 'idle';
+                this.animations.dmgRight.elapsedTime = 0;
+            } else {
+                this.animations.dmgRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5);
+            }
+        } else {
+            if (this.animations.dmgLeft.isDone()) {
+                this.state = 'idle';
+                this.animations.dmgLeft.elapsedTime = 0;
+            } else {
+                this.animations.dmgLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5);
+            }
+        }
+    }
+
+    if (this.state === 'dead') {
+        if(this.faceRight) {
+            if (this.animations.deathRight.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5);
+            }
+        } else {
+            if (this.animations.deathLeft.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5);
+            }
+        }
+    }
+}
+
+Mummy.prototype.update = function () {
+    var currentPlatform = verticalCheck(this.position, this.game);
+    var that = this;
+
+    if (this.HP <= 0) this.state = 'dead';
+
+    // Check for player within a certain distance
+    // if within set distance enemy aggros
+    var playerDistance = distance(this.position, this.game.player.position);
+    if ((playerDistance > -200 && playerDistance < 0) || (playerDistance < 200 && playerDistance > 0) && this.aggroCooldown === 0 &&
+            this.state !== 'damaged' && !this.game.player.invulnerable) {
+        this.isChasing = true;
+    } else {
+        this.isChasing = false;
+    }
+
+    // Falling checks
+    if (this.position.bottom === currentPlatform.ground) {
+        this.velocityY = 0;
+        this.falling = false;
+    } else if (this.position.bottom + (this.velocityY + this.game.gravity) * this.game.clockTick >= currentPlatform.ground &&
+                this.velocityY > 0) {
+        this.position.moveTo(this.position.left, currentPlatform.ground - this.position.height);
+        this.velocityY = 0;
+        this.falling = false;
+    } else {
+        this.falling = true;
+        (this.velocityY + this.game.gravity >= this.game.terminalVelocity) ? this.velocityY = this.game.terminalVelocity : this.velocityY += this.game.gravity;
+    }
+
+    if (this.state === 'walk') {
+        if (this.faceRight) {
+            if (this.position.right < currentPlatform.theRight - 50 * this.game.clockTick) {
+                this.velocityX = 25;
+            } else this.faceRight = false;
+        } else {
+            if (this.position.left > currentPlatform.theLeft + 50 * this.game.clockTick) {
+                this.velocityX = -25;
+            } else this.faceRight = true;   
+        }
+    }
+
+    if (this.state === 'frozen') {
+        this.velocityX = 0;
+        if (this.animations.frozen.isDone()) {
+            this.animations.frozen.elapsedTime = 0;
+            this.state = 'walk';
+        }
+    }
+
+    if (this.state === 'dead' || this.state === 'damaged') {
+        this.velocityX = 0;
+    }
+
+    this.position.moveBy(this.velocityX * this.game.clockTick, this.velocityY * this.game.clockTick);
+
+    if (this.isHit) {
+        if (this.isHitRight) {
+            this.position.moveBy(5, 0);
+            this.isHitRight = false;
+        } else {
+            this.position.moveBy(-5, 0);
+        }
+        this.isHit = false;
+    }
+
+    if (this.isChasing && this.state !== 'dead' && this.state !== 'damaged' && this.state !== 'frozen') {
+        this.state = 'walk';
+        (this.position.left < this.game.player.position.left) ? this.faceRight = true : this.faceRight = false;
+    }
+   
+    // Wall collision
+    this.game.walls.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position) && that.position.bottom > entity.position.top) {
+            if (that.position.left < entity.position.left) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
+            if (that.position.right > entity.position.right) that.position.moveTo(entity.position.right, that.position.top);
+        }
+    });
+
+    // Stay on background
+    if (this.position.left < this.game.background.leftWall) this.position.moveTo(this.game.background.leftWall, this.position.top);
+    if (this.position.right > this.game.background.rightWall) this.position.moveTo(this.game.background.rightWall - this.position.width, this.position.top);
+
+    if (this.aggroCooldown > 0) this.aggroCooldown -= this.game.clockTick;
+    else if (this.aggroCooldown < 0) this.aggroCooldown = 0;
+}
+
 function Player(game) {
     this.game = game;
     this.HP = [3,6];
@@ -991,15 +1668,17 @@ function Player(game) {
     this.damaged = false;
     this.jumping = false;
     this.falling = false;
-    this.jumpkick = false;
     this.blinkEnabled = false;
     this.blinking = false;
+    this.kicking = false;
+    this.jumpkick = null;
     this.punching = false;
     this.punch = null;
     this.startJump = false;
     this.jumpsLeft = [1, 1];
     this.jumpsMax = [1, 1];
     this.invulnerable = false;
+    this.invulTimer = 0;
     this.gameOver = false;
     this.position = new Position(0, 320, 52, 367, 24, 40);
     this.faceRight = true;
@@ -1014,14 +1693,14 @@ function Player(game) {
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/walk_left.png"), 0, 0, 32, 32, .125, 2, true, false)],
                         walkRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/walk_right.png"), 0, 0, 64, 64, .2, 2, true, false),
                                     new Animation(AM.getAsset("./img/sprites/heroes/monk/walk_right.png"), 0, 0, 32, 32, .125, 2, true, false)],
-                        dmgLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_left.png"), 0, 0, 64, 64, .2, 5, false, false),
-                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/dmg_l.png"), 0, 0, 36, 36, .2, 5, false, false)],
-                        dmgRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_right.png"), 0, 0, 64, 64, .2, 5, false, false),
-                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/dmg_r.png"), 0, 0, 36, 36, .2, 5, false, false)],
-                        deathLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_left.png"), 0, 0, 64, 64, .2, 6, false, false),
-                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/death_l.png"), 0, 0, 36, 36, .2, 10, false, false)], 
-                        deathRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_right.png"), 0, 0, 64, 64, .2, 6, false, false),
-                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/death_r.png"), 0, 0, 36, 36, .2, 10, false, false)],
+                        dmgLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_left.png"), 0, 0, 64, 64, .1, 5, false, false),
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/dmg_l.png"), 0, 0, 36, 36, .1, 5, false, false)],
+                        dmgRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/dmg_right.png"), 0, 0, 64, 64, .1, 5, false, false),
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/dmg_r.png"), 0, 0, 36, 36, .1, 5, false, false)],
+                        deathLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_left.png"), 0, 0, 64, 64, .1, 6, false, false),
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/death_l.png"), 0, 0, 36, 36, .06, 10, false, false)], 
+                        deathRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_right.png"), 0, 0, 64, 64, .1, 6, false, false),
+                                    new Animation(AM.getAsset("./img/sprites/heroes/monk/death_r.png"), 0, 0, 36, 36, .06, 10, false, false)],
                         blinkLeft: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/blink_left.png"), 0, 0, 32, 32, .2, 14, false, false)],
                         blinkRight: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/blink_right.png"), 0, 0, 32, 32, .2, 14, false, false)],
                         gameOver: [new Animation(AM.getAsset("./img/sprites/heroes/black_mage/death_right.png"), 64, 128, 64, 64, 1, 1, true, false),
@@ -1043,13 +1722,19 @@ function Player(game) {
 Player.prototype.swap = function() {
     if(this.activeHero === 1) {
         this.activeHero = 0;
-        if (this.jumpkick) {
-            this.jumpkick = false;
+        if (this.kicking) {
+            this.kicking = false;
             this.position.width = 22;
             if (!this.faceRight) this.position.left += 15;
         }
-        this.position = new Position(this.position.left + this.position.width * 0.5 - 64, this.position.bottom - 87,
-            this.position.left + this.position.width * 0.5 - 12, this.position.bottom - 40, 24, 40);
+        if (this.faceRight) {
+            this.position = new Position(this.position.left + this.position.width * 0.5 - 64, this.position.bottom - 87,
+                this.position.left + this.position.width * 0.5 - 11, this.position.bottom - 40, 24, 40);
+        } else if (!this.faceRight) {
+            this.position = new Position(this.position.left + this.position.width * 0.5 - 64, this.position.bottom - 87,
+                this.position.left + this.position.width * 0.5 - 26, this.position.bottom - 40, 24, 40);
+        }
+        
     } else {
         this.activeHero = 1;
         this.position = new Position(this.position.left + this.position.width * 0.5 - 31, this.position.bottom - 64,
@@ -1059,6 +1744,16 @@ Player.prototype.swap = function() {
 
 Player.prototype.update = function() {
     var that = this;
+
+    // I-frames
+    if(this.invulnerable) {
+       this.invulTimer -= this.game.clockTick;
+       if (this.invulTimer <= 0) {
+           this.invulTimer = 0;
+           this.invulnerable = false;
+       }
+    }
+
     // ***********************************
     // Updates to state based on key input
     // ***********************************
@@ -1069,23 +1764,22 @@ Player.prototype.update = function() {
             if (!this.punch.right) this.faceRight = false;
         } else {
             this.faceRight = false;
-            if(this.jumpkick) this.position.left -= 15;
         }
     }
     // Facing left when right key pressed
     if (this.game.rightKey && !this.game.leftKey && !this.faceRight) {
         if(this.punching) {
             if (this.punch.right) this.faceRight = true;
-        } else {
+        } else { 
             this.faceRight = true;
-            if(this.jumpkick) this.positionleft += 15;
         } 
     }
+    
     // If left or right key pressed, set walking; else set idle
     ((this.game.leftKey && !this.faceRight ) || (this.game.rightKey && this.faceRight)) ? this.walking = true : this.walking = false;
 
     // Swap key 'Z' pressed
-    if (this.game.zKey && this.damaged === false) {
+    if (this.game.zKey && !this.damaged && !this.punching) {
         if ((this.activeHero === 0 && this.HP[1] > 0) || (this.activeHero === 1 && this.HP[0] > 0)) this.swap();
     }
 
@@ -1102,19 +1796,21 @@ Player.prototype.update = function() {
     } else if (this.game.xKey && this.activeHero === 1 && !this.falling && !this.jumping && !this.punching) { // punch attack
         this.punching = true;
         if (this.faceRight) {
-            this.punch = new Punch(this.game, 
-                new Position(this.position.right - 5, this.position.top, this.position.right - 5, this.position.top, 30, this.position.height), true, this.faceRight);
+            this.punch = new Punch(this.game, new Position(this.position.right - 5, this.position.top, this.position.right - 5, this.position.top, 30, this.position.height), true, this.faceRight);
             this.game.addEntity(this.punch);
-        }
-        if (!this.faceRight) {
-            this.punch = new Punch(this.game,
-                new Position(this.position.left -25, this.position.top, this.position.left -25, this.position.top, 30, this.position.height), true, this.faceRight);
+        } else if (!this.faceRight) {
+            this.punch = new Punch(this.game, new Position(this.position.left - 25, this.position.top, this.position.left - 25, this.position.top, 30, this.position.height), true, this.faceRight);
             this.game.addEntity(this.punch);
         }
     } else if (this.game.xKey && this.activeHero === 1 && (this.falling || !this.jumping)) {
-        this.jumpkick = true;
-        this.position.width += 15;
-        if(!this.faceRight) this.position.left -= 15;
+        this.kicking = true
+        if (this.faceRight) {
+            this.jumpkick = new JumpKick(this.game, new Position(this.position.right - 5, this.position.top, this.position.right, this.position.top - 7, 25, this.position.height), true, this.faceRight);
+            this.game.addEntity(this.jumpkick);
+        } else if (!this.faceRight) {
+            this.jumpkick = new JumpKick(this.game, new Position(this.position.left - 25, this.position.top, this.position.left - 20, this.position.top - 7, 25, this.position.height), true, this.faceRight);
+            this.game.addEntity(this.jumpkick);
+        }
     }
 
     // Action key 'C' pressed
@@ -1134,15 +1830,13 @@ Player.prototype.update = function() {
     if (this.game.dKey) {
         var onDoor = false;
         this.game.doors.forEach(function(entity) {
-            if (collisionDetector(that.position, entity.position)) {
-                if (entity.destination.level !== 3 || (entity.destination.level === 3 && that.keys[0] && that.keys[1])) {
-                    that.game.sceneManager.currentStage = entity.destination.level;
-                    that.game.sceneManager.startNum = entity.destination.door;
-                    that.game.sceneManager.newStage = true;
-                    onDoor = true;
-                }
-                
-            } 
+            if (entity.destination.level === 3 && that.keys[0] && that.keys[1]) entity.locked = false;
+            if (collisionDetector(that.position, entity.position) && !entity.locked) {
+                that.game.sceneManager.currentStage = entity.destination.level;
+                that.game.sceneManager.startNum = entity.destination.door;
+                that.game.sceneManager.newStage = true;
+                onDoor = true;
+            }
         })
         if (!onDoor && this.activeHero === 0 && this.blinkEnabled) { // Blink
             var blinkDistance = 100;
@@ -1190,7 +1884,7 @@ Player.prototype.update = function() {
     }
 
     // Spacebar pressed
-    if (this.game.space && this.jumpsLeft[this.activeHero] > 0) {
+    if (this.game.space && this.jumpsLeft[this.activeHero] > 0 && !this.game.downKey) {
         //this.startJump = true;
         this.jumping = true;
         if (this.punching) this.punch.endPunch();
@@ -1222,7 +1916,7 @@ Player.prototype.update = function() {
     if (this.position.bottom === currentPlatform.ground) {
         this.velocityY = 0;
         this.falling = false;
-        this.jumpkick = false;
+        this.kicking = false;
         if (this.position.width > 22) {
             this.position.width = 22;
             if (!this.faceRight) this.position.left += 15;
@@ -1233,7 +1927,7 @@ Player.prototype.update = function() {
         this.position.moveTo(this.position.left, currentPlatform.ground - this.position.height);
         this.velocityY = 0;
         this.falling = false;
-        this.jumpkick = false;
+        this.kicking = false;
         if (this.position.width > 22) {
             this.position.width = 22;
             if (!this.faceRight) this.position.left += 15;
@@ -1285,20 +1979,37 @@ Player.prototype.update = function() {
             } else {
                 that.position.moveBy(5, 0);
             }
-            if (that.jumpkick) {
-                entity.HP -=2;
-            } else if (!that.invulnerable) {
+            if (!that.invulnerable && entity.state !== "frozen" && !this.kicking && !this.punching) {
                 that.HP[that.activeHero] -= 1;
                 that.damaged = true;
                 that.invulnerable = true;
+                that.invulTimer = 2;
+                entity.hitPlayer = true;
             }
         } 
     })
+
+    // Drop through platforms
+    if (this.game.downKey && this.game.space) {
+        var onPlatform = false;
+        for (var i = 0; i < this.game.platforms.length; i++) {
+            if (this.position.bottom == this.game.platforms[i].position.top && 
+                (!(this.position.right < this.game.platforms[i].position.left) && !(this.position.left > this.game.platforms[i].position.right))) {
+                onPlatform = true;
+            }
+        }
+        if (onPlatform) this.position.moveBy(0, 1);
+    }
 
     Entity.prototype.update.call(this);
 }
 
 Player.prototype.draw = function(ctx) {
+    /*
+    if (this.jumping) {
+        this.jump_animation.drawFrame(this.game.clockTick, ctx, this.x + 17, this.y - 34, 2);
+    }-
+    */
     var cameraOffsetX = this.position.drawX - this.game.camera.x;
     var cameraOffsetY = this.position.drawY - this.game.camera.y;
 
@@ -1326,24 +2037,19 @@ Player.prototype.draw = function(ctx) {
         if (this.faceRight) {
             if(!this.animations.dmgRight[this.activeHero].isDone()) this.animations.dmgRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
             else {
-                this.invulnerable = false;
                 this.damaged = false;
                 this.animations.dmgRight[this.activeHero].elapsedTime = 0;
             }
         } else {
             if(!this.animations.dmgLeft[this.activeHero].isDone()) this.animations.dmgLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
             else {
-                this.invulnerable = false;
                 this.damaged = false;
                 this.animations.dmgLeft[this.activeHero].elapsedTime = 0;
             }
         }
     } else if (this.punching) {
-        if (this.faceRight) {
-            this.animations.punchRight.drawFrame(this.game.clockTick, ctx, cameraOffsetX - 5, cameraOffsetY - 3, 2);
-        } else {
-            this.animations.punchLeft.drawFrame(this.game.clockTick, ctx, cameraOffsetX - 5, cameraOffsetY - 3, 2);
-        }
+        if (this.faceRight) this.animations.punchRight.drawFrame(this.game.clockTick, ctx, cameraOffsetX - 5, cameraOffsetY - 3, 2);
+        else this.animations.punchLeft.drawFrame(this.game.clockTick, ctx, cameraOffsetX - 5, cameraOffsetY - 3, 2);
     } else if (this.startJump) {
         if (this.animations.jumpRight[this.activeHero].isDone() || this.animations.jumpLeft[this.activeHero].isDone()) {
             this.animations.jumpRight.elapsedTime = 0;
@@ -1351,33 +2057,24 @@ Player.prototype.draw = function(ctx) {
             this.startJump = false;
         } else if (this.faceRight) {
             this.animations.jumpRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
-        } else this.animations.jumpLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
-    } else if (this.jumpkick) {
+        } else this.animations.jumpLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, came-raOffsetX, cameraOffsetY, 2);
+    } else if (this.kicking) {
         if (this.faceRight) this.animations.jumpkickRight.drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
         else this.animations.jumpkickLeft.drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
     } else if (this.jumping || this.falling) {
         if (this.faceRight) this.animations.fallRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
         else this.animations.fallLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
     } else if (this.walking) {
-        if (this.faceRight) {
-            this.animations.walkRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
-        } else {
-            this.animations.walkLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
-        }
+        if (this.faceRight) this.animations.walkRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+        else this.animations.walkLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
     } else {
-        if (this.faceRight) {
-            this.animations.idleRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
-        } else {
-            this.animations.idleLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
-        }
+        if (this.faceRight) this.animations.idleRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+        else this.animations.idleLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
     }
 
     if (this.blinking) {
-        if (this.faceRight) {
-            this.animations.blinkRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
-        } else {
-            this.animations.blinkLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
-        }
+        if (this.faceRight) this.animations.blinkRight[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
+        else this.animations.blinkLeft[this.activeHero].drawFrame(this.game.clockTick, ctx, cameraOffsetX, cameraOffsetY, 2);
     }
     Entity.prototype.draw.call(this);
 
@@ -1389,6 +2086,229 @@ Player.prototype.draw = function(ctx) {
                     this.position.width, this.position.height);
         ctx.restore();
     }
+}
+
+// Projectile Entity
+function Fireball(game, goingRight, position, player, fireball) {
+    this.type = "Projectile";
+    this.game = game;
+    this.position = position;
+    this.player = player;
+    this.fireball = fireball;
+    this.velocityX = 750;
+    this.animation = null;
+    if (!goingRight) {
+        this.velocityX *= -1;
+        if (fireball) {
+            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/fireball_left.png"), 0, 0, 32, 32, 0.125, 4, true, false);
+        } else {
+            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/frostbolt_left.png"), 0, 0, 32, 32, 0.125, 4, true, false);
+        }
+    } else {
+        if (fireball) {
+            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/fireball_right.png"), 0, 0, 32, 32, 0.125, 4, true, false);
+        } else {
+            this.animation = new Animation(AM.getAsset("./img/sprites/heroes/black_mage/frostbolt_right.png"), 0, 0, 32, 32, 0.125, 4, true, false);
+        }
+    }
+}
+
+Fireball.prototype.draw = function (ctx) {
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();
+    }
+
+    if (this.fireball){
+        this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+    } else {
+        this.animation.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 2);
+    }
+    
+}
+
+Fireball.prototype.update = function () {
+    var collision = false;
+    var that = this;
+    this.game.enemies.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position) && entity.state !== 'dead') {
+            if (that.fireball) {
+                collision = true;
+                entity.isHit = true;
+                entity.HP -= 4;
+                if (!entity.boss) entity.state = 'damaged';
+                if (that.velocityX > 0) entity.isHitRight = true;
+            } else {
+                collision = true;
+                if (!entity.boss) entity.state = 'frozen';
+            }           
+        }
+    });
+
+    this.game.platforms.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position)) {
+            collision = true;
+        } 
+    });
+
+    this.game.walls.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position)) {
+            collision = true;
+        } 
+    });
+
+    if (this.position.left < this.game.background.leftWall) collision = true;
+    if (this.position.right > this.game.background.rightWall) collision = true;
+    
+    if (collision || this.position.right > this.game.background.right
+                || this.position.left < this.game.background.left 
+                || this.position.right > this.game.camera.x + this.game.ctx.width * 1.5 
+                || this.position.left < this.game.camera.x - this.game.ctx.width * 0.5) {
+        this.removeFromWorld = true;
+    } else {
+        this.position.moveBy(this.velocityX * this.game.clockTick, 0);
+    }
+}
+
+function Punch(game, position, player, right) {
+    this.type = "Projectile";
+    this.game = game;
+    this.position = position;
+    this.player = player;
+    this.right = right;
+}
+
+Punch.prototype.draw = function (ctx) {
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();
+    }
+}
+
+Punch.prototype.update = function () {
+    var that = this;
+    if (this.game.player.damaged) this.endPunch();
+    else {
+        this.game.enemies.forEach(function(entity) {
+            if (collisionDetector(that.position, entity.position) && entity.state !== 'dead') {
+                entity.isHit = true;
+                entity.HP -= 3;
+                if (!entity.boss || (entity.boss && entity.state === 'idle')) entity.state = 'damaged';
+                if(entity.shotTimer) entity.shotTimer += 1;
+                if(entity.aggroCooldown) entity.aggroCooldown += 1.5;
+                if (that.game.player.faceRight && !entity.boss) {
+                    entity.position.moveBy(10, 0);
+                    if(entity.aggroCooldown) entity.faceRight = true;
+                }
+                else {
+                    entity.position.moveBy(-10, 0);
+                    if(entity.aggroCooldown) entity.faceRight = false;
+                }
+            }
+        });-
+
+        this.game.walls.forEach(function(entity) {
+            if (collisionDetector(that.position, entity.position)) {
+                if (that.position.left < entity.position.left && that.game.player.faceRight) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
+                else if (that.position.right > entity.position.right && !that.game.player.faceRight) that.position.moveTo(entity.position.right, that.position.top);
+            }
+        });
+    
+        if (this.game.player.animations.punchRight.isDone()) {
+            this.endPunch();
+        } else if (this.game.player.animations.punchLeft.isDone()) {
+            this.endPunch();
+        } else {
+            this.position.moveBy(this.game.player.velocityX * this.game.clockTick, this.game.player.velocityY * this.game.clockTick);
+        } 
+    }
+}
+
+Punch.prototype.endPunch = function () {
+    this.removeFromWorld = true;
+    this.game.player.punching = false;
+    this.game.player.punch = null;
+    this.position = null;
+    this.game.player.animations.punchRight.elapsedTime = 0;
+    this.game.player.animations.punchLeft.elapsedTime = 0;
+}
+
+function JumpKick(game, position, player, right) {
+    this.type = "Projectile";
+    this.game = game;
+    this.position = position;
+    this.player = player;
+    this.right = right;
+}
+
+JumpKick.prototype.draw = function (ctx) {
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();
+    }
+}
+
+JumpKick.prototype.update = function () {
+    var that = this;
+    if (this.game.player.damaged) this.endKick();
+    else {
+        this.game.enemies.forEach(function(entity) {
+            if (collisionDetector(that.position, entity.position) && entity.state !== 'dead') {
+                entity.isHit = true;
+                entity.HP -= 5;
+                if (!entity.boss || (entity.boss && entity.state === 'idle')) entity.state = 'damaged';
+                if(entity.shotTimer) entity.shotTimer += 1;
+                if(entity.aggroCooldown) entity.aggroCooldown += 1.5;
+                if (that.game.player.faceRight) {
+                    entity.position.moveBy(10, 0);
+                    if(entity.aggroCooldown) entity.faceRight = true;
+                }
+                else {
+                    entity.position.moveBy(-10, 0);
+                    if(entity.aggroCooldown) entity.faceRight = false;
+                }
+            }
+        });
+
+        this.game.walls.forEach(function(entity) {
+            if (collisionDetector(that.position, entity.position)) {
+                if (that.position.left < entity.position.left && that.game.player.faceRight) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
+                else if (that.position.right > entity.position.right && !that.game.player.faceRight) that.position.moveTo(entity.position.right, that.position.top);
+            }
+        });
+    
+        if (!this.game.player.kicking) {
+            this.endKick();
+        } else {
+            this.position.moveBy(this.game.player.velocityX * this.game.clockTick, this.game.player.velocityY * this.game.clockTick);
+        } 
+    }
+}
+
+JumpKick.prototype.endKick = function () {
+    this.removeFromWorld = true;
+    this.game.player.kicking = false;
+    this.game.player.jumpkick = null;
+    this.position = null;
+    this.game.player.animations.jumpkickRight.elapsedTime = 0;
+    this.game.player.animations.jumpkickLeft.elapsedTime = 0;
 }
 
 function Key(game, theX, theY, number) {
@@ -1548,7 +2468,8 @@ function SceneManager(game) {
     this.power1 = new PowerUp(this.game, 55, 95);
     this.power2 = new PowerUp(this.game, 90, 90);
     this.power3 = new PowerUp(this.game, 32, 992);
-    this.stages = [this.createStage(0), this.createStage(1), this.createStage(2)];
+    this.stages = [this.createStage(0), this.createStage(1), this.createStage(2), this.createStage(3), this.createStage(4), this.createStage(5), 
+                    this.createStage(6), this.createStage(7), this.createStage(8), this.createStage(9), this.createStage(10)];
     
     this.game.player.position.moveTo(this.stages[this.currentStage].getPosition(this.startNum).left, this.stages[this.currentStage].getPosition(this.startNum).top);
 }
@@ -1564,6 +2485,7 @@ SceneManager.prototype.gameOver = function() {
     this.game.items.length = 0;
     this.game.doors.length = 0;
     this.game.enemies.length = 0;
+    this.game.projectiles.length = 0;
     this.game.player.gameOver = true;
 }
 
@@ -1576,10 +2498,11 @@ SceneManager.prototype.youWin = function() {
     this.game.items.length = 0;
     this.game.doors.length = 0;
     this.game.enemies.length = 0;
+    this.game.projectiles.length = 0;
 }
 
 SceneManager.prototype.update = function() {
-    if (this.newStage && this.currentStage === 3) {
+    if (this.newStage && this.currentStage === 10) {
         this.youWin();
     } else if (this.newStage) {
         
@@ -1592,6 +2515,7 @@ SceneManager.prototype.update = function() {
         this.game.items.length = 0;
         this.game.doors.length = 0;
         this.game.enemies.length = 0;
+        this.game.projectiles.length = 0;
 
         // Load new entities
         // Walls
@@ -1619,6 +2543,15 @@ SceneManager.prototype.update = function() {
             this.game.addEntity(updateStage.items[i]);
         }
 
+        if (this.currentStage === 3) {
+            if (this.game.boss1Alive) {
+                this.game.addEntity(new SlimeBoss(this.game)); // Add the boss
+            } else {
+                this.game.doors[0].locked = false;
+                this.game.doors[1].locked = false;
+            }
+        }
+
         this.game.player.position.moveTo(updateStage.getPosition(this.startNum).left, updateStage.getPosition(this.startNum).top);
         this.game.camera.update();
         this.newStage = false;
@@ -1635,12 +2568,12 @@ SceneManager.prototype.createStage = function(theStageNum) {
     
     if (theStageNum === 0) {
         newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/lv1.png"), 24, 2310, 24, 1030, 2336, 1056),
-                    [new Wall(this.game, null, 262, 664, 338, 96), new Wall(this.game, null, 262, 760, 18, 224),
-                    new Wall(this.game, null, 390, 390, 18, 256), new Wall(this.game, null,646, 870, 18, 160),
-                    new Wall(this.game, null, 1030, 234, 18, 412), new Wall(this.game, null, 1030, 646, 1280, 18), 
-                    new Wall(this.game, null, 1030, 934, 274, 96), new Wall(this.game, null, 1190, 664, 370, 128), 
-                    new Wall(this.game, null, 1798, 774, 402, 256), new Wall(this.game, null, 2182, 664, 18, 32),
-                    new Wall(this.game, null, 408, 390, 622, 18)],
+                    [new Wall(this.game, "SaddleBrown", 262, 664, 338, 96), new Wall(this.game, "SaddleBrown", 262, 760, 18, 200),
+                    new Wall(this.game, "SaddleBrown", 390, 390, 18, 256), new Wall(this.game, "SaddleBrown",646, 870, 18, 160),
+                    new Wall(this.game, "SaddleBrown", 1030, 234, 18, 412), new Wall(this.game, "SaddleBrown", 1030, 646, 1280, 18), 
+                    new Wall(this.game, "SaddleBrown", 1030, 934, 274, 96), new Wall(this.game, "SaddleBrown", 1190, 664, 370, 128), 
+                    new Wall(this.game, "SaddleBrown", 1798, 774, 402, 256), new Wall(this.game, "SaddleBrown", 2182, 664, 18, 32),
+                    new Wall(this.game, "SaddleBrown", 408, 390, 622, 18)],
                     [new Platform(this.game, grass, 24, 646, 832, 18), new Platform(this.game, grass, 24, 134, 160, 18),
                     new Platform(this.game, grass, 134, 262, 242, 18), new Platform(this.game, grass, 134, 518, 178, 18),
                     new Platform(this.game, grass, 230, 422, 114, 18), new Platform(this.game, grass, 390, 870, 256, 18),
@@ -1660,16 +2593,16 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Bunny(this.game, 686, 448, false), new Bunny(this.game, 1104, 575, false),
                     new Bunny(this.game, 751, 833, false), new Bunny(this.game, 1456, 64, false),
                     new Bunny(this.game, 1326, 191, false), new Bunny(this.game, 2128, 576, false),
-                    new Bunny(this.game, 2128, 64, false)], [new Door(this.game, 2304, 72, 1, 0), new Door(this.game, 2297, 958, 3, 0)], [this.key1, this.power1, this.power3],
+                    new Bunny(this.game, 2128, 64, false)], [new Door(this.game, 2304, 72, 1, 0, false), new Door(this.game, 2297, 958, 3, 0, true)], [this.key1, this.power1, this.power3],
                     [new Position(25, 575, 25, 575, 1, 1), new Position (2260, 72, 2260, 72, 1, 1), new Position(2281, 962, 2281, 962, 1, 1)]);
     } else if (theStageNum === 1) {
         newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/lv2.png"), 24, 1190, 24, 1958, 1216, 1984),
-                    [new Wall(this.game, null, 24, 24, 366, 160), new Wall(this.game, null, 390, 24, 242, 384), 
-                    new Wall(this.game, null, 24, 390, 192, 242), new Wall(this.game, null, 390, 408, 18, 320), 
-                    new Wall(this.game, null, 646, 518, 434, 274), new Wall(this.game, null, 486, 934, 18, 320), 
-                    new Wall(this.game, null, 294, 1190, 82, 64), new Wall(this.game, null, 24, 1446, 192, 512), 
-                    new Wall(this.game, null, 216, 1574, 224, 384), new Wall(this.game, null, 440, 1702, 192, 256), 
-                    new Wall(this.game, null, 632, 1830, 224, 128)], [new Platform(this.game, null, 630, 133, 162, 18), 
+                    [new Wall(this.game, "SaddleBrown", 24, 24, 366, 160), new Wall(this.game, "SaddleBrown", 390, 24, 242, 384), 
+                    new Wall(this.game, "SaddleBrown", 24, 390, 192, 242), new Wall(this.game, "SaddleBrown", 390, 408, 18, 320), 
+                    new Wall(this.game, "SaddleBrown", 646, 518, 434, 274), new Wall(this.game, "SaddleBrown", 486, 934, 18, 320), 
+                    new Wall(this.game, "SaddleBrown", 294, 1190, 82, 64), new Wall(this.game, "SaddleBrown", 24, 1446, 192, 512), 
+                    new Wall(this.game, "SaddleBrown", 216, 1574, 224, 384), new Wall(this.game, "SaddleBrown", 440, 1702, 192, 256), 
+                    new Wall(this.game, "SaddleBrown", 632, 1830, 224, 128)], [new Platform(this.game, null, 630, 133, 162, 18), 
                     new Platform(this.game, null, 998, 134, 192, 18), new Platform(this.game, null, 774, 230, 114, 18), 
                     new Platform(this.game, null, 632, 294, 160, 18), new Platform(this.game, null, 632, 390, 352, 18), 
                     new Platform(this.game, null, 408, 518, 96, 18), new Platform(this.game, null, 550, 582, 96, 18), 
@@ -1690,19 +2623,19 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Slime(this.game, 976, 448, false,'Green'), new Bunny(this.game, 721, 64, false),
                     new Bunny(this.game, 1008, 64, false), new Bunny(this.game, 656, 321, false),
                     new Bunny(this.game, 1136, 1888, false), new Bunny(this.game, 336, 287, false),
-                    new Bunny(this.game, 1073, 1728, false), new Bunny(this.game, 47, 320, false),
+                    new Bunny(this.game, 1073, 1728, false), new Bunny(this.game, 125, 320, false),
                     new Bunny(this.game, 656, 1503, false), new Bunny(this.game, 400, 448, false),
                     new Bunny(this.game, 592, 1184, false), new Bunny(this.game, 48, 735, false),
                     new Bunny(this.game, 304, 1119, false), new Bunny(this.game, 656, 928, false)],
                     [new Door(this.game, 25, 1384, 0, 1), new Door(this.game, 25, 328, 2, 0)], [],
                     [new Position(32, 1378, 32, 1378, 1, 1), new Position(32, 323, 32, 323, 1, 1)]);
-    } else {
+    } else if (theStageNum === 2) {
         newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/lv3.png"), 24, 2310, 24, 1318, 2336, 1344),
-                    [new Wall(this.game, null, 262, 678, 18, 242), new Wall(this.game, null, 358, 134, 18, 562), 
-                    new Wall(this.game, null, 376, 230, 1454, 242), new Wall(this.game, null, 646, 902, 82, 192), 
-                    new Wall(this.game, null, 422, 1094, 626, 224), new Wall(this.game, null, 1062, 774, 370, 178), 
-                    new Wall(this.game, null, 1606, 902, 82, 192), new Wall(this.game, null, 1446, 1094, 562, 224), 
-                    new Wall(this.game, null, 1830, 134, 18, 786)], [new Platform(this.game, null, 24, 134, 224, 18), 
+                    [new Wall(this.game, "SaddleBrown", 262, 678, 18, 242), new Wall(this.game, "SaddleBrown", 358, 134, 18, 562), 
+                    new Wall(this.game, "SaddleBrown", 376, 230, 1454, 242), new Wall(this.game, "SaddleBrown", 646, 902, 82, 192), 
+                    new Wall(this.game, "SaddleBrown", 422, 1094, 626, 224), new Wall(this.game, "SaddleBrown", 1062, 774, 370, 178), 
+                    new Wall(this.game, "SaddleBrown", 1606, 902, 82, 192), new Wall(this.game, "SaddleBrown", 1446, 1094, 562, 224), 
+                    new Wall(this.game, "SaddleBrown", 1830, 134, 18, 786)], [new Platform(this.game, null, 24, 134, 224, 18), 
                     new Platform(this.game, null, 166, 230, 82, 18), new Platform(this.game, null, 134, 454, 114, 18), 
                     new Platform(this.game, null, 262, 550, 96, 18), new Platform(this.game, null, 230, 326, 128, 18), 
                     new Platform(this.game, null, 24, 678, 96, 18), new Platform(this.game, null, 134, 902, 128, 18), 
@@ -1733,6 +2666,270 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Bunny(this.game, 2064, 736, false), new Bunny(this.game, 1648, 575, false)],
                     [new Door(this.game, 2304, 328, 1, 1)], [this.key2, this.power2, new Heart(this.game, 45, 1279),
                     new Heart(this.game, 1237, 1271), new Heart(this.game, 2257, 1273)], [new Position(2305, 323, 2305, 323, 1, 1)]);
+    } else if (theStageNum === 3) {
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/lv4.png"), 186, 812, 119, 479, 1000, 600),
+                    [], [new Platform(this.game, null, 186, 259, 64, 17), new Platform(this.game, null, 425, 258, 148, 18), 
+                    new Platform(this.game, null, 264, 353, 115, 18), new Platform(this.game, null, 748, 258, 65, 18),
+                    new Platform(this.game, null, 619, 353, 115, 18)], [], [new Door(this.game, 195, 420, 0, 2, true), 
+                    new Door(this.game, 800, 420, 4, 0, true)], [], [new Position(25, 319, 25, 319, 1, 1), new Position(617, 319, 617, 319, 1, 1)]);
+    } else if (theStageNum === 4) {
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/FP1.png"), 25, 933, 25, 1925, 1000, 1952),
+                    [new Wall(this.game, null, 101, 1893, 436, 32), new Wall(this.game, null, 133, 1861, 64, 32),
+                    new Wall(this.game, null, 165, 1829, 32, 32), new Wall(this.game, null, 197, 1637, 244, 256),
+                    new Wall(this.game, null, 229, 1381, 180, 256), new Wall(this.game, null, 261, 1125, 116, 256),
+                    new Wall(this.game, null, 293, 869, 52, 256), new Wall(this.game, null, 165, 677, 20, 192),
+                    new Wall(this.game, null, 24, 869, 161, 244), new Wall(this.game, null, 24, 1113, 129, 256),
+                    new Wall(this.game, null, 25, 1369, 96, 256), new Wall(this.game, null, 25, 1625, 64, 160),
+                    new Wall(this.game, null, 645, 1861, 52, 64), new Wall(this.game, null, 549, 1625, 20, 160),
+                    new Wall(this.game, null, 569, 1381, 32, 404), new Wall(this.game, null, 517, 1369, 20, 256),
+                    new Wall(this.game, null, 537, 1125 ,32, 500), new Wall(this.game, null, 453, 869, 32, 244),
+                    new Wall(this.game, null, 485, 869, 52, 500), new Wall(this.game, null, 805, 869, 84, 244),
+                    new Wall(this.game, null, 677, 933, 52, 116), new Wall(this.game, null, 805, 1113, 52, 12),
+                    new Wall(this.game, null, 645, 1189, 52, 148), new Wall(this.game, null, 773, 1125, 84, 244),
+                    new Wall(this.game, null, 773, 1369, 52, 18), new Wall(this.game, null, 741, 1381, 84, 244),
+                    new Wall(this.game, null, 709, 1573, 52, 212), new Wall(this.game, null, 901, 1765, 32, 32),
+                    new Wall(this.game, null, 869, 1797, 64, 32), new Wall(this.game, null, 837, 1829, 96, 32),
+                    new Wall(this.game, null, 805, 1861, 128, 32), new Wall(this.game, null, 773, 1893, 160, 32),
+                    new Wall(this.game, null, 25, 133, 64, 51), new Wall(this.game, null, 25, 293, 64, 51),
+                    new Wall(this.game, null, 25, 453, 64, 52), new Wall(this.game, null, 805, 133, 128, 84),
+                    new Wall(this.game, null, 741, 197, 84, 84), new Wall(this.game, null, 677, 261, 84, 84),
+                    new Wall(this.game, null, 613, 325, 84, 84), new Wall(this.game, null, 869, 325, 64, 128),
+                    new Wall(this.game, null, 805, 389, 64, 64), new Wall(this.game, null, 741, 453, 191, 116),
+                    new Wall(this.game, null, 613, 485, 20, 32), new Wall(this.game, null, 613, 517, 148, 84)],
+                    [new Platform(this.game, null, 89, 1733, 32, 20), new Platform(this.game, null, 517, 1765, 32, 20), 
+                    new Platform(this.game, null, 121, 1509, 32, 20), new Platform(this.game, null, 485, 1541, 32, 20), 
+                    new Platform(this.game, null, 153, 1285, 32, 20), new Platform(this.game, null, 453, 1285, 32, 20), 
+                    new Platform(this.game, null, 185, 1029, 32, 20), new Platform(this.game, null, 421, 1029, 32, 20), 
+                    new Platform(this.game, null, 261, 869, 32, 20), new Platform(this.game, null, 421, 869, 32, 20), 
+                    new Platform(this.game, null, 25, 773, 64, 20), new Platform(this.game, null, 101, 677, 64, 20), 
+                    new Platform(this.game, null, 293, 709, 244, 20), new Platform(this.game, null, 229, 549, 84, 20), 
+                    new Platform(this.game, null, 389, 549, 52, 20), new Platform(this.game, null, 517, 549, 20, 20), 
+                    new Platform(this.game, null, 229, 389, 20, 20), new Platform(this.game, null, 325, 389, 52, 20), 
+                    new Platform(this.game, null, 453, 389, 84, 20), new Platform(this.game, null, 229, 229, 84, 20), 
+                    new Platform(this.game, null, 389, 229, 52, 20), new Platform(this.game, null, 517, 229, 20, 20), 
+                    new Platform(this.game, null, 837, 677, 96, 20), new Platform(this.game, null, 677, 773, 116, 20), 
+                    new Platform(this.game, null, 537, 869, 96, 20), new Platform(this.game, null, 537, 933, 32, 20), 
+                    new Platform(this.game, null, 645, 933, 32, 20), new Platform(this.game, null, 729, 933, 32, 20), 
+                    new Platform(this.game, null, 537, 1029, 32, 20), new Platform(this.game, null, 645, 1029, 32, 20), 
+                    new Platform(this.game, null, 729, 1029, 32, 20), new Platform(this.game, null, 569, 1125, 32, 20), 
+                    new Platform(this.game, null, 741, 1125, 32, 20), new Platform(this.game, null, 569, 1253, 32, 20), 
+                    new Platform(this.game, null, 741, 1253, 32, 20), new Platform(this.game, null, 601, 1381, 32, 20), 
+                    new Platform(this.game, null, 709, 1381, 32, 20), new Platform(this.game, null, 601, 1573, 32, 20), 
+                    new Platform(this.game, null, 677, 1573, 32, 20), new Platform(this.game, null, 601, 1669, 32, 20), 
+                    new Platform(this.game, null, 677, 1669, 32, 20), new Platform(this.game, null, 601, 1765, 32, 20), 
+                    new Platform(this.game, null, 677, 1765, 32, 20), new Platform(this.game, null, 601, 1477, 32, 20), 
+                    new Platform(this.game, null, 709, 1477, 32, 20)],
+                    [new Slime(this.game, 480, 1824, false,'Green'), new Slime(this.game, 576, 1312, false,'Green'), 
+                    new Slime(this.game, 724, 1312, false,'Green'), new Slime(this.game, 96, 800, false,'Green'),
+                    new Bunny(this.game, 650, 1792, false), new Bunny(this.game, 704, 1504, false), 
+                    new Bunny(this.game, 643, 1120, false), new Bunny(this.game, 832, 800, false), 
+                    new Bunny(this.game, 704, 704, false), new Bunny(this.game, 32, 224, false), 
+                    new Bunny(this.game, 32, 64, false), new Bunny(this.game, 32, 384, false), 
+                    new Licky(this.game, 224, 768, true), new Licky(this.game, 544, 1056, true),
+                    new Licky(this.game, 224, 448, true), new Licky(this.game, 338, 288, true),
+                    new Licky(this.game, 530, 128, true), 
+                    new Jaws(this.game, 352, 640, false), new Jaws(this.game, 877, 256, false),
+                    new Jaws(this.game, 812, 320, false), new Jaws(this.game, 757, 384, false),
+                    new Mummy(this.game, 460, 768, false)],
+                    [new Door(this.game, 30, 1856, 3, 1, false), new Door(this.game, 928, 1696, 5, 0, false), 
+                    new Door(this.game, 928, 608, 7, 0, false), new Door(this.game, 928, 64, 8, 0, false)], 
+                    [/*items*/], 
+                    [new Position(31, 1851, 31, 1851, 1, 1), new Position(886, 1687, 886, 1687, 1, 1), 
+                    new Position(886, 599, 886, 599, 1, 1), new Position(886, 55, 886, 55, 1, 1)]);
+    } else if (theStageNum === 5) {
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/FP2.png"), 25, 1893, 25, 613, 1920, 640),
+                    [new Wall(this.game, null, 101, 25, 84, 32), new Wall(this.game, null, 325, 25, 20, 32), 
+                    new Wall(this.game, null, 325, 133, 948, 52), new Wall(this.game, null, 485, 101, 20, 32),
+                    new Wall(this.game, null, 197, 229, 20, 308), new Wall(this.game, null, 421, 185, 52, 268),
+                    new Wall(this.game, null, 357, 453, 148, 52), new Wall(this.game, null, 549, 549, 84, 64),
+                    new Wall(this.game, null, 677, 453, 212, 52), new Wall(this.game, null, 933, 549, 86, 64),
+                    new Wall(this.game, null, 1061, 453, 148, 52), new Wall(this.game, null, 1093, 185, 52, 268),
+                    new Wall(this.game, null, 645, 25, 20, 32), new Wall(this.game, null, 773, 101, 20, 32),
+                    new Wall(this.game, null, 933, 25, 20, 32), new Wall(this.game, null, 1061, 101, 20, 32),
+                    new Wall(this.game, null, 741, 185, 84, 268), new Wall(this.game, null, 1145, 293, 96, 52),
+                    new Wall(this.game, null, 1253, 25, 20, 32), new Wall(this.game, null, 1477, 133, 148, 52),
+                    new Wall(this.game, null, 1797, 101, 20, 224), new Wall(this.game, null, 1349, 325, 116, 180),
+                    new Wall(this.game, null, 1541, 325, 20, 52), new Wall(this.game, null, 1605, 261, 52, 148),
+                    new Wall(this.game, null, 1701, 325, 20, 52), new Wall(this.game, null, 1797, 325, 96, 180),
+                    new Wall(this.game, null, 1605, 549, 52, 64)], 
+                    [new Platform(this.game, null, 25, 101, 32, 20), new Platform(this.game, null, 101, 133, 84, 20), 
+                    new Platform(this.game, null, 25, 229, 172, 20), new Platform(this.game, null, 25, 325, 64, 20), 
+                    new Platform(this.game, null, 165, 325, 32, 20), new Platform(this.game, null, 217, 325, 64, 20), 
+                    new Platform(this.game, null, 69, 421, 52, 20), new Platform(this.game, null, 165, 421, 52, 20), 
+                    new Platform(this.game, null, 69, 517, 52, 20), new Platform(this.game, null, 165, 517, 32, 20), 
+                    new Platform(this.game, null, 473, 325, 64, 20), new Platform(this.game, null, 677, 325, 64, 20), 
+                    new Platform(this.game, null, 825, 261, 32, 20), new Platform(this.game, null, 1061, 261, 32, 20), 
+                    new Platform(this.game, null, 901, 325, 116, 20), new Platform(this.game, null, 1561, 357, 44, 20), 
+                    new Platform(this.game, null, 1657, 357, 44, 20), new Platform(this.game, null, 1733, 453, 64, 20), 
+                    new Platform(this.game, null, 1817, 101, 32, 20), new Platform(this.game, null, 1861, 197, 32, 20)], 
+                    [new Slime(this.game, 416, 64, false,'Green'), new Slime(this.game, 1120, 64, false,'Green'),
+                    new Slime(this.game, 1152, 384, false,'Green'), new Slime(this.game, 1536, 64, false,'Green'),
+                    new Bunny(this.game, 32, 256, true), new Bunny(this.game, 128, 64, false),
+                    new Bunny(this.game, 480, 256, true), new Bunny(this.game, 704, 256, false),
+                    new Bunny(this.game, 1152, 224, true), new Bunny(this.game, 1798, 32, false),
+                    new Licky(this.game, 100, 352, true), new Licky(this.game, 100, 448, true),
+                    new Licky(this.game, 480, 505, true), new Licky(this.game, 512, 384, true),
+                    new Licky(this.game, 1312, 192, true), new Licky(this.game, 1264, 57, true), 
+                    new Jaws(this.game, 825, 202, false), new Jaws(this.game, 1056, 202, false),
+                    new Jaws(this.game, 1120, 544, false), new Jaws(this.game, 1440, 544, false),
+                    new Jaws(this.game, 1600, 200, false), new Jaws(this.game, 1632, 200, false),
+                    new Mummy(this.game, 576, 32, false), new Mummy(this.game, 864, 32, false),
+                    new Mummy(this.game, 352, 512, false), new Mummy(this.game, 736, 512, false),
+                    new Mummy(this.game, 928, 224, false)], 
+                    [new Door(this.game, 32, 160, 4, 1, false), new Door(this.game, 1888, 544, 9, 0, false)], 
+                    [/* Items */], 
+                    [new Position(32, 155, 32, 155, 1, 1), new Position(1846, 544, 1846, 544, 1, 1)]);
+    } else if (theStageNum === 6) {
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/FP3.png"), 25, 1893, 25, 613, 1920, 640),
+                    [new Wall(this.game, null, 229, 133, 20, 116), new Wall(this.game, null, 25, 357, 492, 84),
+                    new Wall(this.game, null, 517, 261, 20, 276), new Wall(this.game, null, 537, 261, 32, 244),
+                    new Wall(this.game, null, 569, 261, 32, 212), new Wall(this.game, null, 601, 261, 32, 180),
+                    new Wall(this.game, null, 633, 261, 32, 148), new Wall(this.game, null, 665, 261, 32, 116),
+                    new Wall(this.game, null, 697, 261, 32, 84), new Wall(this.game, null, 729, 261, 32, 52),
+                    new Wall(this.game, null, 677, 101, 244, 84), new Wall(this.game, null, 761, 261, 364, 20),
+                    new Wall(this.game, null, 1093, 165, 52, 96), new Wall(this.game, null, 1317, 25, 308, 64),
+                    new Wall(this.game, null, 1477, 89, 20, 128), new Wall(this.game, null, 1125, 261, 32, 52),
+                    new Wall(this.game, null, 1157, 261, 32, 84), new Wall(this.game, null, 1189, 261, 32, 116),
+                    new Wall(this.game, null, 1221, 261, 32, 148), new Wall(this.game, null, 1253, 261, 32, 180),
+                    new Wall(this.game, null, 1285, 261, 32, 212), new Wall(this.game, null, 1317, 261, 52, 244),
+                    new Wall(this.game, null, 1349, 485, 180, 52), new Wall(this.game, null, 1669, 549, 84, 64)],
+                    [new Platform(this.game, null, 1733, 133, 160, 20), new Platform(this.game, null, 1797, 421, 96, 20), 
+                    new Platform(this.game, null, 1541, 325, 211, 20), new Platform(this.game, null, 1497, 197, 96, 20), 
+                    new Platform(this.game, null, 1413, 197, 64, 20), new Platform(this.game, null, 1145, 165, 64, 20), 
+                    new Platform(this.game, null, 921, 133, 32, 20), new Platform(this.game, null, 645, 133, 32, 20), 
+                    new Platform(this.game, null, 389, 133, 84, 20), new Platform(this.game, null, 101, 101, 52, 20), 
+                    new Platform(this.game, null, 25, 229, 204, 20)],
+                    [new Slime(this.game, 416, 288, false,'Green'), new Slime(this.game, 1632, 256, false,'Green'),
+                    new Bunny(this.game, 101, 32, true), new Bunny(this.game, 640, 64, false),
+                    new Bunny(this.game, 920, 64, true), new Bunny(this.game, 1152, 96, true),
+                    new Bunny(this.game, 1440, 128, false), new Bunny(this.game, 1504, 128, true),
+                    new Bunny(this.game, 1440, 416, true),
+                    new Licky(this.game, 512, 178, true), new Licky(this.game, 64, 270, true),
+                    new Jaws(this.game, 32, 160, false), new Jaws(this.game, 160, 160, false),
+                    new Jaws(this.game, 1856, 352, false),
+                    new Mummy(this.game, 1824, 32, false), new Mummy(this.game, 1280, 160, false),
+                    new Mummy(this.game, 640, 160, false), new Mummy(this.game, 160, 256, false)],
+                    [new Door(this.game, 1888, 544, 9, 1, false)], 
+                    [/* Items */], 
+                    [new Position(1848, 544, 1848, 544, 1, 1)]);
+    } else if (theStageNum === 7) {
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/FP4.png"), 25, 1893, 25, 613, 1920, 640),
+                    [new Wall(this.game, null, 25, 25, 224, 320), new Wall(this.game, null, 165, 549, 116, 64), 
+                    new Wall(this.game, null, 389, 485, 84, 128), new Wall(this.game, null, 473, 549, 76, 64),
+                    new Wall(this.game, null, 1093, 517, 32, 96), new Wall(this.game, null, 549, 261, 148, 352),
+                    new Wall(this.game, null, 805, 229, 20, 116), new Wall(this.game, null, 965, 229, 20, 116),
+                    new Wall(this.game, null, 1125, 261, 148, 352), new Wall(this.game, null, 1413, 101, 116, 52),
+                    new Wall(this.game, null, 1381, 293, 116, 84), new Wall(this.game, null, 1605, 165, 20, 372),
+                    new Wall(this.game, null, 1625, 261, 32, 84), new Wall(this.game, null, 1861, 261, 32, 84)],
+                    [new Platform(this.game, null, 249, 101, 128, 20), new Platform(this.game, null, 249, 229, 64, 20),
+                    new Platform(this.game, null, 485, 293, 64, 20), new Platform(this.game, null, 25, 453, 224, 20),
+                    new Platform(this.game, null, 357, 389, 84, 20), new Platform(this.game, null, 697, 517, 64, 20),
+                    new Platform(this.game, null, 837, 453, 116, 20), new Platform(this.game, null, 581, 133, 52, 20),
+                    new Platform(this.game, null, 805, 133, 212, 20), new Platform(this.game, null, 773, 229, 33, 20),
+                    new Platform(this.game, null, 825, 229, 32, 20), new Platform(this.game, null, 933, 229, 32, 20),
+                    new Platform(this.game, null, 985, 229, 32, 20), new Platform(this.game, null, 1189, 133, 52, 20),
+                    new Platform(this.game, null, 1061, 357, 64, 20), new Platform(this.game, null, 1273, 485, 64, 20),
+                    new Platform(this.game, null, 1701, 293, 116, 20), new Platform(this.game, null, 1413, 549, 116, 20),
+                    new Platform(this.game, null, 1541, 421, 64, 20), new Platform(this.game, null, 1625, 421, 64, 20),
+                    new Platform(this.game, null, 1829, 421, 64, 20), new Platform(this.game, null, 1733, 517, 52, 20),
+                    new Platform(this.game, null, 1625, 165, 268, 20)],
+                    [new Slime(this.game, 800, 160, false,'Green'), new Slime(this.game, 960, 160, false,'Green'),
+                    new Bunny(this.game, 289, 32, true), new Bunny(this.game, 500, 224, false),
+                    new Bunny(this.game, 257, 160, true), new Bunny(this.game, 705, 448, true),
+                    new Bunny(this.game, 1073, 288, false), new Bunny(this.game, 1280, 416, true),
+                    new Bunny(this.game, 1568, 352, false), 
+                    new Licky(this.game, 64, 480, true), new Licky(this.game, 352, 288, true),
+                    new Licky(this.game, 768, 384, true), new Licky(this.game, 1408, 224, true),
+                    new Licky(this.game, 1696, 192, true), new Licky(this.game, 1728, 352, true),
+                    new Jaws(this.game, 480, 480, false), new Jaws(this.game, 864, 64, false),
+                    new Jaws(this.game, 1733, 448, false),
+                    new Mummy(this.game, 864, 512, false)],
+                    [new Door(this.game, 32, 384, 4, 2, false), new Door(this.game, 1888, 96, 9, 2, false)], 
+                    [/* Items */], 
+                    [new Position(32, 384, 32, 384, 1, 1), new Position(1848, 96, 1846, 96, 1, 1)]);
+    } else if (theStageNum === 8) {
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/FP5.png"), 25, 1893, 25, 613, 1920, 640),
+                    [new Wall(this.game, null, 25, 165, 352, 244), new Wall(this.game, null, 357, 101, 20, 64),
+                    new Wall(this.game, null, 25, 517, 224, 96), new Wall(this.game, null, 1797, 133, 96, 480)],
+                    [new Platform(this.game, null, 377, 229, 96, 20), new Platform(this.game, null, 517, 165, 84, 20),
+                    new Platform(this.game, null, 677, 133, 84, 20), new Platform(this.game, null, 837, 101, 84, 20),
+                    new Platform(this.game, null, 997, 133, 90, 20), new Platform(this.game, null, 1157, 165, 90, 20),
+                    new Platform(this.game, null, 1317, 229, 84, 20), new Platform(this.game, null, 1477, 261, 84, 20),
+                    new Platform(this.game, null, 1701, 133, 96, 20), new Platform(this.game, null, 1637, 293, 84, 20),
+                    new Platform(this.game, null, 1477, 325, 84, 20), new Platform(this.game, null, 1317, 357, 84, 20),
+                    new Platform(this.game, null, 1157, 389, 84, 20), new Platform(this.game, null, 997, 421, 84, 20),
+                    new Platform(this.game, null, 837, 453, 84, 20), new Platform(this.game, null, 677, 485, 84, 20),
+                    new Platform(this.game, null, 517, 517, 84, 20), new Platform(this.game, null, 357, 549, 84, 20)],
+                    [new Licky(this.game, 384, 256, true), new Licky(this.game, 384, 320, true),
+                    new Licky(this.game, 384, 384, true), new Licky(this.game, 1664, 160, true),
+                    new Licky(this.game, 192, 33, true), 
+                    new Jaws(this.game, 704, 544, false), new Jaws(this.game, 1184, 544, false),
+                    new Jaws(this.game, 1664, 544, false)],
+                    [new Door(this.game, 32, 448, 4, 3, false), new Door(this.game, 1888, 64, 10, 0, false)], 
+                    [/* Items */], 
+                    [new Position(32, 448, 32, 448, 1, 1), new Position(1848, 64, 1846, 64, 1, 1)]);
+    } else if (theStageNum === 9) {
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/FP6.png"), 25, 933, 25, 1925, 1000, 1952),
+                    [new Wall(this.game, null, 197, 101, 84, 52), new Wall(this.game, null, 197, 261, 84, 52),
+                    new Wall(this.game, null, 197, 421, 84, 52), new Wall(this.game, null, 389, 165, 20, 244),
+                    new Wall(this.game, null, 549, 197, 20, 276), new Wall(this.game, null, 677, 101, 84, 52),
+                    new Wall(this.game, null, 677, 261, 84, 52), new Wall(this.game, null, 677, 421, 84, 52),
+                    new Wall(this.game, null, 901, 133, 32, 84), new Wall(this.game, null, 901, 325, 32, 84),
+                    new Wall(this.game, null, 25, 613, 192, 52), new Wall(this.game, null, 165, 665, 52, 96),
+                    new Wall(this.game, null, 325, 613, 84, 148), new Wall(this.game, null, 409, 613, 140, 52),
+                    new Wall(this.game, null, 549, 613, 84, 148), new Wall(this.game, null, 741, 613, 52, 148),
+                    new Wall(this.game, null, 901, 517, 32, 148), new Wall(this.game, null, 793, 613, 108, 52),
+                    new Wall(this.game, null, 133, 869, 52, 52), new Wall(this.game, null, 325, 869, 20, 52),
+                    new Wall(this.game, null, 453, 869, 52, 52), new Wall(this.game, null, 613, 869, 20, 52),
+                    new Wall(this.game, null, 773, 869, 52, 52), new Wall(this.game, null, 25, 1029, 64, 116),
+                    new Wall(this.game, null, 196, 1029, 53, 116), new Wall(this.game, null, 325, 1029, 52, 116),
+                    new Wall(this.game, null, 453, 1029, 52, 116), new Wall(this.game, null, 581, 1029, 52, 116),
+                    new Wall(this.game, null, 709, 1029, 52, 116), new Wall(this.game, null, 869, 1029, 64, 116),
+                    new Wall(this.game, null, 25, 1349, 32, 52), new Wall(this.game, null, 165, 1349, 116, 52),
+                    new Wall(this.game, null, 421, 1349, 116, 52), new Wall(this.game, null, 677, 1349, 116, 52),
+                    new Wall(this.game, null, 901, 1349, 32, 52), new Wall(this.game, null, 24, 1477, 129, 52),
+                    new Wall(this.game, null, 293, 1477, 116, 52), new Wall(this.game, null, 549, 1477, 116, 52),
+                    new Wall(this.game, null, 805, 1477, 128, 52), new Wall(this.game, null, 165, 1605, 116, 52),
+                    new Wall(this.game, null, 421, 1605, 116, 52), new Wall(this.game, null, 677, 1605, 116, 52),
+                    new Wall(this.game, null, 293, 1733, 116, 52), new Wall(this.game, null, 549, 1733, 116, 52),
+                    new Wall(this.game, null, 421, 1861, 116, 64)],
+                    [new Platform(this.game, null, 25, 165, 96, 20), new Platform(this.game, null, 409, 165, 32, 20), 
+                    new Platform(this.game, null, 485, 261, 20, 20), new Platform(this.game, null, 453, 389, 20, 20),
+                    new Platform(this.game, null, 421, 517, 20, 20), new Platform(this.game, null, 517, 453, 32 ,20),
+                    new Platform(this.game, null, 25, 741, 96, 20), new Platform(this.game, null, 453, 741, 52, 20),
+                    new Platform(this.game, null, 837, 741, 96, 20), new Platform(this.game, null, 89, 1029, 32, 20),
+                    new Platform(this.game, null, 165, 1125, 32, 20), new Platform(this.game, null, 761, 1125, 32, 20),
+                    new Platform(this.game, null, 837, 1029, 32, 20), new Platform(this.game, null, 25, 1253, 128, 20),
+                    new Platform(this.game, null, 549, 1253, 116, 20), new Platform(this.game, null, 805, 1253, 128, 20),
+                    new Platform(this.game, null, 293, 1253, 116, 20)],
+                    [new Slime(this.game, 48, 672, false,'Green'), new Slime(this.game, 461 ,672, false,'Green'),
+                    new Slime(this.game, 864, 671, false,'Green'), new Slime(this.game, 205, 1536, false,'Green'),
+                    new Slime(this.game, 326, 1408, false,'Green'), new Slime(this.game, 331, 1664, false,'Green'),
+                    new Slime(this.game, 461, 1536, false,'Green'), new Slime(this.game, 593, 1407, false,'Green'),
+                    new Slime(this.game, 589, 1664, false,'Green'), new Slime(this.game, 716, 1536, false,'Green'),
+                    new Bunny(this.game, 393, 96, false), new Bunny(this.game, 896, 64, false),
+                    new Bunny(this.game, 896, 257, false), new Bunny(this.game, 897, 448, false),
+                    new Bunny(this.game, 33, 1409, true), new Bunny(this.game, 886, 1408, false),
+                    new Licky(this.game, 161, 192, true), new Licky(this.game, 289, 320, true),
+                    new Licky(this.game, 160, 782, true), new Licky(this.game, 737, 940, true),
+                    new Jaws(this.game, 608, 1857, false), new Jaws(this.game, 832, 1857, false),
+                    new Mummy(this.game, 64, 512, false), new Mummy(this.game, 512, 512, false),
+                    new Mummy(this.game, 800, 512, false)],
+                    [new Door(this.game, 32, 1856, 5, 1, false), new Door(this.game, 32, 1184, 6, 0, false), 
+                    new Door(this.game, 32, 96, 7, 1, false)], 
+                    [/* Items */], 
+                    [new Position(32, 1856, 32, 1856, 1, 1), new Position(32, 1184, 32, 1184, 1, 1),
+                    new Position(32, 96, 32, 96, 1, 1)]);
+    } else if (theStageNum === 10) {
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/FP7.png"), 25, 1893, 25, 613, 1024, 640),
+                    [new Wall(this.game, null, 25, 389, 172, 224), new Wall(this.game, null, 197, 357, 128, 256),
+                    new Wall(this.game, null, 325, 325, 128, 288), new Wall(this.game, null, 453, 293, 148, 320)],
+                    [new Platform(this.game, null, 133, 229, 148, 20), new Platform(this.game, null, 389, 165, 148, 20),
+                    new Platform(this.game, null, 601, 357, 64, 20), new Platform(this.game, null, 601, 485, 128, 20)],
+                    [/* Enemies */],
+                    [], 
+                    [/* Items */],
+                    [new Position(32, 64, 32, 64, 1, 1)]);
     }
     return newStage;
 }
@@ -1740,11 +2937,25 @@ SceneManager.prototype.createStage = function(theStageNum) {
 // Start of actual game
 var AM = new AssetManager();
 
-// background image
+// background images
 AM.queueDownload("./img/sprites/backgrounds/Start.png");
+
+AM.queueDownload("./img/sprites/backgrounds/level1.png");
+AM.queueDownload("./img/sprites/backgrounds/level2.png");
+
 AM.queueDownload("./img/sprites/backgrounds/lv1.png");
 AM.queueDownload("./img/sprites/backgrounds/lv2.png");
 AM.queueDownload("./img/sprites/backgrounds/lv3.png");
+AM.queueDownload("./img/sprites/backgrounds/lv4.png");
+
+AM.queueDownload("./img/sprites/backgrounds/FP1.png");
+AM.queueDownload("./img/sprites/backgrounds/FP2.png");
+AM.queueDownload("./img/sprites/backgrounds/FP3.png");
+AM.queueDownload("./img/sprites/backgrounds/FP4.png");
+AM.queueDownload("./img/sprites/backgrounds/FP5.png");
+AM.queueDownload("./img/sprites/backgrounds/FP6.png");
+AM.queueDownload("./img/sprites/backgrounds/FP7.png");
+
 AM.queueDownload("./img/sprites/backgrounds/Win.png");
 AM.queueDownload("./img/sprites/backgrounds/game_over.png");
 
@@ -1817,6 +3028,10 @@ AM.queueDownload("./img/sprites/enemies/blue_slime/idle_left.png");
 AM.queueDownload("./img/sprites/enemies/blue_slime/idle_right.png");
 AM.queueDownload("./img/sprites/enemies/blue_slime/rolling_left.png");
 AM.queueDownload("./img/sprites/enemies/blue_slime/rolling_right.png");
+AM.queueDownload("./img/sprites/enemies/blue_slime/jump_left.png");
+AM.queueDownload("./img/sprites/enemies/blue_slime/jump_right.png");
+AM.queueDownload("./img/sprites/enemies/blue_slime/spit_left.png");
+AM.queueDownload("./img/sprites/enemies/blue_slime/spit_right.png");
 
 // Bunny Sprites
 AM.queueDownload("./img/sprites/enemies/bunny/death_l.png");
@@ -1827,6 +3042,34 @@ AM.queueDownload("./img/sprites/enemies/bunny/atk_l.png");
 AM.queueDownload("./img/sprites/enemies/bunny/atk_r.png");
 AM.queueDownload("./img/sprites/enemies/bunny/medium_rock.png");
 AM.queueDownload("./img/bunny_ice.png");
+
+// Jaws Sprites
+AM.queueDownload("./img/sprites/enemies/jaws/death_left.png");
+AM.queueDownload("./img/sprites/enemies/jaws/death_right.png");
+AM.queueDownload("./img/sprites/enemies/jaws/idle_left.png");
+AM.queueDownload("./img/sprites/enemies/jaws/idle_right.png");
+AM.queueDownload("./img/sprites/enemies/jaws/walk_left.png");
+AM.queueDownload("./img/sprites/enemies/jaws/walk_right.png");
+
+// Licky Sprites
+AM.queueDownload("./img/sprites/enemies/licky/attack_left.png");
+AM.queueDownload("./img/sprites/enemies/licky/attack_right.png");
+AM.queueDownload("./img/sprites/enemies/licky/death_left.png");
+AM.queueDownload("./img/sprites/enemies/licky/death_right.png");
+AM.queueDownload("./img/sprites/enemies/licky/dmg_left.png");
+AM.queueDownload("./img/sprites/enemies/licky/dmg_right.png");
+AM.queueDownload("./img/sprites/enemies/licky/idle_left.png");
+AM.queueDownload("./img/sprites/enemies/licky/idle_right.png");
+
+// Mummy Sprites
+AM.queueDownload("./img/sprites/enemies/mummy/idle_left.png");
+AM.queueDownload("./img/sprites/enemies/mummy/idle_right.png");
+AM.queueDownload("./img/sprites/enemies/mummy/walk_left.png");
+AM.queueDownload("./img/sprites/enemies/mummy/walk_right.png");
+AM.queueDownload("./img/sprites/enemies/mummy/dmg_left.png");
+AM.queueDownload("./img/sprites/enemies/mummy/dmg_right.png");
+AM.queueDownload("./img/sprites/enemies/mummy/death_left.png");
+AM.queueDownload("./img/sprites/enemies/mummy/death_right.png");
 
 // Item Sprites
 AM.queueDownload("./img/sprites/items/key_idle_spin.png");
