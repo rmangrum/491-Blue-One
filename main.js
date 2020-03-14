@@ -218,7 +218,7 @@ Camera.prototype.draw = function (ctx) {
         ctx.fillStyle = 'Red';
         ctx.fillText("Click on the screen to start", 650, 560);
         ctx.restore();
-    } else if (this.game.sceneManager.currentStage !== 4) {
+    } else if (this.game.sceneManager.currentStage !== 5) {
         var bmOffset = 0;
         var monkOffset = 0;
         if (this.game.player.activeHero === 0) monkOffset = 40;
@@ -1173,15 +1173,15 @@ function Player(game) {
     this.damaged = false;
     this.jumping = false;
     this.falling = false;
-    this.blinkEnabled = false;
+    this.blinkEnabled = true;
     this.blinking = false;
     this.kicking = false;
     this.jumpkick = null;
     this.punching = false;
     this.punch = null;
     this.startJump = false;
-    this.jumpsLeft = [1, 1];
-    this.jumpsMax = [1, 1];
+    this.jumpsLeft = [1, 2];
+    this.jumpsMax = [1, 2];
     this.invulnerable = false;
     this.invulTimer = 0;
     this.gameOver = false;
@@ -1389,7 +1389,7 @@ Player.prototype.update = function() {
     }
 
     // Spacebar pressed
-    if (this.game.space && this.jumpsLeft[this.activeHero] > 0) {
+    if (this.game.space && this.jumpsLeft[this.activeHero] > 0 && !this.game.downKey) {
         //this.startJump = true;
         this.jumping = true;
         if (this.punching) this.punch.endPunch();
@@ -1492,6 +1492,18 @@ Player.prototype.update = function() {
             }
         } 
     })
+
+    // Drop through platforms
+    if (this.game.downKey && this.game.space) {
+        var onPlatform = false;
+        for (var i = 0; i < this.game.platforms.length; i++) {
+            if (this.position.bottom == this.game.platforms[i].position.top && 
+                (!(this.position.right < this.game.platforms[i].position.left) && !(this.position.left > this.game.platforms[i].position.right))) {
+                onPlatform = true;
+            }
+        }
+        if (onPlatform) this.position.moveBy(0, 1);
+    }
 
     Entity.prototype.update.call(this);
 }
@@ -1953,14 +1965,14 @@ class Stage {
 function SceneManager(game) {
     this.game = game;
     this.newStage = false;
-    this.currentStage = 0;
+    this.currentStage = 4;
     this.startNum = 0;
     this.key1 = new Key(this.game, 551, 987, 0);
     this.key2 = new Key(this.game, 1880, 90, 1);
     this.power1 = new PowerUp(this.game, 55, 95);
     this.power2 = new PowerUp(this.game, 90, 90);
     this.power3 = new PowerUp(this.game, 32, 992);
-    this.stages = [this.createStage(0), this.createStage(1), this.createStage(2), this.createStage(3)];
+    this.stages = [this.createStage(0), this.createStage(1), this.createStage(2), this.createStage(3), this.createStage(4), this.createStage(5), this.createStage(6), this.createStage(7)];
     
     this.game.player.position.moveTo(this.stages[this.currentStage].getPosition(this.startNum).left, this.stages[this.currentStage].getPosition(this.startNum).top);
 }
@@ -1991,7 +2003,7 @@ SceneManager.prototype.youWin = function() {
 }
 
 SceneManager.prototype.update = function() {
-    if (this.newStage && this.currentStage === 4) {
+    if (this.newStage && this.currentStage === 8) {
         this.youWin();
     } else if (this.newStage) {
         
@@ -2154,12 +2166,150 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Bunny(this.game, 2064, 736, false), new Bunny(this.game, 1648, 575, false)],
                     [new Door(this.game, 2304, 328, 1, 1)], [this.key2, this.power2, new Heart(this.game, 45, 1279),
                     new Heart(this.game, 1237, 1271), new Heart(this.game, 2257, 1273)], [new Position(2305, 323, 2305, 323, 1, 1)]);
-    } else if (theStageNum === 3) { //update positions and boss spawn
+    } else if (theStageNum === 3) {
         newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/lv4.png"), 186, 812, 119, 479, 1000, 600),
                     [], [new Platform(this.game, null, 186, 259, 64, 17), new Platform(this.game, null, 425, 258, 148, 18), 
                     new Platform(this.game, null, 264, 353, 115, 18), new Platform(this.game, null, 748, 258, 65, 18),
                     new Platform(this.game, null, 619, 353, 115, 18)], [], [new Door(this.game, 195, 420, 0, 2, true), 
                     new Door(this.game, 800, 420, 4, 0, true)], [], [new Position(25, 319, 25, 319, 1, 1), new Position(617, 319, 617, 319, 1, 1)]);
+    } else if (theStageNum === 4) {
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/FP1.png"), 25, 933, 25, 1925, 1000, 1952),
+                    [new Wall(this.game, null, 101, 1893, 436, 32), new Wall(this.game, null, 133, 1861, 64, 32),
+                    new Wall(this.game, null, 165, 1829, 32, 32), new Wall(this.game, null, 197, 1637, 244, 256),
+                    new Wall(this.game, null, 229, 1381, 180, 256), new Wall(this.game, null, 261, 1125, 116, 256),
+                    new Wall(this.game, null, 293, 869, 52, 256), new Wall(this.game, null, 165, 677, 20, 192),
+                    new Wall(this.game, null, 24, 869, 161, 244), new Wall(this.game, null, 24, 1113, 129, 256),
+                    new Wall(this.game, null, 25, 1369, 96, 256), new Wall(this.game, null, 25, 1625, 64, 160),
+                    new Wall(this.game, null, 645, 1861, 52, 64), new Wall(this.game, null, 549, 1625, 20, 160),
+                    new Wall(this.game, null, 569, 1381, 32, 404), new Wall(this.game, null, 517, 1369, 20, 256),
+                    new Wall(this.game, null, 537, 1125 ,32, 500), new Wall(this.game, null, 453, 869, 32, 244),
+                    new Wall(this.game, null, 485, 869, 52, 500), new Wall(this.game, null, 805, 869, 84, 244),
+                    new Wall(this.game, null, 677, 933, 52, 116), new Wall(this.game, null, 805, 1113, 52, 12),
+                    new Wall(this.game, null, 645, 1189, 52, 148), new Wall(this.game, null, 773, 1125, 84, 244),
+                    new Wall(this.game, null, 773, 1369, 52, 18), new Wall(this.game, null, 741, 1381, 84, 244),
+                    new Wall(this.game, null, 709, 1573, 52, 212), new Wall(this.game, null, 901, 1765, 32, 32),
+                    new Wall(this.game, null, 869, 1797, 64, 32), new Wall(this.game, null, 837, 1829, 96, 32),
+                    new Wall(this.game, null, 805, 1861, 128, 32), new Wall(this.game, null, 773, 1893, 160, 32),
+                    new Wall(this.game, null, 25, 133, 64, 51), new Wall(this.game, null, 25, 293, 64, 51),
+                    new Wall(this.game, null, 25, 453, 64, 52), new Wall(this.game, null, 805, 133, 128, 84),
+                    new Wall(this.game, null, 741, 197, 84, 84), new Wall(this.game, null, 677, 261, 84, 84),
+                    new Wall(this.game, null, 613, 325, 84, 84), new Wall(this.game, null, 869, 325, 64, 128),
+                    new Wall(this.game, null, 805, 389, 64, 64), new Wall(this.game, null, 741, 453, 191, 116),
+                    new Wall(this.game, null, 613, 485, 20, 32), new Wall(this.game, null, 613, 517, 148, 84)],
+                    [new Platform(this.game, null, 89, 1733, 32, 20), new Platform(this.game, null, 517, 1765, 32, 20), 
+                    new Platform(this.game, null, 121, 1509, 32, 20), new Platform(this.game, null, 485, 1541, 32, 20), 
+                    new Platform(this.game, null, 153, 1285, 32, 20), new Platform(this.game, null, 453, 1285, 32, 20), 
+                    new Platform(this.game, null, 185, 1029, 32, 20), new Platform(this.game, null, 421, 1029, 32, 20), 
+                    new Platform(this.game, null, 261, 869, 32, 20), new Platform(this.game, null, 421, 869, 32, 20), 
+                    new Platform(this.game, null, 25, 773, 64, 20), new Platform(this.game, null, 101, 677, 64, 20), 
+                    new Platform(this.game, null, 293, 709, 244, 20), new Platform(this.game, null, 229, 549, 84, 20), 
+                    new Platform(this.game, null, 389, 549, 52, 20), new Platform(this.game, null, 517, 549, 20, 20), 
+                    new Platform(this.game, null, 229, 389, 20, 20), new Platform(this.game, null, 325, 389, 52, 20), 
+                    new Platform(this.game, null, 453, 389, 84, 20), new Platform(this.game, null, 229, 229, 84, 20), 
+                    new Platform(this.game, null, 389, 229, 52, 20), new Platform(this.game, null, 517, 229, 20, 20), 
+                    new Platform(this.game, null, 837, 677, 96, 20), new Platform(this.game, null, 677, 773, 116, 20), 
+                    new Platform(this.game, null, 537, 869, 96, 20), new Platform(this.game, null, 537, 933, 32, 20), 
+                    new Platform(this.game, null, 645, 933, 32, 20), new Platform(this.game, null, 729, 933, 32, 20), 
+                    new Platform(this.game, null, 537, 1029, 32, 20), new Platform(this.game, null, 645, 1029, 32, 20), 
+                    new Platform(this.game, null, 729, 1029, 32, 20), new Platform(this.game, null, 569, 1125, 32, 20), 
+                    new Platform(this.game, null, 741, 1125, 32, 20), new Platform(this.game, null, 569, 1253, 32, 20), 
+                    new Platform(this.game, null, 741, 1253, 32, 20), new Platform(this.game, null, 601, 1381, 32, 20), 
+                    new Platform(this.game, null, 709, 1381, 32, 20), new Platform(this.game, null, 601, 1573, 32, 20), 
+                    new Platform(this.game, null, 677, 1573, 32, 20), new Platform(this.game, null, 601, 1669, 32, 20), 
+                    new Platform(this.game, null, 677, 1669, 32, 20), new Platform(this.game, null, 601, 1765, 32, 20), 
+                    new Platform(this.game, null, 677, 1765, 32, 20), new Platform(this.game, null, 601, 1477, 32, 20), 
+                    new Platform(this.game, null, 709, 1477, 32, 20)], [/*enemies*/], [new Door(this.game, 30, 1856, 3, 1, false),
+                    new Door(this.game, 928, 1696, 5, 0, false), new Door(this.game, 928, 608, 7, 0, false),
+                    new Door(this.game, 928, 64, 8, 0, false)], [/*items*/], [new Position(31, 1851, 31, 1851, 1, 1),
+                    new Position(886, 1687, 886, 1687, 1, 1), new Position(886, 599, 886, 599, 1, 1),
+                    new Position(886, 55, 886, 55, 1, 1)]);
+    } else if (theStageNum === 5) {
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/FP2.png"), 25, 1893, 25, 613, 1920, 640),
+                    [new Wall(this.game, null, 101, 25, 84, 32), new Wall(this.game, null, 325, 25, 20, 32), 
+                    new Wall(this.game, null, 325, 133, 948, 52), new Wall(this.game, null, 485, 101, 20, 32),
+                    new Wall(this.game, null, 197, 229, 20, 308), new Wall(this.game, null, 421, 185, 52, 268),
+                    new Wall(this.game, null, 357, 453, 148, 52), new Wall(this.game, null, 549, 549, 84, 64),
+                    new Wall(this.game, null, 677, 453, 212, 52), new Wall(this.game, null, 933, 549, 86, 64),
+                    new Wall(this.game, null, 1061, 453, 148, 52), new Wall(this.game, null, 1093, 185, 52, 268),
+                    new Wall(this.game, null, 645, 25, 20, 32), new Wall(this.game, null, 773, 101, 20, 32),
+                    new Wall(this.game, null, 933, 25, 20, 32), new Wall(this.game, null, 1061, 101, 20, 32),
+                    new Wall(this.game, null, 741, 185, 84, 268), new Wall(this.game, null, 1145, 293, 96, 52),
+                    new Wall(this.game, null, 1253, 25, 20, 32), new Wall(this.game, null, 1477, 133, 148, 52),
+                    new Wall(this.game, null, 1797, 101, 20, 224), new Wall(this.game, null, 1349, 325, 116, 180),
+                    new Wall(this.game, null, 1541, 325, 20, 52), new Wall(this.game, null, 1605, 261, 52, 148),
+                    new Wall(this.game, null, 1701, 325, 20, 52), new Wall(this.game, null, 1797, 325, 96, 180),
+                    new Wall(this.game, null, 1605, 549, 52, 64)], 
+                    [new Platform(this.game, null, 25, 101, 32, 20), new Platform(this.game, null, 101, 133, 84, 20), 
+                    new Platform(this.game, null, 25, 229, 172, 20), new Platform(this.game, null, 25, 325, 64, 20), 
+                    new Platform(this.game, null, 165, 325, 32, 20), new Platform(this.game, null, 217, 325, 64, 20), 
+                    new Platform(this.game, null, 69, 421, 52, 20), new Platform(this.game, null, 165, 421, 52, 20), 
+                    new Platform(this.game, null, 69, 517, 52, 20), new Platform(this.game, null, 165, 517, 32, 20), 
+                    new Platform(this.game, null, 473, 325, 64, 20), new Platform(this.game, null, 677, 325, 64, 20), 
+                    new Platform(this.game, null, 825, 261, 32, 20), new Platform(this.game, null, 1061, 261, 32, 20), 
+                    new Platform(this.game, null, 901, 325, 116, 20), new Platform(this.game, null, 1561, 357, 44, 20), 
+                    new Platform(this.game, null, 1657, 357, 44, 20), new Platform(this.game, null, 1733, 453, 64, 20), 
+                    new Platform(this.game, null, 1817, 101, 32, 20), new Platform(this.game, null, 1861, 197, 32, 20)], 
+                    [/* Enemies */], 
+                    [new Door(this.game, 32, 160, 4, 1, false), new Door(this.game, 1888, 544, 6, 0, false)], 
+                    [/* Items */], 
+                    [new Position(32, 155, 32, 155, 1, 1), new Position(1846, 544, 1846, 544, 1, 1)]);
+    } else if (theStageNum === 6) {
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/FP3.png"), 25, 1893, 25, 613, 1920, 640),
+                    [/**Wall */],
+                    [/**Platform */],
+                    [/* Enemies */],
+                    [/**Door */], 
+                    [/* Items */], 
+                    [/**Position */]);
+    } else if (theStageNum === 7) {
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/FP4.png"), 25, 1893, 25, 613, 1920, 640),
+                    [new Wall(this.game, null, 25, 25, 224, 320), new Wall(this.game, null, 165, 549, 116, 64), 
+                    new Wall(this.game, null, 389, 485, 84, 128), new Wall(this.game, null, 473, 549, 76, 64),
+                    new Wall(this.game, null, 1093, 517, 32, 96), new Wall(this.game, null, 549, 261, 148, 352),
+                    new Wall(this.game, null, 805, 229, 20, 116), new Wall(this.game, null, 965, 229, 20, 116),
+                    new Wall(this.game, null, 1125, 261, 148, 352), new Wall(this.game, null, 1413, 101, 116, 52),
+                    new Wall(this.game, null, 1381, 293, 116, 84), new Wall(this.game, null, 1605, 165, 20, 372),
+                    new Wall(this.game, null, 1625, 261, 32, 84), new Wall(this.game, null, 1861, 261, 32, 84)],
+                    [new Platform(this.game, null, 249, 101, 128, 20), new Platform(this.game, null, 249, 229, 64, 20),
+                    new Platform(this.game, null, 485, 293, 64, 20), new Platform(this.game, null, 25, 453, 224, 20),
+                    new Platform(this.game, null, 357, 389, 84, 20), new Platform(this.game, null, 697, 517, 64, 20),
+                    new Platform(this.game, null, 837, 453, 116, 20), new Platform(this.game, null, 581, 133, 52, 20),
+                    new Platform(this.game, null, 805, 133, 212, 20), new Platform(this.game, null, 773, 229, 33, 20),
+                    new Platform(this.game, null, 825, 229, 32, 20), new Platform(this.game, null, 933, 229, 32, 20),
+                    new Platform(this.game, null, 985, 229, 32, 20), new Platform(this.game, null, 1189, 133, 52, 20),
+                    new Platform(this.game, null, 1061, 357, 64, 20), new Platform(this.game, null, 1273, 485, 64, 20),
+                    new Platform(this.game, null, 1701, 293, 116, 20), new Platform(this.game, null, 1413, 549, 116, 20),
+                    new Platform(this.game, null, 1541, 421, 64, 20), new Platform(this.game, null, 1625, 421, 64, 20),
+                    new Platform(this.game, null, 1829, 421, 64, 20), new Platform(this.game, null, 1733, 517, 52, 20),
+                    new Platform(this.game, null, 1625, 165, 268, 20)],
+                    [/* Enemies */],
+                    [new Door(this.game, 32, 384, 4, 2, false), new Door(this.game, 1888, 96, 9, 2, false)], 
+                    [/* Items */], 
+                    [new Position(32, 384, 32, 384, 1, 1), new Position(1848, 96, 1846, 96, 1, 1)]);
+    } else if (theStageNum === 8) {
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/FP5.png"), 25, 1893, 25, 613, 1920, 640),
+                    [/**Walls x4 */],
+                    [/**Platforms x 18 */],
+                    [/* Enemies */],
+                    [/**Doors x2 */], 
+                    [/* Items */], 
+                    [/**Positions */]);
+    } else if (theStageNum === 9) {
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/FP6.png"), 25, 933, 25, 1925, 1000, 1952),
+                    [new Wall()],
+                    [new Platform()],
+                    [/* Enemies */],
+                    [new Door()], 
+                    [/* Items */], 
+                    [new Position()]);
+    } else if (theStageNum === 10) {
+        newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/FP7.png"), 25, 1893, 25, 613, 1920, 640),
+                    [new Wall()],
+                    [new Platform()],
+                    [/* Enemies */],
+                    [new Door()], 
+                    [/* Items */], 
+                    [new Position()]);
     }
     return newStage;
 }
