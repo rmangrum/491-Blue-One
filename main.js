@@ -1668,15 +1668,15 @@ function Player(game) {
     this.damaged = false;
     this.jumping = false;
     this.falling = false;
-    this.blinkEnabled = true;
+    this.blinkEnabled = false;
     this.blinking = false;
     this.kicking = false;
     this.jumpkick = null;
     this.punching = false;
     this.punch = null;
     this.startJump = false;
-    this.jumpsLeft = [1, 2];
-    this.jumpsMax = [1, 2];
+    this.jumpsLeft = [1, 1];
+    this.jumpsMax = [1, 1];
     this.invulnerable = false;
     this.invulTimer = 0;
     this.gameOver = false;
@@ -2461,7 +2461,7 @@ class Stage {
 function SceneManager(game) {
     this.game = game;
     this.newStage = false;
-    this.currentStage = 3;
+    this.currentStage = 0;
     this.startNum = 0;
     this.key1 = new Key(this.game, 551, 987, 0);
     this.key2 = new Key(this.game, 1880, 90, 1);
@@ -2502,7 +2502,7 @@ SceneManager.prototype.youWin = function() {
 }
 
 SceneManager.prototype.update = function() {
-    if (this.newStage && this.currentStage === 11) {
+    if (this.newStage && this.currentStage === 10) {
         this.youWin();
     } else if (this.newStage) {
         
