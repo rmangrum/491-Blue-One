@@ -218,7 +218,7 @@ Camera.prototype.draw = function (ctx) {
         ctx.fillStyle = 'Red';
         ctx.fillText("Click on the screen to start", 650, 560);
         ctx.restore();
-    } else if (this.game.sceneManager.currentStage !== 5) {
+    } else if (this.game.sceneManager.currentStage < 11) {
         var bmOffset = 0;
         var monkOffset = 0;
         if (this.game.player.activeHero === 0) monkOffset = 40;
@@ -1168,6 +1168,497 @@ Rock.prototype.update = function () {
     }
 }
 
+function Jaws(game, theX, theY, faceRight) {
+    this.type = "Enemy";
+    this.HP = 2;
+    this.state = 'idle';
+    this.position = new Position(theX, theY, theX + 19, theY + 19, 40, 42);
+    this.faceRight = faceRight;
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/jaws/idle_left.png"), 0, 0, 50, 50, 0.4, 2, true, false),
+                        idleRight: new Animation(AM.getAsset("./img/sprites/enemies/jaws/idle_right.png"), 0, 0, 50, 50, 0.4, 2, true, false), 
+                        walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/jaws/walk_left.png"), 0, 0, 50, 50, 0.2, 5, true, false),
+                        walkRight: new Animation(AM.getAsset("./img/sprites/enemies/jaws/walk_right.png"), 0, 0, 50, 50, 0.2, 5, true, false),
+                        deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/jaws/death_left.png"), 0, 0, 50, 50, 0.15, 11, false, false),
+                        deathRight: new Animation(AM.getAsset("./img/sprites/enemies/jaws/death_right.png"), 0, 0, 50, 50, 0.15, 11, false, false),
+                        frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};
+    
+    this.game = game;
+    this.aggroCooldown = 0;
+    this.isHit = false;
+    this.isHitRight = false;
+    this.isChasing = false;
+    this.hitPlayer = false;
+}
+
+Jaws.prototype.draw = function (ctx) {
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();  
+    }
+
+    if (this.state === 'idle') {
+        (this.faceRight) ? this.animations.idleRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1.5) : 
+                            this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1.5);
+    }
+    
+    if (this.state === 'walk') {
+        (this.faceRight) ? this.animations.walkRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1.5) : 
+                            this.animations.walkLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1.5);
+    }
+    if (this.state === 'frozen') this.animations.frozen.drawFrame(this.game.clockTick, ctx, drawOffsetX + 16, drawOffsetY + 16, 1.5);
+    if (this.state === 'dead') {
+        if(this.faceRight) {
+            if (this.animations.deathRight.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1.5);
+            }
+        } else {
+            if (this.animations.deathLeft.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1.5);
+            }
+        }
+    }
+}
+
+Jaws.prototype.update = function () {
+    var currentPlatform = verticalCheck(this.position, this.game);
+    var that = this;
+
+    if (this.HP <= 0) this.state = 'dead';
+
+    // Check for player within a certain distance
+    // if within set distance enemy aggros
+    var playerDistance = distance(this.position, this.game.player.position);
+    if ((playerDistance > -200 && playerDistance < 0) || (playerDistance < 200 && playerDistance > 0) && this.aggroCooldown === 0 &&
+            !this.game.player.invulnerable) {
+        this.isChasing = true;
+    } else {
+        this.isChasing = false;
+    }
+
+    // Falling checks
+    if (this.position.bottom === currentPlatform.ground) {
+        this.velocityY = 0;
+        this.falling = false;
+    } else if (this.position.bottom + (this.velocityY + this.game.gravity) * this.game.clockTick >= currentPlatform.ground &&
+                this.velocityY > 0) {
+        this.position.moveTo(this.position.left, currentPlatform.ground - this.position.height);
+        this.velocityY = 0;
+        this.falling = false;
+    } else {
+        this.falling = true;
+        (this.velocityY + this.game.gravity >= this.game.terminalVelocity) ? this.velocityY = this.game.terminalVelocity : this.velocityY += this.game.gravity;
+    }
+
+    if (this.state === 'walk') {
+        if (this.faceRight) {
+            if (this.position.right < currentPlatform.theRight - 50 * this.game.clockTick) {
+                this.velocityX = 150;
+            } else this.faceRight = false;
+        } else {
+            if (this.position.left > currentPlatform.theLeft + 50 * this.game.clockTick) {
+                this.velocityX = -150;
+            } else this.faceRight = true;   
+        }
+    }
+
+    if (this.state === 'frozen') {
+        this.velocityX = 0;
+        if (this.animations.frozen.isDone()) {
+            this.animations.frozen.elapsedTime = 0;
+            this.state = 'walk';
+        }
+    }
+
+    if (this.state === 'dead') {
+        this.velocityX = 0;
+    }
+
+    if (this.hitPlayer) {
+        this.hitPlayer = false;
+        this.game.player.HP[this.game.player.activeHero] -= 1;
+    }
+
+    this.position.moveBy(this.velocityX * this.game.clockTick, this.velocityY * this.game.clockTick);
+
+    if (this.isHit) {
+        this.state = 'dead';
+        if (this.isHitRight) {
+            this.position.moveBy(5, 0);
+            this.isHitRight = false;
+        } else {
+            this.position.moveBy(-5, 0);
+        }
+        this.isHit = false;
+    }
+
+    if (this.isChasing && this.state !== 'dead' && this.state !== 'frozen') {
+        this.state = 'walk';
+        (this.position.left < this.game.player.position.left) ? this.faceRight = true : this.faceRight = false;
+    }   
+    
+    // Wall collision
+    this.game.walls.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position) && that.position.bottom > entity.position.top) {
+            if (that.position.left < entity.position.left) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
+            if (that.position.right > entity.position.right) that.position.moveTo(entity.position.right, that.position.top);
+        }
+    });
+
+    // Stay on background
+    if (this.position.left < this.game.background.leftWall) this.position.moveTo(this.game.background.leftWall, this.position.top);
+    if (this.position.right > this.game.background.rightWall) this.position.moveTo(this.game.background.rightWall - this.position.width, this.position.top);
+
+    if (this.aggroCooldown > 0) this.aggroCooldown -= this.game.clockTick;
+    else if (this.aggroCooldown < 0) this.aggroCooldown = 0;
+}
+
+function Licky(game, theX, theY, faceRight) {
+    this.type = "Enemy";
+    this.HP = 4;
+    this.state = 'idle';
+    this.position = new Position(theX, theY, theX + 18, theY + 20, 30, 30);
+    this.faceRight = faceRight;
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/licky/idle_left.png"), 0, 0, 64, 64, 0.2, 5, true, false),
+                        idleRight: new Animation(AM.getAsset("./img/sprites/enemies/licky/idle_right.png"), 0, 0, 64, 64, 0.2, 5, true, false),
+                        dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/licky/dmg_left.png"), 0, 0, 64, 64, 0.2, 5, false, false),
+                        dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/licky/dmg_right.png"), 0, 0, 64, 64, 0.2, 5, false, false),
+                        deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/licky/death_left.png"), 0, 0, 64, 64, 0.2, 10, false, false),
+                        deathRight: new Animation(AM.getAsset("./img/sprites/enemies/licky/death_right.png"), 0, 0, 64, 64, 0.2, 10, false, false),
+                        frozen: new Animation(AM.getAsset("./img/ice_cube.png"), 0, 0, 32, 32, 2, 1, false, false)};    
+    this.game = game;
+    this.isHit = false;
+    this.isHitRight = false;
+    this.hitPlayer = false;
+}
+
+Licky.prototype.draw = function (ctx) {
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();  
+    }
+
+    if (this.state === 'idle') {
+        (this.faceRight) ? this.animations.idleRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1) : 
+                            this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+    }
+
+    if (this.state === 'frozen') this.animations.frozen.drawFrame(this.game.clockTick, ctx, drawOffsetX + 17, drawOffsetY + 18, 1);
+    
+    if (this.state === 'damaged') {
+        if(this.faceRight) {
+            if (this.animations.dmgRight.isDone()) {
+                this.state = 'idle';
+                this.animations.dmgRight.elapsedTime = 0;
+            } else {
+                this.animations.dmgRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+            }
+        } else {
+            if (this.animations.dmgLeft.isDone()) {
+                this.state = 'idle';
+                this.animations.dmgLeft.elapsedTime = 0;
+            } else {
+                this.animations.dmgLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+            }
+        }
+    }
+
+    if (this.state === 'dead') {
+        if(this.faceRight) {
+            if (this.animations.deathRight.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+            }
+        } else {
+            if (this.animations.deathLeft.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY, 1);
+            }
+        }
+    }
+}
+
+Licky.prototype.update = function () {
+    var that = this;
+
+    if (this.HP <= 0) this.state = 'dead';
+
+    if (this.state === 'idle') {
+        if (this.faceRight) {
+            this.velocityX = 75;
+        } else {
+            this.velocityX = -75;
+        }
+    }
+
+    if (this.state === 'frozen') {
+        this.velocityX = 0;
+        if (this.animations.frozen.isDone()) {
+            this.animations.frozen.elapsedTime = 0;
+            this.state = 'idle';
+        }
+    }
+
+    if (this.state === 'dead' || this.state === 'damaged') {
+        this.velocityX = 0;
+    }
+
+    this.position.moveBy(this.velocityX * this.game.clockTick, this.velocityY * this.game.clockTick);
+
+    if (this.isHit) {
+        if (this.isHitRight) {
+            this.position.moveBy(5, 0);
+            this.isHitRight = false;
+        } else {
+            this.position.moveBy(-5, 0);
+        }
+        this.isHit = false;
+    }
+
+    if (this.hitPlayer) {
+        this.hitPlayer = false;
+        if (this.faceRight) {
+            this.faceRight = false;
+        } else {
+            this.faceRight = true;
+        }
+    }
+    
+    // Wall collision
+    this.game.walls.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position)) {
+            if (that.position.left < entity.position.left) {
+                that.faceRight = false;
+            }
+            if (that.position.right > entity.position.right) {
+                that.faceRight = true;
+            } 
+        }
+    });
+
+    this.game.platforms.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position)) {
+            if (that.position.left < entity.position.left) {
+                that.faceRight = false;
+            }
+            if (that.position.right > entity.position.right) {
+                that.faceRight = true;
+            }
+        }
+    })
+
+    // Stay on background
+    if (this.position.left < this.game.background.leftWall) {
+        this.position.moveTo(this.game.background.leftWall, this.position.top);
+        this.faceRight = true;
+    } 
+    if (this.position.right > this.game.background.rightWall) {
+        this.position.moveTo(this.game.background.rightWall - this.position.width, this.position.top);
+        this.faceRight = false;
+    }
+    
+}
+
+function Mummy(game, theX, theY, faceRight) {
+    this.type = "Enemy";
+    this.HP = 50;
+    this.state = 'idle';
+    this.position = new Position(theX, theY, theX + 30, theY + 10, 35, 60);
+    this.faceRight = faceRight;
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.aggroCooldown = 0;
+    this.animations = {idleLeft: new Animation(AM.getAsset("./img/sprites/enemies/mummy/idle_left.png"), 0, 0, 64, 64, 0.2, 4, true, false),
+                        idleRight: new Animation(AM.getAsset("./img/sprites/enemies/mummy/idle_right.png"), 0, 0, 64, 64, 0.2, 4, true, false),
+                        walkLeft: new Animation(AM.getAsset("./img/sprites/enemies/mummy/walk_left.png"), 0, 0, 64, 64, 0.2, 4, true, false),
+                        walkRight: new Animation(AM.getAsset("./img/sprites/enemies/mummy/walk_right.png"), 0, 0, 64, 64, 0.2, 4, true, false),
+                        dmgLeft: new Animation(AM.getAsset("./img/sprites/enemies/mummy/dmg_left.png"), 0, 0, 64, 64, 0.2, 5, false, false),
+                        dmgRight: new Animation(AM.getAsset("./img/sprites/enemies/mummy/dmg_right.png"), 0, 0, 64, 64, 0.2, 5, false, false),
+                        deathLeft: new Animation(AM.getAsset("./img/sprites/enemies/mummy/death_left.png"), 0, 0, 64, 64, 0.2, 10, false, false),
+                        deathRight: new Animation(AM.getAsset("./img/sprites/enemies/mummy/death_right.png"), 0, 0, 64, 64, 0.2, 10, false, false),
+                        frozen: new Animation(AM.getAsset("./img/bunny_ice.png"), 0, 0, 32, 32, 2, 1, false, false)};
+    this.game = game;
+    this.isHit = false;
+    this.isHitRight = false;
+    this.isChasing = false;
+}
+
+Mummy.prototype.draw = function (ctx) {
+    var drawOffsetX = this.position.drawX - this.game.camera.x;
+    var drawOffsetY = this.position.drawY - this.game.camera.y;
+    var boxOffsetX = this.position.left - this.game.camera.x;
+    var boxOffsetY = this.position.top - this.game.camera.y;
+
+    if (this.game.showOutlines) {
+        ctx.save();
+        ctx.strokeStyle = 'Red';
+        ctx.strokeRect(boxOffsetX, boxOffsetY, this.position.width, this.position.height);
+        ctx.restore();  
+    }
+
+    if (this.state === 'idle') {
+        (this.faceRight) ? this.animations.idleRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5) : 
+                            this.animations.idleLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5);
+    }
+    
+    if (this.state === 'walk') {
+        (this.faceRight) ? this.animations.walkRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5) : 
+                            this.animations.walkLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5);
+    }
+
+    if (this.state === 'frozen') this.animations.frozen.drawFrame(this.game.clockTick, ctx, drawOffsetX + 14, drawOffsetY + 5, 2);
+    
+    if (this.state === 'damaged') {
+        if(this.faceRight) {
+            if (this.animations.dmgRight.isDone()) {
+                this.state = 'idle';
+                this.animations.dmgRight.elapsedTime = 0;
+            } else {
+                this.animations.dmgRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5);
+            }
+        } else {
+            if (this.animations.dmgLeft.isDone()) {
+                this.state = 'idle';
+                this.animations.dmgLeft.elapsedTime = 0;
+            } else {
+                this.animations.dmgLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5);
+            }
+        }
+    }
+
+    if (this.state === 'dead') {
+        if(this.faceRight) {
+            if (this.animations.deathRight.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathRight.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5);
+            }
+        } else {
+            if (this.animations.deathLeft.isDone()) {
+                if (0.33 > Math.random()) this.game.addEntity(new Heart(this.game, this.position.left, this.position.top));
+                this.removeFromWorld = true;
+            } else {
+                this.animations.deathLeft.drawFrame(this.game.clockTick, ctx, drawOffsetX, drawOffsetY - 20, 1.5);
+            }
+        }
+    }
+}
+
+Mummy.prototype.update = function () {
+    var currentPlatform = verticalCheck(this.position, this.game);
+    var that = this;
+
+    if (this.HP <= 0) this.state = 'dead';
+
+    // Check for player within a certain distance
+    // if within set distance enemy aggros
+    var playerDistance = distance(this.position, this.game.player.position);
+    if ((playerDistance > -200 && playerDistance < 0) || (playerDistance < 200 && playerDistance > 0) && this.aggroCooldown === 0 &&
+            this.state !== 'damaged' && !this.game.player.invulnerable) {
+        this.isChasing = true;
+    } else {
+        this.isChasing = false;
+    }
+
+    // Falling checks
+    if (this.position.bottom === currentPlatform.ground) {
+        this.velocityY = 0;
+        this.falling = false;
+    } else if (this.position.bottom + (this.velocityY + this.game.gravity) * this.game.clockTick >= currentPlatform.ground &&
+                this.velocityY > 0) {
+        this.position.moveTo(this.position.left, currentPlatform.ground - this.position.height);
+        this.velocityY = 0;
+        this.falling = false;
+    } else {
+        this.falling = true;
+        (this.velocityY + this.game.gravity >= this.game.terminalVelocity) ? this.velocityY = this.game.terminalVelocity : this.velocityY += this.game.gravity;
+    }
+
+    if (this.state === 'walk') {
+        if (this.faceRight) {
+            if (this.position.right < currentPlatform.theRight - 50 * this.game.clockTick) {
+                this.velocityX = 25;
+            } else this.faceRight = false;
+        } else {
+            if (this.position.left > currentPlatform.theLeft + 50 * this.game.clockTick) {
+                this.velocityX = -25;
+            } else this.faceRight = true;   
+        }
+    }
+
+    if (this.state === 'frozen') {
+        this.velocityX = 0;
+        if (this.animations.frozen.isDone()) {
+            this.animations.frozen.elapsedTime = 0;
+            this.state = 'walk';
+        }
+    }
+
+    if (this.state === 'dead' || this.state === 'damaged') {
+        this.velocityX = 0;
+    }
+
+    this.position.moveBy(this.velocityX * this.game.clockTick, this.velocityY * this.game.clockTick);
+
+    if (this.isHit) {
+        if (this.isHitRight) {
+            this.position.moveBy(5, 0);
+            this.isHitRight = false;
+        } else {
+            this.position.moveBy(-5, 0);
+        }
+        this.isHit = false;
+    }
+
+    if (this.isChasing && this.state !== 'dead' && this.state !== 'damaged' && this.state !== 'frozen') {
+        this.state = 'walk';
+        (this.position.left < this.game.player.position.left) ? this.faceRight = true : this.faceRight = false;
+    }
+   
+    // Wall collision
+    this.game.walls.forEach(function(entity) {
+        if (collisionDetector(that.position, entity.position) && that.position.bottom > entity.position.top) {
+            if (that.position.left < entity.position.left) that.position.moveTo(entity.position.left - that.position.width, that.position.top);
+            if (that.position.right > entity.position.right) that.position.moveTo(entity.position.right, that.position.top);
+        }
+    });
+
+    // Stay on background
+    if (this.position.left < this.game.background.leftWall) this.position.moveTo(this.game.background.leftWall, this.position.top);
+    if (this.position.right > this.game.background.rightWall) this.position.moveTo(this.game.background.rightWall - this.position.width, this.position.top);
+
+    if (this.aggroCooldown > 0) this.aggroCooldown -= this.game.clockTick;
+    else if (this.aggroCooldown < 0) this.aggroCooldown = 0;
+}
+
 function Player(game) {
     this.game = game;
     this.HP = [3,6];
@@ -1177,15 +1668,15 @@ function Player(game) {
     this.damaged = false;
     this.jumping = false;
     this.falling = false;
-    this.blinkEnabled = false;
+    this.blinkEnabled = true;
     this.blinking = false;
     this.kicking = false;
     this.jumpkick = null;
     this.punching = false;
     this.punch = null;
     this.startJump = false;
-    this.jumpsLeft = [1, 1];
-    this.jumpsMax = [1, 1];
+    this.jumpsLeft = [1, 2];
+    this.jumpsMax = [1, 2];
     this.invulnerable = false;
     this.invulTimer = 0;
     this.gameOver = false;
@@ -1493,6 +1984,7 @@ Player.prototype.update = function() {
                 that.damaged = true;
                 that.invulnerable = true;
                 that.invulTimer = 2;
+                entity.hitPlayer = true;
             }
         } 
     })
@@ -1969,7 +2461,7 @@ class Stage {
 function SceneManager(game) {
     this.game = game;
     this.newStage = false;
-    this.currentStage = 0;
+    this.currentStage = 3;
     this.startNum = 0;
     this.key1 = new Key(this.game, 551, 987, 0);
     this.key2 = new Key(this.game, 1880, 90, 1);
@@ -1993,6 +2485,7 @@ SceneManager.prototype.gameOver = function() {
     this.game.items.length = 0;
     this.game.doors.length = 0;
     this.game.enemies.length = 0;
+    this.game.projectiles.length = 0;
     this.game.player.gameOver = true;
 }
 
@@ -2005,6 +2498,7 @@ SceneManager.prototype.youWin = function() {
     this.game.items.length = 0;
     this.game.doors.length = 0;
     this.game.enemies.length = 0;
+    this.game.projectiles.length = 0;
 }
 
 SceneManager.prototype.update = function() {
@@ -2021,6 +2515,7 @@ SceneManager.prototype.update = function() {
         this.game.items.length = 0;
         this.game.doors.length = 0;
         this.game.enemies.length = 0;
+        this.game.projectiles.length = 0;
 
         // Load new entities
         // Walls
@@ -2223,11 +2718,24 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Platform(this.game, null, 677, 1573, 32, 20), new Platform(this.game, null, 601, 1669, 32, 20), 
                     new Platform(this.game, null, 677, 1669, 32, 20), new Platform(this.game, null, 601, 1765, 32, 20), 
                     new Platform(this.game, null, 677, 1765, 32, 20), new Platform(this.game, null, 601, 1477, 32, 20), 
-                    new Platform(this.game, null, 709, 1477, 32, 20)], [/*enemies*/], [new Door(this.game, 30, 1856, 3, 1, false),
-                    new Door(this.game, 928, 1696, 5, 0, false), new Door(this.game, 928, 608, 7, 0, false),
-                    new Door(this.game, 928, 64, 8, 0, false)], [/*items*/], [new Position(31, 1851, 31, 1851, 1, 1),
-                    new Position(886, 1687, 886, 1687, 1, 1), new Position(886, 599, 886, 599, 1, 1),
-                    new Position(886, 55, 886, 55, 1, 1)]);
+                    new Platform(this.game, null, 709, 1477, 32, 20)],
+                    [new Slime(this.game, 480, 1824, false,'Green'), new Slime(this.game, 576, 1312, false,'Green'), 
+                    new Slime(this.game, 724, 1312, false,'Green'), new Slime(this.game, 96, 800, false,'Green'),
+                    new Bunny(this.game, 650, 1792, false), new Bunny(this.game, 704, 1504, false), 
+                    new Bunny(this.game, 643, 1120, false), new Bunny(this.game, 832, 800, false), 
+                    new Bunny(this.game, 704, 704, false), new Bunny(this.game, 32, 224, false), 
+                    new Bunny(this.game, 32, 64, false), new Bunny(this.game, 32, 384, false), 
+                    new Licky(this.game, 224, 768, true), new Licky(this.game, 544, 1056, true),
+                    new Licky(this.game, 224, 448, true), new Licky(this.game, 338, 288, true),
+                    new Licky(this.game, 530, 128, true), 
+                    new Jaws(this.game, 352, 640, false), new Jaws(this.game, 877, 256, false),
+                    new Jaws(this.game, 812, 320, false), new Jaws(this.game, 757, 384, false),
+                    new Mummy(this.game, 460, 768, false)],
+                    [new Door(this.game, 30, 1856, 3, 1, false), new Door(this.game, 928, 1696, 5, 0, false), 
+                    new Door(this.game, 928, 608, 7, 0, false), new Door(this.game, 928, 64, 8, 0, false)], 
+                    [/*items*/], 
+                    [new Position(31, 1851, 31, 1851, 1, 1), new Position(886, 1687, 886, 1687, 1, 1), 
+                    new Position(886, 599, 886, 599, 1, 1), new Position(886, 55, 886, 55, 1, 1)]);
     } else if (theStageNum === 5) {
         newStage = new Stage(new Background(this.game, AM.getAsset("./img/sprites/backgrounds/FP2.png"), 25, 1893, 25, 613, 1920, 640),
                     [new Wall(this.game, null, 101, 25, 84, 32), new Wall(this.game, null, 325, 25, 20, 32), 
@@ -2254,7 +2762,20 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Platform(this.game, null, 901, 325, 116, 20), new Platform(this.game, null, 1561, 357, 44, 20), 
                     new Platform(this.game, null, 1657, 357, 44, 20), new Platform(this.game, null, 1733, 453, 64, 20), 
                     new Platform(this.game, null, 1817, 101, 32, 20), new Platform(this.game, null, 1861, 197, 32, 20)], 
-                    [/* Enemies */], 
+                    [new Slime(this.game, 416, 64, false,'Green'), new Slime(this.game, 1120, 64, false,'Green'),
+                    new Slime(this.game, 1152, 384, false,'Green'), new Slime(this.game, 1536, 64, false,'Green'),
+                    new Bunny(this.game, 32, 256, true), new Bunny(this.game, 128, 64, false),
+                    new Bunny(this.game, 480, 256, true), new Bunny(this.game, 704, 256, false),
+                    new Bunny(this.game, 1152, 224, true), new Bunny(this.game, 1798, 32, false),
+                    new Licky(this.game, 100, 352, true), new Licky(this.game, 100, 448, true),
+                    new Licky(this.game, 480, 505, true), new Licky(this.game, 512, 384, true),
+                    new Licky(this.game, 1312, 192, true), new Licky(this.game, 1264, 57, true), 
+                    new Jaws(this.game, 825, 202, false), new Jaws(this.game, 1056, 202, false),
+                    new Jaws(this.game, 1120, 544, false), new Jaws(this.game, 1440, 544, false),
+                    new Jaws(this.game, 1600, 200, false), new Jaws(this.game, 1632, 200, false),
+                    new Mummy(this.game, 576, 32, false), new Mummy(this.game, 864, 32, false),
+                    new Mummy(this.game, 352, 512, false), new Mummy(this.game, 736, 512, false),
+                    new Mummy(this.game, 928, 224, false)], 
                     [new Door(this.game, 32, 160, 4, 1, false), new Door(this.game, 1888, 544, 9, 0, false)], 
                     [/* Items */], 
                     [new Position(32, 155, 32, 155, 1, 1), new Position(1846, 544, 1846, 544, 1, 1)]);
@@ -2278,7 +2799,16 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Platform(this.game, null, 921, 133, 32, 20), new Platform(this.game, null, 645, 133, 32, 20), 
                     new Platform(this.game, null, 389, 133, 84, 20), new Platform(this.game, null, 101, 101, 52, 20), 
                     new Platform(this.game, null, 25, 229, 204, 20)],
-                    [/* Enemies */],
+                    [new Slime(this.game, 416, 288, false,'Green'), new Slime(this.game, 1632, 256, false,'Green'),
+                    new Bunny(this.game, 101, 32, true), new Bunny(this.game, 640, 64, false),
+                    new Bunny(this.game, 920, 64, true), new Bunny(this.game, 1152, 96, true),
+                    new Bunny(this.game, 1440, 128, false), new Bunny(this.game, 1504, 128, true),
+                    new Bunny(this.game, 1440, 416, true),
+                    new Licky(this.game, 512, 178, true), new Licky(this.game, 64, 270, true),
+                    new Jaws(this.game, 32, 160, false), new Jaws(this.game, 160, 160, false),
+                    new Jaws(this.game, 1856, 352, false),
+                    new Mummy(this.game, 1824, 32, false), new Mummy(this.game, 1280, 160, false),
+                    new Mummy(this.game, 640, 160, false), new Mummy(this.game, 160, 256, false)],
                     [new Door(this.game, 1888, 544, 9, 1, false)], 
                     [/* Items */], 
                     [new Position(1848, 544, 1848, 544, 1, 1)]);
@@ -2303,7 +2833,17 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Platform(this.game, null, 1541, 421, 64, 20), new Platform(this.game, null, 1625, 421, 64, 20),
                     new Platform(this.game, null, 1829, 421, 64, 20), new Platform(this.game, null, 1733, 517, 52, 20),
                     new Platform(this.game, null, 1625, 165, 268, 20)],
-                    [/* Enemies */],
+                    [new Slime(this.game, 800, 160, false,'Green'), new Slime(this.game, 960, 160, false,'Green'),
+                    new Bunny(this.game, 289, 32, true), new Bunny(this.game, 500, 224, false),
+                    new Bunny(this.game, 257, 160, true), new Bunny(this.game, 705, 448, true),
+                    new Bunny(this.game, 1073, 288, false), new Bunny(this.game, 1280, 416, true),
+                    new Bunny(this.game, 1568, 352, false), 
+                    new Licky(this.game, 64, 480, true), new Licky(this.game, 352, 288, true),
+                    new Licky(this.game, 768, 384, true), new Licky(this.game, 1408, 224, true),
+                    new Licky(this.game, 1696, 192, true), new Licky(this.game, 1728, 352, true),
+                    new Jaws(this.game, 480, 480, false), new Jaws(this.game, 864, 64, false),
+                    new Jaws(this.game, 1733, 448, false),
+                    new Mummy(this.game, 864, 512, false)],
                     [new Door(this.game, 32, 384, 4, 2, false), new Door(this.game, 1888, 96, 9, 2, false)], 
                     [/* Items */], 
                     [new Position(32, 384, 32, 384, 1, 1), new Position(1848, 96, 1846, 96, 1, 1)]);
@@ -2320,7 +2860,11 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Platform(this.game, null, 1157, 389, 84, 20), new Platform(this.game, null, 997, 421, 84, 20),
                     new Platform(this.game, null, 837, 453, 84, 20), new Platform(this.game, null, 677, 485, 84, 20),
                     new Platform(this.game, null, 517, 517, 84, 20), new Platform(this.game, null, 357, 549, 84, 20)],
-                    [/* Enemies */],
+                    [new Licky(this.game, 384, 256, true), new Licky(this.game, 384, 320, true),
+                    new Licky(this.game, 384, 384, true), new Licky(this.game, 1664, 160, true),
+                    new Licky(this.game, 192, 33, true), 
+                    new Jaws(this.game, 704, 544, false), new Jaws(this.game, 1184, 544, false),
+                    new Jaws(this.game, 1664, 544, false)],
                     [new Door(this.game, 32, 448, 4, 3, false), new Door(this.game, 1888, 64, 10, 0, false)], 
                     [/* Items */], 
                     [new Position(32, 448, 32, 448, 1, 1), new Position(1848, 64, 1846, 64, 1, 1)]);
@@ -2358,7 +2902,19 @@ SceneManager.prototype.createStage = function(theStageNum) {
                     new Platform(this.game, null, 837, 1029, 32, 20), new Platform(this.game, null, 25, 1253, 128, 20),
                     new Platform(this.game, null, 549, 1253, 116, 20), new Platform(this.game, null, 805, 1253, 128, 20),
                     new Platform(this.game, null, 293, 1253, 116, 20)],
-                    [/* Enemies */],
+                    [new Slime(this.game, 48, 672, false,'Green'), new Slime(this.game, 461 ,672, false,'Green'),
+                    new Slime(this.game, 864, 671, false,'Green'), new Slime(this.game, 205, 1536, false,'Green'),
+                    new Slime(this.game, 326, 1408, false,'Green'), new Slime(this.game, 331, 1664, false,'Green'),
+                    new Slime(this.game, 461, 1536, false,'Green'), new Slime(this.game, 593, 1407, false,'Green'),
+                    new Slime(this.game, 589, 1664, false,'Green'), new Slime(this.game, 716, 1536, false,'Green'),
+                    new Bunny(this.game, 393, 96, false), new Bunny(this.game, 896, 64, false),
+                    new Bunny(this.game, 896, 257, false), new Bunny(this.game, 897, 448, false),
+                    new Bunny(this.game, 33, 1409, true), new Bunny(this.game, 886, 1408, false),
+                    new Licky(this.game, 161, 192, true), new Licky(this.game, 289, 320, true),
+                    new Licky(this.game, 160, 782, true), new Licky(this.game, 737, 940, true),
+                    new Jaws(this.game, 608, 1857, false), new Jaws(this.game, 832, 1857, false),
+                    new Mummy(this.game, 64, 512, false), new Mummy(this.game, 512, 512, false),
+                    new Mummy(this.game, 800, 512, false)],
                     [new Door(this.game, 32, 1856, 5, 1, false), new Door(this.game, 32, 1184, 6, 0, false), 
                     new Door(this.game, 32, 96, 7, 1, false)], 
                     [/* Items */], 
@@ -2486,6 +3042,34 @@ AM.queueDownload("./img/sprites/enemies/bunny/atk_l.png");
 AM.queueDownload("./img/sprites/enemies/bunny/atk_r.png");
 AM.queueDownload("./img/sprites/enemies/bunny/medium_rock.png");
 AM.queueDownload("./img/bunny_ice.png");
+
+// Jaws Sprites
+AM.queueDownload("./img/sprites/enemies/jaws/death_left.png");
+AM.queueDownload("./img/sprites/enemies/jaws/death_right.png");
+AM.queueDownload("./img/sprites/enemies/jaws/idle_left.png");
+AM.queueDownload("./img/sprites/enemies/jaws/idle_right.png");
+AM.queueDownload("./img/sprites/enemies/jaws/walk_left.png");
+AM.queueDownload("./img/sprites/enemies/jaws/walk_right.png");
+
+// Licky Sprites
+AM.queueDownload("./img/sprites/enemies/licky/attack_left.png");
+AM.queueDownload("./img/sprites/enemies/licky/attack_right.png");
+AM.queueDownload("./img/sprites/enemies/licky/death_left.png");
+AM.queueDownload("./img/sprites/enemies/licky/death_right.png");
+AM.queueDownload("./img/sprites/enemies/licky/dmg_left.png");
+AM.queueDownload("./img/sprites/enemies/licky/dmg_right.png");
+AM.queueDownload("./img/sprites/enemies/licky/idle_left.png");
+AM.queueDownload("./img/sprites/enemies/licky/idle_right.png");
+
+// Mummy Sprites
+AM.queueDownload("./img/sprites/enemies/mummy/idle_left.png");
+AM.queueDownload("./img/sprites/enemies/mummy/idle_right.png");
+AM.queueDownload("./img/sprites/enemies/mummy/walk_left.png");
+AM.queueDownload("./img/sprites/enemies/mummy/walk_right.png");
+AM.queueDownload("./img/sprites/enemies/mummy/dmg_left.png");
+AM.queueDownload("./img/sprites/enemies/mummy/dmg_right.png");
+AM.queueDownload("./img/sprites/enemies/mummy/death_left.png");
+AM.queueDownload("./img/sprites/enemies/mummy/death_right.png");
 
 // Item Sprites
 AM.queueDownload("./img/sprites/items/key_idle_spin.png");
