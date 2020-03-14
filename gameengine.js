@@ -41,6 +41,10 @@ function GameEngine() {
     this.items = [];
     this.doors = [];
 
+    this.boss1Alive = true;
+    this.boss2Alive = true;
+    this.boss3Alive = true;
+
     this.showOutlines = false;
     this.ctx = null;
     this.click = null;
